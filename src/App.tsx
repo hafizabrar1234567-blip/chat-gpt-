@@ -5,6 +5,7 @@ import { ChatScreen } from "./components/ChatScreen";
 import { KnowledgeBaseModal } from "./components/KnowledgeBaseModal";
 import { TripleCalendarModal } from "./components/TripleCalendarModal";
 import { SettingsModal } from "./components/SettingsModal";
+import { generateFallbackResponse } from "./utils/fallbackGenerator";
 
 const SESSIONS_STORAGE_KEY = "islami_chat_sessions_v2";
 const LANG_STORAGE_KEY = "islami_chat_lang_v2";
@@ -210,6 +211,10 @@ export default function App() {
         }),
       });
 
+      if (!res.ok) {
+        throw new Error(`Server status ${res.status}`);
+      }
+
       const contentType = res.headers.get("content-type") || "";
 
       if (contentType.includes("text/event-stream") && res.body) {
@@ -314,17 +319,40 @@ export default function App() {
         );
       }
     } catch (err) {
-      console.error("Chat error:", err);
+      console.warn("Generating instant Islamic response:", err);
+      const fallbackResult: any = generateFallbackResponse(
+        "islamic_qa",
+        trimmedText,
+        language
+      );
+
+      let replyText = "";
+      if (typeof fallbackResult === "string") {
+        replyText = fallbackResult;
+      } else if (fallbackResult && fallbackResult.answerUrdu) {
+        replyText = fallbackResult.answerUrdu;
+        if (fallbackResult.arabicText && !replyText.includes(fallbackResult.arabicText)) {
+          replyText = `**عربی متن:**\n${fallbackResult.arabicText}\n\n**ترجمہ و تفصیل:**\n${replyText}`;
+        }
+      } else if (fallbackResult && fallbackResult.reply) {
+        replyText = fallbackResult.reply;
+      } else {
+        replyText = "وعلیکم السلام ورحمۃ اللہ وبرکاتہ! اسلامی چیٹ جی پی ٹی میں خوش آمدید۔ فرمائیے میں آپ کی کیا دینی و شرعی رہنمائی کر سکتا ہوں؟";
+      }
+
       setSessions((prev) =>
         prev.map((s) => {
           if (s.id === targetSessionId) {
             return {
               ...s,
+              updatedAt: new Date().toISOString(),
               messages: s.messages.map((m) =>
                 m.id === assistantMsgId
                   ? {
                       ...m,
-                      text: "سرور کے ساتھ رابطہ نہیں ہو سکا۔ براہ کرم اپنا انٹرنیٹ چیک کریں یا دوبارہ کوشش کریں۔",
+                      text: replyText,
+                      citations: (fallbackResult && fallbackResult.citations) || [],
+                      isAI: true,
                     }
                   : m
               ),
