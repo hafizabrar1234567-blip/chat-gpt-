@@ -331,13 +331,10 @@ export default function App() {
         replyText = fallbackResult;
       } else if (fallbackResult && fallbackResult.answerUrdu) {
         replyText = fallbackResult.answerUrdu;
-        if (fallbackResult.arabicText && !replyText.includes(fallbackResult.arabicText)) {
-          replyText = `**عربی متن:**\n${fallbackResult.arabicText}\n\n**ترجمہ و تفصیل:**\n${replyText}`;
-        }
       } else if (fallbackResult && fallbackResult.reply) {
         replyText = fallbackResult.reply;
       } else {
-        replyText = "وعلیکم السلام ورحمۃ اللہ وبرکاتہ! اسلامی چیٹ جی پی ٹی میں خوش آمدید۔ فرمائیے میں آپ کی کیا دینی و شرعی رہنمائی کر سکتا ہوں؟";
+        replyText = "وعلیکم السلام ورحمۃ اللہ وبرکاتہ! 🕌✨\n\nاسلامی چیٹ جی پی ٹی میں خوش آمدید۔ فرمائیے میں آپ کی کیا دینی و شرعی رہنمائی کر سکتا ہوں؟";
       }
 
       setSessions((prev) =>

@@ -484,6 +484,50 @@ export function generateFallbackResponse(
     const dynamicFatwaSearchUrl = "https://alulama.org/?s=" + encodeURIComponent(searchKw);
     const cleanSearchQuery = rawTopic;
 
+    // 0. Primary Salam, Greetings & Welcome Check (Urdu, Roman Urdu, Arabic, English)
+    const isSalamOrGreeting = (
+      lowerTopic.includes("salam") ||
+      lowerTopic.includes("slam") ||
+      lowerTopic.includes("slaam") ||
+      lowerTopic.includes("asslam") ||
+      lowerTopic.includes("aslam") ||
+      lowerTopic.includes("assalam") ||
+      lowerTopic.includes("asalam") ||
+      lowerTopic.includes("alaikum") ||
+      lowerTopic.includes("alaykum") ||
+      lowerTopic.includes("alikom") ||
+      lowerTopic.includes("alikam") ||
+      lowerTopic.includes("سلام") ||
+      lowerTopic.includes("السلام") ||
+      lowerTopic.includes("وعلیکم") ||
+      lowerTopic.trim() === "aoa" ||
+      lowerTopic.trim() === "a.o.a" ||
+      lowerTopic.trim() === "hi" ||
+      lowerTopic.trim() === "hello" ||
+      lowerTopic.trim() === "hey" ||
+      lowerTopic.includes("کون ہو") ||
+      lowerTopic.includes("تعارف") ||
+      lowerTopic.includes("who are you")
+    ) && !lowerTopic.includes("اسلامی") && !lowerTopic.includes("اسلام کے") && !lowerTopic.includes("اسلام میں") && !lowerTopic.includes("دین اسلام");
+
+    if (isSalamOrGreeting) {
+      return {
+        question: rawTopic,
+        answerUrdu: "وعلیکم السلام ورحمۃ اللہ وبرکاتہ! 🕌✨\n\nآپ کا **اسلامی چیٹ جی پی ٹی (Islamic & AI ChatGPT)** میں خوش آمدید۔\n\nفرمائیے، میں آپ کی کیا دینی، شرعی، قرآنی، علمی یا تکنیکی رہنمائی کر سکتا ہوں؟ آپ قرآن و صحیح احادیث، فقہی مسائل، کمپیوٹر، کوڈنگ، سوشل میڈیا پوسٹس یا شاہی ناموں کے لوگو ڈیزائن سے متعلق کوئی بھی سوال بلا جھجھک پوچھ سکتے ہیں۔",
+        arabicText: "إِذَا حُيِّيتُم بِتَحِيَّةٍ فَحَيُّوا بِأَحْسَنَ مِنْهَا أَوْ رُدُّوهَا ۗ إِنَّ اللَّهَ كَانَ عَلَىٰ كُلِّ شَيْءٍ حَسِيبًا",
+        translation: "اور جب تمہیں کوئی دعا (سلام) دی جائے تو تم اس سے بہتر دعا دو یا وہی الفاظ لوٹا دو، بے شک اللہ ہر چیز کا حساب لینے والا ہے۔ (سورۃ النساء: 86)",
+        quranReference: "سورۃ النساء (4:86)",
+        hadithReference: "صحیح بخاری: 12 (کتاب الإیمان)",
+        keyTakeaway: "سلام میں پہل کرنا سنتِ نبوی اور باہمی محبت و سلامتی کی علامت ہے۔",
+        practicalAdvice: "آپس میں سلام کو عام کریں اور ایک دوسرے کے لیے خیر و عافیت کی دعا کریں۔",
+        suggestedQuestions: [
+          "قرآن پاک کی تلاوت اور تجوید کے بنیادی احکام",
+          "صحیح بخاری کی روشنی میں روزمرہ کے مسنون اذکار",
+          "میرے نام کا شاہی لوگو اور ڈی پی ڈیزائن بنائیں",
+        ],
+      };
+    }
+
     // =========================================================================
     // 📖 QURAN TRANSLATION & TAFSIR - MAULANA HAFIZ ABDUL SALAM BHATVI (رحمہ اللہ)
     // =========================================================================
