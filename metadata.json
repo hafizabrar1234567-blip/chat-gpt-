@@ -1,0 +1,6 @@
+{
+  "name": "Islamic ChatGPT (اسلامی چیٹ جی پی ٹی)",
+  "description": "Islamic & AI ChatGPT - قرآن و صحیح احادیث، جدید مصنوعی ذہانت (AI)، کمپیوٹر ٹیکنالوجی، سوشل میڈیا پوسٹس اور شاہی لوگو و ڈی پی ڈیزائن کا ذہین معاون۔",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "usr_g_1787718254033_bb5840d8",
+    "email": "hafizabrar1234567@gmail.com",
+    "name": "hafizabrar1234567",
+    "createdAt": "2026-08-26T04:24:14.034Z",
+    "plan": "FREE",
+    "dailyUsage": {
+      "date": "2026-09-01",
+      "count": 1
+    },
+    "passwordHash": "b22c7e16b4bd12b75ca7089599bb182ab6fbd0f58fbe866c3c9ec33be9e5a49c4fa0a4fc09f27521e7fa20c0631e997e8763095727bf75988222f1ce854ba80e",
+    "passwordSalt": "76ec82cad57fb7a47de9b804ca26f480"
+  },
+  {
+    "id": "usr_1787718335568_01fe2c95",
+    "email": "testuser@gmail.com",
+    "name": "Test User",
+    "createdAt": "2026-08-26T04:25:35.568Z",
+    "plan": "FREE",
+    "dailyUsage": {
+      "date": "2026-08-26",
+      "count": 0
+    },
+    "passwordHash": "4747de9ae1bdac98334d003be0c1178ffc104e0501f9b23d5bcbedbada7c74e91b83f443bd7acb951f846032173d2bc8b785069a8dce4f7cfc15abcdf8ee16f7",
+    "passwordSalt": "8046d4f2cf7db75793ae53bef2f4ab0f"
+  }
+]

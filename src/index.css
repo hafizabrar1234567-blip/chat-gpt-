@@ -1,0 +1,249 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Scheherazade+New:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700;800&family=Noto+Nastaliq+Urdu:wght@400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'KFGQPC Uthman Taha Naskh';
+  src: url('https://cdn.jsdelivr.net/gh/fontsource/kfgqpc-uthman-taha-naskh@latest/files/kfgqpc-uthman-taha-naskh-arabic-400-normal.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/fontsource/kfgqpc-uthman-taha-naskh@latest/files/kfgqpc-uthman-taha-naskh-arabic-400-normal.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'UthmanicHafs';
+  src: url('https://cdn.jsdelivr.net/gh/quran/quran.com-frontend@master/public/fonts/UthmanicHafs1Ver18.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  html, body, #root {
+    max-width: 100vw;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #F7F7FA;
+    color: #111827;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  *, ::before, ::after {
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+  }
+}
+
+.font-urdu {
+  font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', 'Scheherazade New', 'Amiri', 'Urdu Typesetting', 'Jameel Noori Nastaleeq', 'Segoe UI', system-ui, sans-serif;
+  line-height: 2.1;
+  direction: rtl;
+}
+
+.font-urdu-ui {
+  font-family: 'Noto Naskh Arabic', 'Noto Nastaliq Urdu', 'Scheherazade New', 'Amiri', 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.7;
+  direction: rtl;
+}
+
+/* Ensure all buttons, chips, and cards have proper vertical headroom for Urdu dots */
+button.font-urdu,
+span.font-urdu,
+p.font-urdu {
+  overflow: visible;
+}
+
+/* Authentic Uthmani Quranic Typography (رسمِ عثمانی قرآنی خطاطی) */
+.font-arabic,
+.font-quran,
+.font-uthmani {
+  font-family: 'KFGQPC Uthman Taha Naskh', 'UthmanicHafs', 'Amiri Quran', 'Scheherazade New', 'Amiri', 'Noto Naskh Arabic', 'Traditional Arabic', serif;
+  direction: rtl;
+  text-align: center;
+  font-feature-settings: "cv01" on, "cv02" on;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Quran Ayat display container */
+.quran-verse-box {
+  font-family: 'KFGQPC Uthman Taha Naskh', 'UthmanicHafs', 'Amiri Quran', 'Scheherazade New', 'Amiri', serif;
+  font-feature-settings: "cv01" on, "cv02" on;
+  word-spacing: 0.12em;
+  letter-spacing: 0;
+  line-height: 2.5;
+}
+
+/* Rich Markdown styling for Urdu & Arabic Islamic and Tech content */
+.markdown-urdu-content {
+  line-height: 2.1;
+  font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', system-ui, sans-serif;
+  direction: rtl;
+  text-align: right;
+}
+
+.markdown-urdu-content h1,
+.markdown-urdu-content h2,
+.markdown-urdu-content h3,
+.markdown-urdu-content h4 {
+  font-weight: 800;
+  margin-top: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: #064e3b;
+  display: block;
+}
+
+.markdown-urdu-content h1 { font-size: 1.25rem; }
+.markdown-urdu-content h2 { font-size: 1.15rem; }
+.markdown-urdu-content h3 { font-size: 1.05rem; }
+
+.markdown-urdu-content p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-urdu-content ul,
+.markdown-urdu-content ol {
+  padding-right: 1.25rem;
+  margin-bottom: 0.85rem;
+  list-style-position: inside;
+}
+
+.markdown-urdu-content ul {
+  list-style-type: disc;
+}
+
+.markdown-urdu-content ol {
+  list-style-type: decimal;
+}
+
+.markdown-urdu-content li {
+  margin-bottom: 0.4rem;
+}
+
+.markdown-urdu-content strong {
+  font-weight: 800;
+  color: #047857;
+}
+
+.markdown-urdu-content hr {
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  margin: 1.2rem 0;
+}
+
+.markdown-urdu-content blockquote {
+  border-right: 3px solid #10b981;
+  padding-right: 0.85rem;
+  margin: 0.85rem 0;
+  background-color: #f0fdf4;
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  font-family: 'KFGQPC Uthman Taha Naskh', 'UthmanicHafs', 'Amiri Quran', 'Scheherazade New', 'Amiri', 'Noto Nastaliq Urdu', serif;
+  font-size: 1.05rem;
+  line-height: 2.2;
+}
+
+.markdown-urdu-content [lang="ar"],
+.markdown-urdu-content .arabic-text {
+  font-family: 'KFGQPC Uthman Taha Naskh', 'UthmanicHafs', 'Amiri Quran', 'Scheherazade New', 'Amiri', serif;
+  font-size: 1.15rem;
+  line-height: 2.4;
+}
+
+.markdown-urdu-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+  direction: rtl;
+}
+
+.markdown-urdu-content th,
+.markdown-urdu-content td {
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 0.65rem;
+  text-align: right;
+}
+
+.markdown-urdu-content th {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  font-weight: 700;
+}
+
+/* Code & Terminal styling for Python, Bash, Cloud & AI Scripts */
+.markdown-urdu-content pre {
+  direction: ltr !important;
+  text-align: left !important;
+  background-color: #0f172a !important;
+  color: #38bdf8 !important;
+  padding: 1rem 1.25rem !important;
+  border-radius: 0.85rem !important;
+  border: 1px solid #1e293b !important;
+  overflow-x: auto !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+  font-size: 0.84rem !important;
+  line-height: 1.6 !important;
+  margin: 0.9rem 0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.markdown-urdu-content pre code {
+  background-color: transparent !important;
+  color: #e2e8f0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font-size: inherit !important;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.markdown-urdu-content code {
+  direction: ltr !important;
+  display: inline-block;
+  background-color: #f1f5f9;
+  color: #0284c7;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+  border: 1px solid #e2e8f0;
+}
+
+/* Custom scrollbar hiding utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Glow effects */
+.glow-purple {
+  box-shadow: 0 10px 30px -10px rgba(124, 58, 237, 0.35);
+}
+
+.glow-indigo {
+  box-shadow: 0 10px 30px -10px rgba(79, 70, 229, 0.35);
+}
