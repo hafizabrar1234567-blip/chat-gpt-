@@ -171,6 +171,15 @@ const romanToUrduMap: Record<string, string> = {
   talaq: "طلاق",
   talaaq: "طلاق",
   divorce: "طلاق",
+  teen: "تین",
+  tin: "تین",
+  three: "تین",
+  majlis: "مجلس",
+  do: "دو",
+  two: "دو",
+  gussa: "غصہ",
+  ghussa: "غصہ",
+  shart: "شرط",
   khula: "خلع",
   khulaa: "خلع",
   iddat: "عدت",
@@ -403,6 +412,7 @@ function scoreCandidatePost(post: any, topicKeywords: string[]): number {
 
   const broadWords = new Set([
     "نماز", "روزہ", "وضو", "غسل", "اسلام", "دین", "مسئلہ", "حکم", "شرعی", "احکام", "بارے",
+    "طلاق", "نکاح", "شادی",
     "حدیث", "احادیث", "روایت", "قرآن", "آیت", "سورت", "ترجمہ", "فضیلت", "بیان", "واقعہ", "قصہ"
   ]);
   const specificKeywords = topicKeywords.filter((w) => !broadWords.has(w));
@@ -419,9 +429,17 @@ function scoreCandidatePost(post: any, topicKeywords: string[]): number {
     }
   }
 
-  // Strict Rule: If we have specific topic keywords, the title MUST contain at least one specific keyword!
+  // Strict Rule 1: If we have specific topic keywords, the title MUST contain at least one specific keyword!
   if (specificKeywords.length > 0 && titleMatches === 0) {
     return 0; // Reject false positives where title does not relate to the specific topic
+  }
+
+  // Strict Rule 2: If multiple specific keywords exist, ensure they are at least mentioned in the post
+  if (specificKeywords.length >= 2) {
+    const missingKeywords = specificKeywords.filter((kw) => !title.includes(kw) && !content.includes(kw));
+    if (missingKeywords.length > 0) {
+      return 0; // Reject post if core distinguishing keywords are completely missing
+    }
   }
 
   let score = titleMatches * 35;
