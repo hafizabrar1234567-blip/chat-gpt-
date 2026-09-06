@@ -313,12 +313,20 @@ const genericWords = new Set([
   "جب", "تب", "اب", "سب", "کہ", "کون", "کس", "کسے", "کیسے", "کیوں", "کتنا",
   "طور", "العلماء", "علماء", "لجنۃ", "alulama",
   "بعد", "پہلے", "قبل", "دوران", "درمیان",
+  "ہوا", "ہوئی", "ہوئ", "ہوئے", "ہوتے", "ہوگا", "ہوگی", "ہوںگے", "ہوںگی",
+  "گیا", "گئی", "گئے", "جا", "جائے", "جائیں", "جاتا", "جاتی", "جاتے",
+  "رہا", "رہی", "رہے", "رہنا", "رہتا", "رہتی", "رہتے",
+  "دیا", "دی", "دئے", "دیے", "دینا", "دیتے", "دیتی",
+  "لیا", "لی", "لئے", "لیے", "لینا", "لیتے", "لیتی",
+  "کرنے", "کرتے", "کرتی", "کرتا", "کرے", "کروں", "کرلوں",
+  "سکوں", "لیکن", "مگر", "بلکہ", "چونکہ", "حالانکہ",
   "جائز", "ناجائز", "حلال", "حرام", "مکروہ", "مستحب", "واجب", "حکم", "احکام", "مسئلہ", "مسائل", "شرعی", "فتوی", "فتویٰ", "فتاوی",
   "kia", "kya", "he", "hai", "hain", "k", "ke", "ki", "ka", "ks", "kis", "kisi",
   "mein", "me", "se", "par", "pr", "ko", "apna", "apni", "apne", "wala", "wali", "wale",
   "jaiz", "najaiz", "halal", "haram", "hukm", "hukam", "masla", "maslah", "fatwa",
   "aur", "agr", "agar", "to", "yeh", "woh", "is", "us", "bhi", "hi", "krna", "karna",
   "baad", "bad", "pehle", "pehly", "qabl", "doran", "darmiyan",
+  "lekin", "magar", "gya", "gaya", "gaye", "gai", "hua", "hui", "hue", "hoga", "hogi",
   "bataye", "batayein", "bataen", "plz", "please"
 ]);
 
@@ -555,12 +563,20 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
   const primaryKeywords = specificKeywords.length > 0 ? specificKeywords : topicKeywords;
 
   // Conflict detection: If user query did NOT mention a sensitive status keyword, but candidate title is centered on it
-  const conflictingWords = ["منگنی", "طلاق", "خلع", "حمل", "عدت", "سود", "قرض", "انتقال", "وفات", "جنازہ"];
+  const conflictingWords = [
+    "منگنی", "طلاق", "خلع", "عدت", "سود", "قرض", "انتقال", "وفات", "جنازہ",
+    "بچے", "بچہ", "اولاد", "حمل", "پیدا" // child / pregnancy conflicts when user only asked about marital intimacy
+  ];
   let conflictPenalty = 0;
   for (const cw of conflictingWords) {
     if (!normQuery.includes(cw) && normTitle.includes(cw)) {
-      conflictPenalty += 50;
+      conflictPenalty += 60;
     }
+  }
+
+  // Pre-marital conflict: if user indicates nikah has happened, but candidate title says "نکاح سے قبل"
+  if (normQuery.includes("نکاح") && !normQuery.includes("نکاح سے قبل") && normTitle.includes("نکاح سے قبل")) {
+    conflictPenalty += 80;
   }
 
   let titleMatches = 0;
