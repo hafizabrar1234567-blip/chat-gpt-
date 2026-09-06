@@ -428,22 +428,82 @@ export function getAlUlamaSearchUrl(query: string): string {
 }
 
 /**
- * Core Islamic Fiqh synonyms dictionary for comprehensive topic matching
+ * Comprehensive Islamic Fiqh synonyms dictionary for multi-variant topic matching
  */
 const synonymDict: Record<string, string[]> = {
-  "ہمبستری": ["ہمبستری", "جماع", "مباشرت", "خلوت", "ازدواجی تعلق"],
-  "جماع": ["جماع", "ہمبستری", "مباشرت", "خلوت"],
-  "مباشرت": ["مباشرت", "ہمبستری", "جماع"],
-  "دودھ": ["دودھ", "رضاعت"],
-  "رضاعت": ["رضاعت", "دودھ"],
-  "وضو": ["وضو", "طہارت"],
-  "غسل": ["غسل", "طہارت", "نہانا"],
+  // Family / Marriage / Relations
+  "ہمبستری": ["ہمبستری", "جماع", "مباشرت", "خلوت", "ازدواجی تعلق", "ہم بستری", "قربت", "صحبت", "ہمبستر"],
+  "جماع": ["جماع", "ہمبستری", "مباشرت", "خلوت", "ازدواجی تعلق", "ہم بستری", "قربت", "صحبت", "ہمبستر"],
+  "مباشرت": ["مباشرت", "ہمبستری", "جماع", "خلوت", "ازدواجی تعلق", "قربت"],
+  "خلوت": ["خلوت", "تنہائی", "ہمبستری", "جماع", "مباشرت", "تعلق"],
+  "تعلق": ["تعلق", "ازدواجی تعلق", "خلوت", "ہمبستری", "جماع"],
+  "رخصتی": ["رخصتی", "وداعی", "قبل از رخصتی"],
+  "شادی": ["شادی", "نکاح", "عقد"],
+  "نکاح": ["نکاح", "عقد", "شادی"],
+  "بیوی": ["بیوی", "اہلیہ", "زوجہ", "عورت"],
+  "شوہر": ["شوہر", "خاوند", "زوج", "مرد"],
+  "منگنی": ["منگنی", "منگیتر", "رشتہ"],
+  "طلاق": ["طلاق", "علیحدگی", "تطلیق"],
+  "خلع": ["خلع", "مخلوعہ"],
+  "عدت": ["عدت", "سوگ"],
+  "مہر": ["مہر", "حق مہر", "حقمہر", "صداق"],
+  "ولیمہ": ["ولیمہ", "دعوت ولیمہ"],
+  "دودھ": ["دودھ", "رضاعت", "چھاتی"],
+  "رضاعت": ["رضاعت", "دودھ", "رضاعی"],
+
+  // Taharah & Prayer
+  "وضو": ["وضو", "طہارت", "پاکیزگی"],
+  "غسل": ["غسل", "طہارت", "نہانا", "جنابت", "غسل جنابت"],
+  "جنابت": ["جنابت", "ناپاکی", "غسل"],
+  "ناپاکی": ["ناپاکی", "نجاست", "پلیدی", "جنابت"],
+  "استنجاء": ["استنجاء", "طہارت", "پیشاب", "پاخانہ"],
+  "تیمم": ["تیمم", "مٹی", "طہارت"],
+  "موزے": ["موزے", "مسح", "جرابیں", "جوربین"],
+  "مسح": ["مسح", "موزے", "جرابیں"],
   "نماز": ["نماز", "صلوۃ", "صلات"],
-  "روزہ": ["روزہ", "صوم", "صیام"],
-  "مہر": ["مہر", "حق مہر", "حقمہر"],
-  "منگنی": ["منگنی", "منگیتر"],
-  "سود": ["سود", "ربا"],
-  "انشورنس": ["انشورنس", "بیمہ"],
+  "قصر": ["قصر", "مسافر", "سفر کی نماز"],
+  "سجدہ": ["سجدہ", "سجدہ سہو", "سجدۂ تلاوت"],
+  "تراویح": ["تراویح", "قیام رمضان"],
+  "وتر": ["وتر", "دعائے قنوت"],
+  "جنازہ": ["جنازہ", "نماز جنازہ", "تدفین", "میت"],
+
+  // Fasting / Zakat / Hajj
+  "روزہ": ["روزہ", "صوم", "صیام", "افطار", "سحری"],
+  "افطار": ["افطار", "روزہ کھولنا", "روزہ"],
+  "سحری": ["سحری", "سحر", "روزہ"],
+  "کفارہ": ["کفارہ", "فدیہ"],
+  "فدیہ": ["فدیہ", "کفارہ"],
+  "زکوٰۃ": ["زکوٰۃ", "زکوۃ", "صدقہ واجبہ"],
+  "صدقہ": ["صدقہ", "خیرات", "عطیہ"],
+  "عشر": ["عشر", "پیداوار کی زکوٰۃ"],
+  "قربانی": ["قربانی", "اضحیہ", "ذبیحہ"],
+  "عقیقہ": ["عقیقہ", "بچے کی قربانی"],
+  "حج": ["حج", "احرام", "طواف"],
+  "عمرہ": ["عمرہ", "طواف", "سعی"],
+
+  // Finance / Business
+  "سود": ["سود", "ربا", "انٹرسٹ"],
+  "قرض": ["قرض", "ادھار", "دین"],
+  "قسط": ["قسط", "اقساط", "قسطوں", "انسٹالمنٹ"],
+  "انشورنس": ["انشورنس", "بیمہ", "تکافل"],
+  "بیمہ": ["بیمہ", "انشورنس", "تکافل"],
+  "کرپٹو": ["کرپٹو", "بٹ کوائن", "ڈیجیٹل کرنسی"],
+  "ٹریڈنگ": ["ٹریڈنگ", "فاریکس", "سٹاک", "شیئرز"],
+  "جوا": ["جوا", "قمار", "لاٹری", "پرائز بانڈ"],
+  "نوکری": ["نوکری", "ملازمت", "جاب"],
+
+  // Daily Life / Halal / Haram
+  "کھانا": ["کھانا", "غذا", "خوراک"],
+  "پینا": ["پینا", "نوش کرنا"],
+  "گوشت": ["گوشت", "ذبیحہ", "مرغی"],
+  "داڑھی": ["داڑھی", "لحیہ", "خط بنوانا"],
+  "تصویر": ["تصویر", "فوٹو", "ویڈیو"],
+  "موسیقی": ["موسیقی", "گانا", "میوزک"],
+  "خضاب": ["خضاب", "مہندی", "بال رنگنا"],
+  "کتا": ["کتا", "کلب"],
+  "بلی": ["بلی", "ہرہ"],
+  "تولیہ": ["تولیہ", "خشک کرنا"],
+  "انجکشن": ["انجکشن", "سوئی", "ڈرپ"],
 };
 
 function normalizeUrduText(text: string): string {
@@ -457,6 +517,7 @@ function normalizeUrduText(text: string): string {
     .replace(/ہم\s+بستری/g, "ہمبستری")
     .replace(/حق\s+مہر/g, "حقمہر")
     .replace(/اہل\s+حدیث/g, "اہلحدیث")
+    .replace(/قبل\s+از\s+رخصتی/g, "رخصتی سے پہلے")
     .toLowerCase();
 }
 
@@ -468,12 +529,22 @@ function matchesWordOrSynonyms(target: string, word: string): boolean {
 
 /**
  * Scores a candidate WordPress post strictly against extracted user topic keywords.
- * Enforces that specific topic keywords MUST match the post title and does NOT conflict with the user's inquiry.
+ * Checks post Title, Question section, and Content with full synonym expansion.
  */
 function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[]): number {
   const normTitle = normalizeUrduText(post.title?.rendered || "");
-  const normContent = normalizeUrduText(post.content?.rendered || "");
+  const rawContent = post.content?.rendered || "";
+  const normContent = normalizeUrduText(rawContent);
   const normQuery = normalizeUrduText(userQuery);
+
+  // Extract Question text (before 'جواب') from post content
+  let questionSection = "";
+  const jawabIdx = normContent.indexOf("جواب");
+  if (jawabIdx !== -1) {
+    questionSection = normContent.substring(0, jawabIdx);
+  } else {
+    questionSection = normContent.slice(0, 500);
+  }
 
   const broadWords = new Set([
     "نماز", "روزہ", "وضو", "غسل", "اسلام", "دین", "مسئلہ", "حکم", "شرعی", "احکام", "بارے",
@@ -493,44 +564,53 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
   }
 
   let titleMatches = 0;
+  let questionMatches = 0;
   let contentMatches = 0;
 
   for (const kw of primaryKeywords) {
     if (matchesWordOrSynonyms(normTitle, kw)) {
       titleMatches++;
-    } else if (matchesWordOrSynonyms(normContent, kw)) {
+    }
+    if (matchesWordOrSynonyms(questionSection, kw)) {
+      questionMatches++;
+    }
+    if (matchesWordOrSynonyms(normContent, kw)) {
       contentMatches++;
     }
   }
 
-  // Strict Rule 1: Title MUST contain at least one specific topic keyword or direct synonym
-  if (specificKeywords.length > 0 && titleMatches === 0) {
-    return 0; // Reject false positives where title does not relate to the specific topic
+  // Either title OR the post's question section MUST match at least one specific keyword or direct synonym
+  const strongMatches = Math.max(titleMatches, questionMatches);
+  if (specificKeywords.length > 0 && strongMatches === 0) {
+    return 0; // Reject false positives where neither title nor question relates to topic
   }
 
-  // Strict Rule 2: If multiple specific keywords exist, ensure they are at least mentioned in title or content
+  // If multiple specific keywords exist, ensure they appear in title, question, or content
   if (specificKeywords.length >= 2) {
     const missingKeywords = specificKeywords.filter(
-      (kw) => !matchesWordOrSynonyms(normTitle, kw) && !matchesWordOrSynonyms(normContent, kw)
+      (kw) =>
+        !matchesWordOrSynonyms(normTitle, kw) &&
+        !matchesWordOrSynonyms(questionSection, kw) &&
+        !matchesWordOrSynonyms(normContent, kw)
     );
     if (missingKeywords.length > 0) {
       return 0; // Reject post if core distinguishing keywords are completely missing
     }
   }
 
-  let score = titleMatches * 40;
+  let score = titleMatches * 40 + questionMatches * 35;
 
-  // Bonus if all specific keywords appear in title
-  if (specificKeywords.length > 0 && titleMatches === specificKeywords.length) {
+  // High bonus if all specific keywords or synonyms appear in title or question section
+  if (specificKeywords.length > 0 && strongMatches === specificKeywords.length) {
     score += 50;
   }
 
-  // Modest bonus for content matches only if title is already relevant
+  // Modest bonus for general content matches
   score += Math.min(contentMatches * 5, 20);
 
-  // Bonus for broad words if present in title
+  // Bonus for broad words if present in title or question
   for (const bw of broadWords) {
-    if (normQuery.includes(bw) && normTitle.includes(bw)) {
+    if (normQuery.includes(bw) && (normTitle.includes(bw) || questionSection.includes(bw))) {
       score += 10;
     }
   }
