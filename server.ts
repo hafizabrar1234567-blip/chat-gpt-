@@ -308,13 +308,15 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
+    const ai = getGeminiClient();
+
     // 1. Search Al-Ulama (alulama.org) for authentic fatwas if query relates to fiqh, fatwa or islamic rulings
     const isFatwaOrFiqhQuery = isIslamicFatwaQuery(message);
 
     let alUlamaFatwa: AlUlamaFatwa | null = null;
     let alUlamaSearchUrl = "";
     if (isFatwaOrFiqhQuery) {
-      alUlamaFatwa = await searchAlUlamaFatwa(message);
+      alUlamaFatwa = await searchAlUlamaFatwa(message, ai);
       alUlamaSearchUrl = getAlUlamaSearchUrl(message);
     }
 
@@ -408,8 +410,6 @@ Official Website URL: https://alulama.org/
     } else {
       contents.push({ role: "user", parts: [{ text: message.trim() }] });
     }
-
-    const ai = getGeminiClient();
 
     // Fast, production-ready Gemini models in prioritized order
     const candidateModels = [
