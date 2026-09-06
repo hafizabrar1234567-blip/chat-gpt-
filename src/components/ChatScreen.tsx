@@ -245,12 +245,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               <IslamicLogo className="w-24 h-24 mx-auto relative rounded-3xl shadow-2xl shadow-emerald-950/80" />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h1 className="text-2xl sm:text-3xl font-bold text-emerald-200 font-urdu">
-                السلام علیکم ورحمۃ اللہ وبرکاتہ!
+                وعلیکم السلام ورحمۃ اللہ وبرکاتہ!
               </h1>
-              <p className="text-sm sm:text-base text-slate-300 font-urdu leading-relaxed max-w-lg mx-auto">
-                میں آپ کا **اسلامی چیٹ جی پی ٹی (Islamic ChatGPT)** ہوں۔ آپ قرآن، احادیث، فقہ، اور اپنی فراہم کردہ کتب کی روشنی میں کوئی بھی دینی و علمی سوال پوچھ سکتے ہیں۔
+              <p className="text-sm sm:text-base text-slate-300 font-urdu leading-relaxed max-w-xl mx-auto">
+                خوش آمدید! میں آپ کا **اسلامی چیٹ جی پی ٹی (Islamic ChatGPT)** ڈیجیٹل اسسٹنٹ ہوں۔ آپ مجھ سے قرآن و سنت، احادیث، فقہی احکام کے ساتھ ساتھ سائنسی، تاریخی، تعلیمی اور عمومی موضوعات پر کوئی بھی سوال پوچھ سکتے ہیں۔
               </p>
             </div>
 
@@ -329,6 +329,24 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                             strong: ({ children }) => (
                               <strong className="font-bold text-emerald-300 select-text">{children}</strong>
                             ),
+                            a: ({ href, children }) => {
+                              const isAlUlama = href && (href.includes("alulama.org") || href.includes("al-ulama"));
+                              return (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={
+                                    isAlUlama
+                                      ? "inline-flex items-center gap-1.5 px-3 py-1.5 my-1.5 bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-md border border-emerald-400/40 transition-all cursor-pointer no-underline"
+                                      : "inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-200 underline underline-offset-4 decoration-emerald-500/60 font-medium transition-colors my-1 px-1 bg-emerald-950/40 rounded-md border border-emerald-900/30"
+                                  }
+                                >
+                                  <span>{children}</span>
+                                  <ExternalLink className="w-3.5 h-3.5 inline-block opacity-90 shrink-0" />
+                                </a>
+                              );
+                            },
                           }}
                         >
                           {msg.text}
@@ -342,6 +360,43 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                         </div>
                       )}
                     </div>
+
+                    {/* Verified Al-Ulama Fatwa Source Card */}
+                    {msg.alUlamaSource && (
+                      <div className="mt-4 p-4 bg-gradient-to-r from-[#031d15] to-[#01140e] border border-emerald-500/40 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                            <span>ماخذ: لجنۃ العلماء للإفتاء (alulama.org)</span>
+                          </div>
+                          <p className="text-xs text-slate-300 font-urdu font-medium line-clamp-1">
+                            📜 {msg.alUlamaSource.title}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                          <a
+                            href={msg.alUlamaSource.homepageLink || "https://alulama.org/"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-2 bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 text-xs font-bold rounded-xl shadow-md border border-emerald-700/50 transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>العلماء ویب سائٹ کھولیں</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                          {msg.alUlamaSource.directLink && (
+                            <a
+                              href={msg.alUlamaSource.directLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md border border-emerald-400/40 transition-all flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <span>اصل فتویٰ دیکھیں</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Book Citations Callout */}
                     {msg.citations && msg.citations.length > 0 && (

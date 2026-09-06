@@ -7,12 +7,20 @@ export interface Citation {
   snippet: string;
 }
 
+export interface AlUlamaSourceInfo {
+  title: string;
+  directLink: string;
+  homepageLink?: string;
+  questionNumber?: string;
+}
+
 export interface ChatMessage {
   id: string;
   sender: "user" | "assistant";
   text: string;
   timestamp: string;
   citations?: Citation[];
+  alUlamaSource?: AlUlamaSourceInfo | null;
   hasBookContext?: boolean;
   isAI?: boolean;
   isLoading?: boolean;

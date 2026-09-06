@@ -5,7 +5,6 @@ import { ChatScreen } from "./components/ChatScreen";
 import { KnowledgeBaseModal } from "./components/KnowledgeBaseModal";
 import { TripleCalendarModal } from "./components/TripleCalendarModal";
 import { SettingsModal } from "./components/SettingsModal";
-import { generateFallbackResponse } from "./utils/fallbackGenerator";
 
 const SESSIONS_STORAGE_KEY = "islami_chat_sessions_v2";
 const LANG_STORAGE_KEY = "islami_chat_lang_v2";
@@ -195,6 +194,7 @@ export default function App() {
     let accumulatedText = "";
     let citations: any[] = [];
     let isAI = true;
+    let alUlamaSource: any = null;
 
     try {
       const res = await fetch("/api/chat", {
@@ -256,11 +256,17 @@ export default function App() {
                 if (data.citations) {
                   citations = data.citations;
                 }
+                if (data.alUlamaSource !== undefined) {
+                  alUlamaSource = data.alUlamaSource;
+                }
                 if (data.isAI !== undefined) {
                   isAI = data.isAI;
                 }
                 if (data.done && data.reply) {
                   accumulatedText = data.reply;
+                  if (data.alUlamaSource !== undefined) {
+                    alUlamaSource = data.alUlamaSource;
+                  }
                 }
               } catch (parseErr) {}
             }
@@ -280,7 +286,7 @@ export default function App() {
                 updatedAt: new Date().toISOString(),
                 messages: s.messages.map((m) =>
                   m.id === assistantMsgId
-                    ? { ...m, text: finalText, citations, isAI }
+                    ? { ...m, text: finalText, citations, isAI, alUlamaSource }
                     : m
                 ),
               };
@@ -294,6 +300,7 @@ export default function App() {
         const finalText =
           data.reply ||
           "معذرت، جواب تیار کرنے میں مسئلہ آیا۔ براہ کرم دوبارہ کوشش فرمائیں۔";
+        const fetchedSource = data.alUlamaSource || null;
 
         setSessions((prev) =>
           prev.map((s) => {
@@ -307,6 +314,7 @@ export default function App() {
                         ...m,
                         text: finalText,
                         citations: data.citations || [],
+                        alUlamaSource: fetchedSource,
                         hasBookContext: data.hasBookContext || false,
                         isAI: data.isAI || false,
                       }
@@ -318,24 +326,9 @@ export default function App() {
           })
         );
       }
-    } catch (err) {
-      console.warn("Generating instant Islamic response:", err);
-      const fallbackResult: any = generateFallbackResponse(
-        "islamic_qa",
-        trimmedText,
-        language
-      );
-
-      let replyText = "";
-      if (typeof fallbackResult === "string") {
-        replyText = fallbackResult;
-      } else if (fallbackResult && fallbackResult.answerUrdu) {
-        replyText = fallbackResult.answerUrdu;
-      } else if (fallbackResult && fallbackResult.reply) {
-        replyText = fallbackResult.reply;
-      } else {
-        replyText = "وعلیکم السلام ورحمۃ اللہ وبرکاتہ! 🕌✨\n\nاسلامی چیٹ جی پی ٹی میں خوش آمدید۔ فرمائیے میں آپ کی کیا دینی و شرعی رہنمائی کر سکتا ہوں؟";
-      }
+    } catch (err: any) {
+      console.error("Chat request error:", err);
+      const errorMsg = `❌ **خرابی / Connection Error:** رابطہ قائم نہیں ہو سکا۔ برائے مہربانی اپنا انٹرنیٹ کنکشن چیک کریں یا دوبارہ کوشش فرمائیں۔\n\n_${err?.message || "Network Error"}_`;
 
       setSessions((prev) =>
         prev.map((s) => {
@@ -347,9 +340,9 @@ export default function App() {
                 m.id === assistantMsgId
                   ? {
                       ...m,
-                      text: replyText,
-                      citations: (fallbackResult && fallbackResult.citations) || [],
-                      isAI: true,
+                      text: errorMsg,
+                      citations: [],
+                      isAI: false,
                     }
                   : m
               ),
