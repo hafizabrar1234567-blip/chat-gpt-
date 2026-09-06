@@ -288,6 +288,15 @@ const romanToUrduMap: Record<string, string> = {
   before: "پہلے",
   duran: "دوران",
   during: "دوران",
+  rukhsati: "رخصتی",
+  ruksati: "رخصتی",
+  humbistari: "ہمبستری",
+  hambistari: "ہمبستری",
+  hambistri: "ہمبستری",
+  humbistri: "ہمبستری",
+  jima: "جماع",
+  sohbat: "ہمبستری",
+  mubashrat: "مباشرت",
   milad: "میلاد",
   melaad: "میلاد",
   rabiulawal: "ربیع الاول",
@@ -303,11 +312,13 @@ const genericWords = new Set([
   "سکتی", "سکتا", "چاہیے", "چاہئے", "یا", "نہ", "نہیں", "بھی", "ہی", "تک",
   "جب", "تب", "اب", "سب", "کہ", "کون", "کس", "کسے", "کیسے", "کیوں", "کتنا",
   "طور", "العلماء", "علماء", "لجنۃ", "alulama",
+  "بعد", "پہلے", "قبل", "دوران", "درمیان",
   "جائز", "ناجائز", "حلال", "حرام", "مکروہ", "مستحب", "واجب", "حکم", "احکام", "مسئلہ", "مسائل", "شرعی", "فتوی", "فتویٰ", "فتاوی",
   "kia", "kya", "he", "hai", "hain", "k", "ke", "ki", "ka", "ks", "kis", "kisi",
   "mein", "me", "se", "par", "pr", "ko", "apna", "apni", "apne", "wala", "wali", "wale",
   "jaiz", "najaiz", "halal", "haram", "hukm", "hukam", "masla", "maslah", "fatwa",
   "aur", "agr", "agar", "to", "yeh", "woh", "is", "us", "bhi", "hi", "krna", "karna",
+  "baad", "bad", "pehle", "pehly", "qabl", "doran", "darmiyan",
   "bataye", "batayein", "bataen", "plz", "please"
 ]);
 
@@ -317,10 +328,13 @@ const genericWords = new Set([
 export function extractUrduTopicKeywords(query: string): string[] {
   if (!query || !query.trim()) return [];
 
-  // 1. Tokenize query
+  // 1. Tokenize query with Urdu compound words normalized
   const cleanStr = query
     .toLowerCase()
-    .replace(/[؟?!\.,۔،:;'"()\/\\\[\]{}*#_`~<>+=|-]/g, " ");
+    .replace(/[؟?!\.,۔،:;'"()\/\\\[\]{}*#_`~<>+=|-]/g, " ")
+    .replace(/ہم\s+بستری/g, "ہمبستری")
+    .replace(/حق\s+مہر/g, "حقمہر")
+    .replace(/اہل\s+حدیث/g, "اہلحدیث");
 
   const rawTokens = cleanStr.split(/\s+/).filter(Boolean);
 
@@ -414,22 +428,52 @@ export function getAlUlamaSearchUrl(query: string): string {
 }
 
 /**
- * Scores a candidate WordPress post strictly against extracted user topic keywords.
- * Enforces that specific topic keywords MUST match the post title.
+ * Core Islamic Fiqh synonyms dictionary for comprehensive topic matching
  */
-function scoreCandidatePost(post: any, topicKeywords: string[]): number {
-  const rawTitle = post.title?.rendered || "";
-  const title = rawTitle
+const synonymDict: Record<string, string[]> = {
+  "ہمبستری": ["ہمبستری", "جماع", "مباشرت", "خلوت", "ازدواجی تعلق"],
+  "جماع": ["جماع", "ہمبستری", "مباشرت", "خلوت"],
+  "مباشرت": ["مباشرت", "ہمبستری", "جماع"],
+  "دودھ": ["دودھ", "رضاعت"],
+  "رضاعت": ["رضاعت", "دودھ"],
+  "وضو": ["وضو", "طہارت"],
+  "غسل": ["غسل", "طہارت", "نہانا"],
+  "نماز": ["نماز", "صلوۃ", "صلات"],
+  "روزہ": ["روزہ", "صوم", "صیام"],
+  "مہر": ["مہر", "حق مہر", "حقمہر"],
+  "منگنی": ["منگنی", "منگیتر"],
+  "سود": ["سود", "ربا"],
+  "انشورنس": ["انشورنس", "بیمہ"],
+};
+
+function normalizeUrduText(text: string): string {
+  if (!text) return "";
+  return text
     .replace(/&#8217;/g, "'")
     .replace(/&#8211;/g, "-")
     .replace(/&amp;/g, "&")
-    .replace(/<[^>]+>/g, "")
-    .toLowerCase();
-
-  const rawContent = post.content?.rendered || "";
-  const content = rawContent
     .replace(/<[^>]+>/g, " ")
+    .replace(/[\u064B-\u065F\u0670]/g, "") // remove arabic diacritics
+    .replace(/ہم\s+بستری/g, "ہمبستری")
+    .replace(/حق\s+مہر/g, "حقمہر")
+    .replace(/اہل\s+حدیث/g, "اہلحدیث")
     .toLowerCase();
+}
+
+function matchesWordOrSynonyms(target: string, word: string): boolean {
+  if (target.includes(word)) return true;
+  const synonyms = synonymDict[word] || [];
+  return synonyms.some((syn) => target.includes(syn));
+}
+
+/**
+ * Scores a candidate WordPress post strictly against extracted user topic keywords.
+ * Enforces that specific topic keywords MUST match the post title and does NOT conflict with the user's inquiry.
+ */
+function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[]): number {
+  const normTitle = normalizeUrduText(post.title?.rendered || "");
+  const normContent = normalizeUrduText(post.content?.rendered || "");
+  const normQuery = normalizeUrduText(userQuery);
 
   const broadWords = new Set([
     "نماز", "روزہ", "وضو", "غسل", "اسلام", "دین", "مسئلہ", "حکم", "شرعی", "احکام", "بارے",
@@ -439,35 +483,46 @@ function scoreCandidatePost(post: any, topicKeywords: string[]): number {
   const specificKeywords = topicKeywords.filter((w) => !broadWords.has(w));
   const primaryKeywords = specificKeywords.length > 0 ? specificKeywords : topicKeywords;
 
+  // Conflict detection: If user query did NOT mention a sensitive status keyword, but candidate title is centered on it
+  const conflictingWords = ["منگنی", "طلاق", "خلع", "حمل", "عدت", "سود", "قرض", "انتقال", "وفات", "جنازہ"];
+  let conflictPenalty = 0;
+  for (const cw of conflictingWords) {
+    if (!normQuery.includes(cw) && normTitle.includes(cw)) {
+      conflictPenalty += 50;
+    }
+  }
+
   let titleMatches = 0;
   let contentMatches = 0;
 
   for (const kw of primaryKeywords) {
-    if (title.includes(kw)) {
+    if (matchesWordOrSynonyms(normTitle, kw)) {
       titleMatches++;
-    } else if (content.includes(kw)) {
+    } else if (matchesWordOrSynonyms(normContent, kw)) {
       contentMatches++;
     }
   }
 
-  // Strict Rule 1: If we have specific topic keywords, the title MUST contain at least one specific keyword!
+  // Strict Rule 1: Title MUST contain at least one specific topic keyword or direct synonym
   if (specificKeywords.length > 0 && titleMatches === 0) {
     return 0; // Reject false positives where title does not relate to the specific topic
   }
 
-  // Strict Rule 2: If multiple specific keywords exist, ensure they are at least mentioned in the post
+  // Strict Rule 2: If multiple specific keywords exist, ensure they are at least mentioned in title or content
   if (specificKeywords.length >= 2) {
-    const missingKeywords = specificKeywords.filter((kw) => !title.includes(kw) && !content.includes(kw));
+    const missingKeywords = specificKeywords.filter(
+      (kw) => !matchesWordOrSynonyms(normTitle, kw) && !matchesWordOrSynonyms(normContent, kw)
+    );
     if (missingKeywords.length > 0) {
       return 0; // Reject post if core distinguishing keywords are completely missing
     }
   }
 
-  let score = titleMatches * 35;
+  let score = titleMatches * 40;
 
   // Bonus if all specific keywords appear in title
   if (specificKeywords.length > 0 && titleMatches === specificKeywords.length) {
-    score += 40;
+    score += 50;
   }
 
   // Modest bonus for content matches only if title is already relevant
@@ -475,12 +530,13 @@ function scoreCandidatePost(post: any, topicKeywords: string[]): number {
 
   // Bonus for broad words if present in title
   for (const bw of broadWords) {
-    if (topicKeywords.includes(bw) && title.includes(bw)) {
+    if (normQuery.includes(bw) && normTitle.includes(bw)) {
       score += 10;
     }
   }
 
-  return score;
+  score -= conflictPenalty;
+  return Math.max(0, score);
 }
 
 /**
@@ -505,12 +561,32 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       return null;
     }
 
-    // Build prioritized search terms: combined primary terms and individual topic keywords
-    const primaryTerm = topicKeywords.slice(0, 3).join(" ");
-    const searchTerms = Array.from(new Set([primaryTerm, ...topicKeywords])).slice(0, 4);
+    // Build smart search terms: combined primary phrase, synonym-expanded phrases, and individual topic keywords
+    const searchTerms: string[] = [];
+    if (topicKeywords.length >= 2) {
+      searchTerms.push(topicKeywords.slice(0, 3).join(" "));
+    }
+
+    // Synonym-expanded phrases (e.g. نکاح رخصتی ہمبستری -> نکاح رخصتی جماع)
+    for (const kw of topicKeywords) {
+      const syns = synonymDict[kw];
+      if (syns && syns.length > 1) {
+        for (const s of syns.slice(1, 3)) {
+          const altPhrase = topicKeywords.map((k) => (k === kw ? s : k)).slice(0, 3).join(" ");
+          searchTerms.push(altPhrase);
+        }
+      }
+    }
+
+    // Add individual topic keywords
+    for (const kw of topicKeywords) {
+      searchTerms.push(kw);
+    }
+
+    const finalSearchTerms = Array.from(new Set(searchTerms)).slice(0, 6);
 
     // Fetch candidate terms in parallel with 3.5s timeout
-    const fetchPromises = searchTerms.map(async (term) => {
+    const fetchPromises = finalSearchTerms.map(async (term) => {
       const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=10`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3500);
@@ -558,7 +634,7 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
     let bestScore = 0;
 
     for (const post of candidateMap.values()) {
-      const score = scoreCandidatePost(post, topicKeywords);
+      const score = scoreCandidatePost(post, userQuery, topicKeywords);
       if (score > bestScore) {
         bestScore = score;
         bestPost = post;
@@ -618,7 +694,7 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       questionText,
       answerText,
       fullContent: textContent,
-      searchKeywords: primaryTerm,
+      searchKeywords: finalSearchTerms.join(" "),
     };
 
     fatwaCache.set(normalizedQuery, { fatwa: verifiedFatwa, expiresAt: Date.now() + CACHE_TTL_MS });
