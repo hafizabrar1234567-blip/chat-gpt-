@@ -636,54 +636,11 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
 }
 
 /**
- * Principle 3: AI Semantic Verifier
- * Validates that the candidate fatwa from Al-Ulama genuinely and accurately answers
- * the user's specific inquiry. Rejects conflicting or mismatched topics.
- */
-async function verifyFatwaWithAI(geminiClient: any, userQuery: string, post: any): Promise<boolean> {
-  try {
-    if (!geminiClient || !post) return true;
-    const rawContent = post.content?.rendered?.replace(/<[^>]+>/g, " ") || "";
-    const qText = rawContent.indexOf("جواب") !== -1 ? rawContent.substring(0, rawContent.indexOf("جواب")) : rawContent.slice(0, 300);
-    const title = post.title?.rendered || "";
-
-    const prompt = `User's Islamic ruling inquiry:
-"${userQuery}"
-
-Candidate Fatwa from Al-Ulama (alulama.org):
-Title: ${title}
-Question Excerpt: ${qText.trim().slice(0, 300)}
-
-Task:
-Determine if this fatwa specifically and directly addresses the user's inquiry.
-- If it is on the same topic and provides the ruling the user is asking about, reply: "MATCH"
-- If it is on a different, opposite, or conflicting topic (for example: engagement vs married, before marriage vs after marriage, child status vs intimacy, different ruling), reply: "REJECT"
-Reply with only one word: MATCH or REJECT`;
-
-    const response = await geminiClient.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-    });
-
-    const text = (response?.text || "").trim().toUpperCase();
-    if (text.includes("REJECT")) {
-      console.log(`[AI Semantic Verifier] Rejected candidate post ID ${post.id} ("${title}") as not genuinely answering user inquiry.`);
-      return false;
-    }
-    return true;
-  } catch (err: any) {
-    // If quota or network timeout occurs, gracefully fall back to heuristic match
-    console.warn("[AI Semantic Verifier fallback]:", err?.message || err);
-    return true;
-  }
-}
-
-/**
  * Searches https://alulama.org using its official REST API.
  * Returns the most relevant, highly scored verified fatwa ONLY if it genuinely matches the user's question topic.
- * Optimized with in-memory caching, parallel search, smart relevance scoring, and AI semantic verification.
+ * Optimized with in-memory caching, parallel search, and smart relevance scoring.
  */
-export async function searchAlUlamaFatwa(userQuery: string, geminiClient?: any): Promise<AlUlamaFatwa | null> {
+export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatwa | null> {
   try {
     if (!userQuery || !userQuery.trim()) return null;
 
@@ -784,15 +741,6 @@ export async function searchAlUlamaFatwa(userQuery: string, geminiClient?: any):
     if (bestScore < 35 || !bestPost) {
       fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
-    }
-
-    // Principle 3: AI Semantic Verifier
-    if (geminiClient && bestPost) {
-      const isAiVerified = await verifyFatwaWithAI(geminiClient, userQuery, bestPost);
-      if (!isAiVerified) {
-        fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
-        return null;
-      }
     }
 
     const rawTitle = bestPost.title?.rendered || "";

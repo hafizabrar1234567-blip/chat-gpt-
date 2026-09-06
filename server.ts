@@ -316,7 +316,7 @@ app.post("/api/chat", async (req, res) => {
     let alUlamaFatwa: AlUlamaFatwa | null = null;
     let alUlamaSearchUrl = "";
     if (isFatwaOrFiqhQuery) {
-      alUlamaFatwa = await searchAlUlamaFatwa(message, ai);
+      alUlamaFatwa = await searchAlUlamaFatwa(message);
       alUlamaSearchUrl = getAlUlamaSearchUrl(message);
     }
 
@@ -428,11 +428,31 @@ Official Website URL: https://alulama.org/
       };
     };
 
+    const sourceToSend = alUlamaFatwa
+      ? {
+          title: alUlamaFatwa.title,
+          directLink: alUlamaFatwa.link,
+          homepageLink: "https://alulama.org/",
+        }
+      : isFatwaOrFiqhQuery
+      ? {
+          title: "لجنۃ العلماء للإفتاء (alulama.org)",
+          directLink: alUlamaSearchUrl || "https://alulama.org/",
+          homepageLink: "https://alulama.org/",
+        }
+      : null;
+
     if (isStreamRequest) {
       res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
       res.setHeader("Cache-Control", "no-cache, no-transform");
       res.setHeader("Connection", "keep-alive");
       res.flushHeaders?.();
+
+      // Immediately transmit the verified source card so buttons and links appear without delay
+      if (sourceToSend) {
+        res.write(`data: ${JSON.stringify({ alUlamaSource: sourceToSend })}\n\n`);
+        if ((res as any).flush) (res as any).flush();
+      }
 
       let streamSuccess = false;
       let fullReply = "";
@@ -486,6 +506,13 @@ Official Website URL: https://alulama.org/
           fullReply += `\n\n---\n${extraLinks}`;
           res.write(`data: ${JSON.stringify({ chunk: `\n\n---\n${extraLinks}` })}\n\n`);
         }
+      } else if (isFatwaOrFiqhQuery) {
+        let extraLinks = `\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)`;
+        if (alUlamaSearchUrl) {
+          extraLinks += `\n* [العلماء پر مزید فتاویٰ سرچ کریں](${alUlamaSearchUrl})`;
+        }
+        fullReply += `\n\n---\n${extraLinks}`;
+        res.write(`data: ${JSON.stringify({ chunk: `\n\n---\n${extraLinks}` })}\n\n`);
       }
 
       res.write(
@@ -493,13 +520,7 @@ Official Website URL: https://alulama.org/
           done: true,
           reply: fullReply,
           isAI: true,
-          alUlamaSource: alUlamaFatwa
-            ? {
-                title: alUlamaFatwa.title,
-                directLink: alUlamaFatwa.link,
-                homepageLink: "https://alulama.org/",
-              }
-            : null,
+          alUlamaSource: sourceToSend,
         })}\n\n`
       );
       return res.end();
@@ -549,19 +570,19 @@ Official Website URL: https://alulama.org/
       if (extraLinks) {
         replyText += `\n\n---\n${extraLinks}`;
       }
+    } else if (isFatwaOrFiqhQuery) {
+      let extraLinks = `\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)`;
+      if (alUlamaSearchUrl) {
+        extraLinks += `\n* [العلماء پر مزید فتاویٰ سرچ کریں](${alUlamaSearchUrl})`;
+      }
+      replyText += `\n\n---\n${extraLinks}`;
     }
 
     return res.json({
       success: true,
       reply: replyText,
       isAI: true,
-      alUlamaSource: alUlamaFatwa
-        ? {
-            title: alUlamaFatwa.title,
-            directLink: alUlamaFatwa.link,
-            homepageLink: "https://alulama.org/",
-          }
-        : null,
+      alUlamaSource: sourceToSend,
     });
   } catch (globalErr: any) {
     console.error("Chat route critical error:", globalErr);
