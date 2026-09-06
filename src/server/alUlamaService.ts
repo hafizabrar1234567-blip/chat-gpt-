@@ -325,32 +325,45 @@ export function isIslamicFatwaQuery(message: string): boolean {
   if (!message || !message.trim()) return false;
   const lower = message.toLowerCase();
 
-  // 1. Direct Urdu keywords
+  // If user is explicitly asking for Hadith, Quran, Tafsir or Story without asking for a ruling/fatwa/permissibility
+  const isHadithOrQuranRequest =
+    /(حدیث|احادیث|روایت|hadees|hadith|سنن|بخاری|مسلم|قرآن|آیت|سورت|تفسیر|quran|surah|ayah)/i.test(lower);
+
+  const hasExplicitRulingWord =
+    /(فتوی|فتویٰ|فتاوی|فتاویٰ|fatwa|حکم|احکام|ruling|مسئلہ|مسائل|masla|maslah|جائز|ناجائز|jaiz|jayaz|najaiz|حلال|حرام|halal|haram|مکروہ|makrooh|واجب|wajib|بدعت|bidat|شرعی|sharia|shariah)/i.test(lower) ||
+    /کیا.*(جائز|حلال|حرام|ہو سکتا|کر سکتے|منع|صحیح)/i.test(lower);
+
+  // If it's purely asking for a Hadith/Quran quote without asking for a ruling, do not treat as fatwa search
+  if (isHadithOrQuranRequest && !hasExplicitRulingWord) {
+    return false;
+  }
+
+  // 1. Direct Urdu ruling keywords
   const urduFatwaWords = [
     "فتوی", "فتویٰ", "فتاوی", "فتاویٰ", "حکم", "احکام", "مسئلہ", "مسائل",
-    "جائز", "ناجائز", "حلال", "حرام", "مکروہ", "مستحب", "واجب", "فرض", "فرائض",
-    "سنت", "بدعت", "شرک", "کفر", "گناہ", "ثواب", "طریقہ", "شرائط",
-    "نماز", "روزہ", "زکوۃ", "زکوٰۃ", "حج", "عمرہ", "قربانی", "عقیقہ", "عشر",
-    "نکاح", "طلاق", "خلع", "عدت", "رجوع", "حلالہ", "مہر", "ولیمہ", "وراثت", "ترکہ",
-    "طہارت", "وضو", "غسل", "سجدہ", "سفر", "قصر", "تیمم", "مسح", "استنجاء",
-    "تولیہ", "داڑھی", "خضاب", "پردہ", "حجاب", "ستر", "لباس",
-    "سود", "بینک", "بینکنگ", "نوکری", "ملازمت", "قرض", "قسط", "قسطوں", "کرپٹو", "بٹ کوائن", "ٹریڈنگ", "بیمہ", "انشورنس", "لاٹری", "جوا",
-    "میلاد", "ربیع الاول", "عید", "عیدین", "محفل", "تلاوت", "موسیقی", "گانا", "تصویر", "ویڈیو",
-    "کھانا", "پینا", "ذبیحہ", "گوشت", "کتا", "بلی", "علماء", "العلماء", "alulama"
+    "جائز", "ناجائز", "حلال", "حرام", "مکروہ", "مستحب", "واجب", "بدعت", "شرعی",
+    "طلاق", "خلع", "عدت", "رجوع", "حلالہ", "مہر", "ولیمہ", "وراثت", "ترکہ",
+    "قصر", "تیمم", "مسح", "استنجاء",
+    "تولیہ", "خضاب",
+    "سود", "کرپٹو", "بٹ کوائن", "ٹریڈنگ", "بیمہ", "انشورنس", "لاٹری", "جوا",
+    "alulama", "العلماء"
   ];
 
   for (const w of urduFatwaWords) {
     if (lower.includes(w)) return true;
   }
 
+  // Check question patterns like "کیا ... جائز ہے", "کیا ... کر سکتے ہیں"
+  if (/کیا.*(جائز|حلال|حرام|ہو سکتا|کر سکتے|منع|درست|صحیح)/i.test(lower)) {
+    return true;
+  }
+
   // 2. Roman Urdu / English keywords
   const romanFatwaWords = [
     "fatwa", "fatwah", "fatawa", "hukam", "hukm", "masla", "maslah", "masail",
     "jaiz", "jayaz", "najaiz", "najayaz", "halal", "haram", "makrooh", "makruh",
-    "wajib", "farz", "sunnat", "sunnah", "bidat", "namaz", "roza", "zakat", "zakah",
-    "hajj", "umrah", "qurbani", "aqeeqa", "nikah", "talaq", "khula", "iddat", "wazu", "wudu", "wezo",
-    "ghusl", "ghusal", "toliya", "towel", "sood", "riba", "bank", "naukri", "crypto", "bitcoin",
-    "parda", "hijab", "milad", "rabiulawal", "eid", "sharia", "shariah", "ruling", "permissible", "allowed", "forbidden"
+    "wajib", "bidat", "talaq", "khula", "iddat", "toliya", "towel", "sood", "riba",
+    "crypto", "bitcoin", "sharia", "shariah", "ruling", "permissible"
   ];
 
   const words = lower.replace(/[^\w\s]/g, " ").split(/\s+/);
@@ -388,7 +401,10 @@ function scoreCandidatePost(post: any, topicKeywords: string[]): number {
     .replace(/<[^>]+>/g, " ")
     .toLowerCase();
 
-  const broadWords = new Set(["نماز", "روزہ", "وضو", "غسل", "اسلام", "دین", "مسئلہ", "حکم", "شرعی", "احکام", "بارے"]);
+  const broadWords = new Set([
+    "نماز", "روزہ", "وضو", "غسل", "اسلام", "دین", "مسئلہ", "حکم", "شرعی", "احکام", "بارے",
+    "حدیث", "احادیث", "روایت", "قرآن", "آیت", "سورت", "ترجمہ", "فضیلت", "بیان", "واقعہ", "قصہ"
+  ]);
   const specificKeywords = topicKeywords.filter((w) => !broadWords.has(w));
   const primaryKeywords = specificKeywords.length > 0 ? specificKeywords : topicKeywords;
 

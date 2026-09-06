@@ -486,12 +486,6 @@ Official Website URL: https://alulama.org/
           fullReply += `\n\n---\n${extraLinks}`;
           res.write(`data: ${JSON.stringify({ chunk: `\n\n---\n${extraLinks}` })}\n\n`);
         }
-      } else if (isFatwaOrFiqhQuery) {
-        if (!fullReply.includes("alulama.org") && !fullReply.includes("العلماء ویب سائٹ کھولیں")) {
-          const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)`;
-          fullReply += extraLinks;
-          res.write(`data: ${JSON.stringify({ chunk: extraLinks })}\n\n`);
-        }
       }
 
       res.write(
@@ -503,12 +497,6 @@ Official Website URL: https://alulama.org/
             ? {
                 title: alUlamaFatwa.title,
                 directLink: alUlamaFatwa.link,
-                homepageLink: "https://alulama.org/",
-              }
-            : isFatwaOrFiqhQuery
-            ? {
-                title: "لجنۃ العلماء للإفتاء (عمومی تلاش)",
-                directLink: "",
                 homepageLink: "https://alulama.org/",
               }
             : null,
@@ -561,10 +549,6 @@ Official Website URL: https://alulama.org/
       if (extraLinks) {
         replyText += `\n\n---\n${extraLinks}`;
       }
-    } else if (isFatwaOrFiqhQuery) {
-      if (!replyText.includes("alulama.org") && !replyText.includes("العلماء ویب سائٹ کھولیں")) {
-        replyText += `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)`;
-      }
     }
 
     return res.json({
@@ -575,12 +559,6 @@ Official Website URL: https://alulama.org/
         ? {
             title: alUlamaFatwa.title,
             directLink: alUlamaFatwa.link,
-            homepageLink: "https://alulama.org/",
-          }
-        : isFatwaOrFiqhQuery
-        ? {
-            title: "لجنۃ العلماء للإفتاء (عمومی تلاش)",
-            directLink: "",
             homepageLink: "https://alulama.org/",
           }
         : null,
