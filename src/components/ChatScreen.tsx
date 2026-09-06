@@ -336,6 +336,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                                   href={href}
                                   target="_blank"
                                   rel="noopener noreferrer"
+                                  onClick={(e) => {
+                                    if (href) {
+                                      e.stopPropagation();
+                                      window.open(href, "_blank", "noopener,noreferrer");
+                                    }
+                                  }}
                                   className={
                                     isAlUlama
                                       ? "inline-flex items-center gap-1.5 px-3 py-1.5 my-1.5 bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-md border border-emerald-400/40 transition-all cursor-pointer no-underline"
@@ -378,6 +384,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                             href={msg.alUlamaSource.homepageLink || "https://alulama.org/"}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const targetUrl = msg.alUlamaSource?.homepageLink || "https://alulama.org/";
+                              window.open(targetUrl, "_blank", "noopener,noreferrer");
+                            }}
                             className="px-3 py-2 bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 text-xs font-bold rounded-xl shadow-md border border-emerald-700/50 transition-all flex items-center gap-1.5 cursor-pointer"
                           >
                             <span>العلماء ویب سائٹ کھولیں</span>
@@ -388,6 +399,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                               href={msg.alUlamaSource.directLink}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (msg.alUlamaSource?.directLink) {
+                                  window.open(msg.alUlamaSource.directLink, "_blank", "noopener,noreferrer");
+                                }
+                              }}
                               className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md border border-emerald-400/40 transition-all flex items-center gap-1.5 cursor-pointer"
                             >
                               <span>اصل فتویٰ دیکھیں</span>

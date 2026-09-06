@@ -260,6 +260,21 @@ const romanToUrduMap: Record<string, string> = {
   cat: "بلی",
   khana: "کھانا",
   peena: "پینا",
+  pina: "پینا",
+  peene: "پینے",
+  pine: "پینے",
+  pilana: "پلانا",
+  pilane: "پلانے",
+  doodh: "دودھ",
+  dodh: "دودھ",
+  dudh: "دودھ",
+  dhodh: "دودھ",
+  milk: "دودھ",
+  khawind: "خاوند",
+  khawand: "خاوند",
+  ahliya: "اہلیہ",
+  razaat: "رضاعت",
+  raza: "رضاعت",
   pani: "پانی",
   gosht: "گوشت",
   zabiha: "ذبیحہ",
@@ -288,7 +303,10 @@ const genericWords = new Set([
   "سکتی", "سکتا", "چاہیے", "چاہئے", "یا", "نہ", "نہیں", "بھی", "ہی", "تک",
   "جب", "تب", "اب", "سب", "کہ", "کون", "کس", "کسے", "کیسے", "کیوں", "کتنا",
   "طور", "العلماء", "علماء", "لجنۃ", "alulama",
-  "kia", "kya", "he", "hai", "hain", "k", "ke", "ki", "ka", "mein", "se", "par", "ko",
+  "جائز", "ناجائز", "حلال", "حرام", "مکروہ", "مستحب", "واجب", "حکم", "احکام", "مسئلہ", "مسائل", "شرعی", "فتوی", "فتویٰ", "فتاوی",
+  "kia", "kya", "he", "hai", "hain", "k", "ke", "ki", "ka", "ks", "kis", "kisi",
+  "mein", "me", "se", "par", "pr", "ko", "apna", "apni", "apne", "wala", "wali", "wale",
+  "jaiz", "najaiz", "halal", "haram", "hukm", "hukam", "masla", "maslah", "fatwa",
   "aur", "agr", "agar", "to", "yeh", "woh", "is", "us", "bhi", "hi", "krna", "karna",
   "bataye", "batayein", "bataen", "plz", "please"
 ]);
@@ -353,7 +371,7 @@ export function isIslamicFatwaQuery(message: string): boolean {
     "جائز", "ناجائز", "حلال", "حرام", "مکروہ", "مستحب", "واجب", "بدعت", "شرعی",
     "طلاق", "خلع", "عدت", "رجوع", "حلالہ", "مہر", "ولیمہ", "وراثت", "ترکہ",
     "قصر", "تیمم", "مسح", "استنجاء",
-    "تولیہ", "خضاب",
+    "تولیہ", "خضاب", "دودھ", "رضاعت",
     "سود", "کرپٹو", "بٹ کوائن", "ٹریڈنگ", "بیمہ", "انشورنس", "لاٹری", "جوا",
     "alulama", "العلماء"
   ];
@@ -362,8 +380,11 @@ export function isIslamicFatwaQuery(message: string): boolean {
     if (lower.includes(w)) return true;
   }
 
-  // Check question patterns like "کیا ... جائز ہے", "کیا ... کر سکتے ہیں"
+  // Check question patterns like "کیا ... جائز ہے", "کیا ... کر سکتے ہیں" or roman "kia ... jaiz he"
   if (/کیا.*(جائز|حلال|حرام|ہو سکتا|کر سکتے|منع|درست|صحیح)/i.test(lower)) {
+    return true;
+  }
+  if (/(kia|kya|kis)\b.*(jaiz|najaiz|halal|haram|hukm|hukam|mana|kr sakty|kr sakte|peena|pina|doodh|dodh)/i.test(lower)) {
     return true;
   }
 
@@ -371,7 +392,7 @@ export function isIslamicFatwaQuery(message: string): boolean {
   const romanFatwaWords = [
     "fatwa", "fatwah", "fatawa", "hukam", "hukm", "masla", "maslah", "masail",
     "jaiz", "jayaz", "najaiz", "najayaz", "halal", "haram", "makrooh", "makruh",
-    "wajib", "bidat", "talaq", "khula", "iddat", "toliya", "towel", "sood", "riba",
+    "wajib", "bidat", "talaq", "khula", "iddat", "toliya", "towel", "doodh", "dodh", "razaat", "sood", "riba",
     "crypto", "bitcoin", "sharia", "shariah", "ruling", "permissible"
   ];
 
