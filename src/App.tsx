@@ -7,6 +7,7 @@ import { TripleCalendarModal } from "./components/TripleCalendarModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { FavoritesModal } from "./components/FavoritesModal";
 import { AuthScreen } from "./components/AuthScreen";
+import { LandingPage } from "./components/LandingPage";
 import { getLocalUserFromSession, clearLocalSession } from "./utils/localAuth";
 
 const SESSIONS_STORAGE_KEY = "islami_chat_sessions_v2";
@@ -78,6 +79,19 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
     return getLocalUserFromSession();
   });
+
+  // View State: "landing" (Home Page with top login) or "chat" (Chat Workspace)
+  const [currentView, setCurrentView] = useState<"landing" | "chat">("landing");
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const handleOpenChat = (initialPrompt?: string) => {
+    setCurrentView("chat");
+    if (initialPrompt && initialPrompt.trim()) {
+      setTimeout(() => {
+        handleSendMessage(initialPrompt.trim());
+      }, 100);
+    }
+  };
 
   const handleLogout = () => {
     clearLocalSession();
@@ -427,14 +441,48 @@ export default function App() {
     }
   };
 
-  // 0. If user is not logged in, show AuthScreen (Login via Google/Gmail or Email)
-  if (!currentUser) {
+  // If Landing View is active, render the Home Landing Page
+  if (currentView === "landing") {
     return (
-      <AuthScreen
-        onLoginSuccess={(_token, user) => {
-          setCurrentUser(user);
-        }}
-      />
+      <>
+        <LandingPage
+          onOpenChat={handleOpenChat}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          language={language}
+          onChangeLanguage={handleLanguageChange}
+          onOpenKnowledgeBase={() => setIsKnowledgeBaseOpen(true)}
+          onOpenCalendar={() => setIsCalendarOpen(true)}
+        />
+
+        {/* Knowledge Base Modal */}
+        <KnowledgeBaseModal
+          isOpen={isKnowledgeBaseOpen}
+          onClose={() => setIsKnowledgeBaseOpen(false)}
+          books={books}
+          onRefreshBooks={fetchBooks}
+        />
+
+        {/* Triple Islamic Calendar Modal */}
+        <TripleCalendarModal
+          isOpen={isCalendarOpen}
+          onClose={() => setIsCalendarOpen(false)}
+          onAskChat={handleSendMessage}
+        />
+
+        {/* Dedicated Auth Modal */}
+        {isAuthModalOpen && (
+          <AuthScreen
+            onLoginSuccess={(_token, user) => {
+              setCurrentUser(user);
+              setIsAuthModalOpen(false);
+            }}
+            onClose={() => setIsAuthModalOpen(false)}
+            isModal={true}
+          />
+        )}
+      </>
     );
   }
 
@@ -460,6 +508,8 @@ export default function App() {
         onChangeLanguage={handleLanguageChange}
         currentUser={currentUser}
         onLogout={handleLogout}
+        onOpenHome={() => setCurrentView("landing")}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
       />
 
       {/* 2. Main Chat Workspace */}
@@ -479,6 +529,7 @@ export default function App() {
           favoritesCount={favoritesCount}
           onOpenSettings={() => setIsSettingsOpen(true)}
           isSidebarOpen={isSidebarOpen}
+          onOpenHome={() => setCurrentView("landing")}
         />
       </main>
 
@@ -514,6 +565,18 @@ export default function App() {
           } catch {}
         }}
       />
+
+      {/* 7. Dedicated Auth Modal */}
+      {isAuthModalOpen && (
+        <AuthScreen
+          onLoginSuccess={(_token, user) => {
+            setCurrentUser(user);
+            setIsAuthModalOpen(false);
+          }}
+          onClose={() => setIsAuthModalOpen(false)}
+          isModal={true}
+        />
+      )}
     </div>
   );
 }

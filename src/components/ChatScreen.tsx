@@ -30,6 +30,7 @@ import {
   BookmarkCheck,
   MessageSquarePlus,
   Settings2,
+  Home,
 } from "lucide-react";
 import { IslamicLogo } from "./IslamicLogo";
 import { ChatMessage, ChatSession, BookRecord, LanguageOption } from "../types";
@@ -57,6 +58,7 @@ interface ChatScreenProps {
   favoritesCount?: number;
   onOpenSettings?: () => void;
   isSidebarOpen?: boolean;
+  onOpenHome?: () => void;
 }
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({
@@ -74,6 +76,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   favoritesCount = 0,
   onOpenSettings,
   isSidebarOpen = false,
+  onOpenHome,
 }) => {
   const [inputText, setInputText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -437,6 +440,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                 اسلامی چیٹ جی پی ٹی
               </h2>
             </div>
+            {onOpenHome && (
+              <button
+                onClick={onOpenHome}
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-emerald-400 hover:text-white bg-[#0a1e17] hover:bg-emerald-900/60 border border-emerald-800/40 active:scale-95 transition-all text-xs font-urdu font-bold cursor-pointer mr-2 shadow-sm"
+                title="ہوم پیج پر جائیں"
+              >
+                <Home className="w-3.5 h-3.5 text-emerald-400" />
+                <span>ہوم پیج</span>
+              </button>
+            )}
           </div>
         </div>
 

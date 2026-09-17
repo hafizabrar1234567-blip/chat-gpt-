@@ -14,6 +14,11 @@ import {
   Settings2,
   Bookmark,
   LogOut,
+  Home,
+  Share2,
+  RotateCcw,
+  User,
+  LogIn,
 } from "lucide-react";
 import { IslamicLogo } from "./IslamicLogo";
 import { ChatSession, BookRecord, LanguageOption, UserAccount } from "../types";
@@ -37,6 +42,8 @@ interface ChatSidebarProps {
   onChangeLanguage: (lang: LanguageOption) => void;
   currentUser?: UserAccount | null;
   onLogout?: () => void;
+  onOpenHome?: () => void;
+  onOpenAuth?: () => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -58,6 +65,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onChangeLanguage,
   currentUser,
   onLogout,
+  onOpenHome,
+  onOpenAuth,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -166,6 +175,21 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <MessageSquarePlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span>نیا چیٹ (New Chat)</span>
           </button>
+
+          {/* Go to Home Landing Page */}
+          {onOpenHome && (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenHome();
+                if (window.innerWidth < 1024) onClose();
+              }}
+              className="w-full py-2 px-3 bg-[#0a2019] hover:bg-emerald-950/80 text-emerald-300 rounded-xl font-urdu font-semibold text-xs border border-emerald-800/40 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+            >
+              <Home className="w-3.5 h-3.5 text-emerald-400" />
+              <span>ہوم پیج پر جائیں</span>
+            </button>
+          )}
 
           {/* Knowledge Base Button */}
           <button
@@ -363,6 +387,47 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               <option value="english">English</option>
             </select>
           </div>
+
+          {/* User Account / Login Button */}
+          {currentUser ? (
+            <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-950/40 border border-emerald-800/30 mt-2">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="w-7 h-7 rounded-full bg-emerald-600/30 border border-emerald-500/40 flex items-center justify-center shrink-0">
+                  <User className="w-3.5 h-3.5 text-emerald-300" />
+                </div>
+                <div className="truncate text-right">
+                  <div className="text-xs font-urdu font-semibold text-emerald-200 truncate">
+                    {currentUser.name}
+                  </div>
+                  <div className="text-[10px] text-emerald-400/70 font-sans truncate">
+                    {currentUser.plan || "صارف"}
+                  </div>
+                </div>
+              </div>
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-950/30 rounded-lg transition-colors"
+                  title="لاگ آؤٹ"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenAuth?.();
+                if (window.innerWidth < 1024) onClose();
+              }}
+              className="w-full mt-2 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-urdu font-semibold flex items-center justify-center gap-2 shadow-sm transition-all"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>لاگ ان / سائن ان</span>
+            </button>
+          )}
         </div>
       </aside>
     </>

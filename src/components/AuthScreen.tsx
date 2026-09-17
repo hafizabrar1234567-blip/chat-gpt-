@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  X,
 } from "lucide-react";
 import { UserAccount } from "../types";
 import {
@@ -23,9 +24,11 @@ import {
 
 interface AuthScreenProps {
   onLoginSuccess: (token: string, user: UserAccount) => void;
+  onClose?: () => void;
+  isModal?: boolean;
 }
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onClose, isModal = false }) => {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -70,8 +73,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       or: "یا",
       googleBtn: "گوگل سے سائن ان کریں",
       wait: "براہ کرم انتظار فرمائیں...",
-      heroTitle: "قرآن و صحیح احادیث پر مبنی جدید AI اسٹوڈیو",
-      heroDesc: "تحریر و مضامین، پائتھن کوڈنگ، تفصیلی تجزیہ، 3D لوگو اور فتاویٰ لجنۃ العلماء (alulama.org)",
+      heroTitle: "اسلامی چیٹ جی پی ٹی",
+      heroDesc: "قرآن و صحیح احادیث اور مستند فتاویٰ لجنۃ العلماء (alulama.org)",
       resetTitle: "پاس ورڈ ری سیٹ کریں",
       resetDesc: "اپنا رجسٹرڈ ای میل درج کریں۔ ہم آپ کو کوڈ دیں گے۔",
       sendCode: "کوڈ بھیجیں",
@@ -95,8 +98,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       or: "OR",
       googleBtn: "Continue with Google",
       wait: "Please wait...",
-      heroTitle: "Authentic Quran, Sahih Hadith & Super AI Studio",
-      heroDesc: "Writing, Python coding, in-depth analysis, 3D Monograms & Fatwas from alulama.org",
+      heroTitle: "Islamic ChatGPT",
+      heroDesc: "Authentic Quran, Sahih Hadith & Fatwas from alulama.org",
       resetTitle: "Reset Password",
       resetDesc: "Enter your registered email address to receive a reset code.",
       sendCode: "Send Code",
@@ -120,8 +123,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
       or: "أو",
       googleBtn: "المتابعة باستخدام Google",
       wait: "يرجى الانتظار...",
-      heroTitle: "استوديو الذكاء الاصطناعي القائم على القرآن والأحاديث الصحيحة",
-      heroDesc: "كتابة المقالات، برمجة بايثون، التحليلات، والشعارات والفتاوى المعتمدة",
+      heroTitle: "المساعد الإسلامي الذكي",
+      heroDesc: "القرآن الكريم، الأحاديث الصحيحة، وفتاوى لجنة العلماء المعتمدة",
       resetTitle: "إعادة تعيين كلمة المرور",
       resetDesc: "أدخل بريدك الإلكتروني المسجل لتلقي رمز إعادة التعيين.",
       sendCode: "إرسال الرمز",
@@ -352,7 +355,26 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-[#0B1516] to-[#081C15] flex items-center justify-center p-3 sm:p-6 md:p-8 selection:bg-emerald-500 selection:text-white relative overflow-hidden">
+    <div
+      className={`${
+        isModal
+          ? "fixed inset-0 z-[100] overflow-y-auto bg-black/85 backdrop-blur-md"
+          : "min-h-screen bg-gradient-to-br from-slate-950 via-[#0B1516] to-[#081C15] relative"
+      } flex items-center justify-center p-3 sm:p-6 md:p-8 selection:bg-emerald-500 selection:text-white`}
+    >
+      {/* Close button if modal or onClose provided */}
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="fixed top-5 right-5 sm:top-6 sm:right-8 z-[110] p-2.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-emerald-500/40 shadow-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-urdu font-bold"
+          title="بند کریں"
+        >
+          <X className="w-5 h-5 text-emerald-400" />
+          <span className="pr-1">بند کریں</span>
+        </button>
+      )}
+
       {/* Background Animated Ambient Lights */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-40 -left-40 w-[550px] h-[550px] bg-emerald-600/15 rounded-full blur-[140px]" />
@@ -360,98 +382,39 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-teal-600/10 rounded-full blur-[160px]" />
       </div>
 
-      {/* Main Responsive Wrapper (Desktop 2-Column or Centered Mobile) */}
-      <div className="w-full max-w-5xl relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center animate-fade-in">
-        {/* Left Column (Desktop Hero Showcase - Colorful & Inspiring) */}
-        <div className="hidden lg:flex lg:col-span-6 flex-col justify-between space-y-6 p-8 rounded-3xl bg-gradient-to-b from-slate-900/90 via-emerald-950/40 to-slate-950/90 border border-emerald-500/30 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="space-y-4 relative z-10">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-900/70 border border-emerald-400/40 text-emerald-300 text-xs font-urdu font-bold shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-              <span>قرآن و صحیح احادیث پر مبنی جدید AI اسٹوڈیو</span>
+      {/* Main Centered Container - Simple, Clean & Pure Islamic (No Coding or Royal Logo Cards) */}
+      <div className="w-full max-w-md relative z-10 animate-fade-in my-auto space-y-3.5">
+        {/* Brand Header */}
+        <div className="text-center space-y-2">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-emerald-400 p-0.5 mx-auto shadow-xl shadow-emerald-600/30 flex items-center justify-center">
+            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-2xl text-emerald-300 font-black">
+              🕌
             </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-amber-400 p-0.5 shadow-xl shadow-emerald-500/25 flex items-center justify-center">
-                <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-3xl">
-                  🕌
-                </div>
-              </div>
-              <div>
-                <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                  Islamic ChatGPT
-                  <span className="text-[10px] font-extrabold bg-amber-400/20 text-amber-300 border border-amber-400/50 px-2 py-0.5 rounded-full font-mono">
-                    v3.7 PRO
-                  </span>
-                </h1>
-                <p className="text-xs text-emerald-400 font-urdu font-medium mt-0.5">
-                  اسلامی، کلاؤڈ و سپر AI معاون
-                </p>
-              </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight font-sans">
+                Islamic ChatGPT
+              </h1>
+              <span className="text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2 py-0.5 rounded-full font-mono">
+                v3.7 PRO
+              </span>
             </div>
-
-            <p className="text-slate-300 text-xs font-urdu leading-relaxed pt-1">
-              تحریر و مضامین، پائتھن کوڈنگ و سکرپٹس، تفصیلی کاروباری و سائنسی تجزیہ، 3D شاہی مونوگرام لوگو اور فتاویٰ لجنۃ العلماء (alulama.org) کا ہمہ جہت جدید پلیٹ فارم۔
+            <p className="text-xs text-emerald-400 font-urdu font-medium mt-0.5">
+              مستند اسلامی ڈیجیٹل اسسٹنٹ و علمی معاون
             </p>
-          </div>
-
-          {/* Feature Showcase Grid */}
-          <div className="grid grid-cols-2 gap-3 relative z-10 pt-2">
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-emerald-800/40 hover:border-emerald-500/50 transition-all shadow-md group">
-              <div className="text-xl mb-1 group-hover:scale-110 transition-transform">✍️</div>
-              <div className="text-xs font-urdu font-bold text-white">تحریر و مضامین</div>
-              <div className="text-[10px] text-slate-400 font-urdu mt-0.5">تقاریر، دفتری خطوط، تراجم</div>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-teal-800/40 hover:border-teal-500/50 transition-all shadow-md group">
-              <div className="text-xl mb-1 group-hover:scale-110 transition-transform">🐍</div>
-              <div className="text-xs font-urdu font-bold text-white">کوڈنگ و سکرپٹس</div>
-              <div className="text-[10px] text-slate-400 font-urdu mt-0.5">Python, React, Scraping</div>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-amber-800/40 hover:border-amber-500/50 transition-all shadow-md group">
-              <div className="text-xl mb-1 group-hover:scale-110 transition-transform">👑</div>
-              <div className="text-xs font-urdu font-bold text-white">3D شاہی لوگو</div>
-              <div className="text-[10px] text-slate-400 font-urdu mt-0.5">4K HD ڈی پی و مونوگرام</div>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-indigo-800/40 hover:border-indigo-500/50 transition-all shadow-md group">
-              <div className="text-xl mb-1 group-hover:scale-110 transition-transform">⚖️</div>
-              <div className="text-xs font-urdu font-bold text-white">فتاویٰ لجنۃ العلماء</div>
-              <div className="text-[10px] text-slate-400 font-urdu mt-0.5">alulama.org مستند فتاویٰ</div>
-            </div>
-          </div>
-
-          {/* Footer Guarantee */}
-          <div className="p-3 rounded-2xl bg-emerald-950/60 border border-emerald-600/30 flex items-center gap-2.5 text-xs text-emerald-300 font-urdu">
-            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>100% محفوظ لاگ ان اور روزانہ 10 مفت AI جنریشنز</span>
           </div>
         </div>
 
-        {/* Right Column (Auth Form Card - Vibrant, Colorful & High-Contrast) */}
-        <div className="lg:col-span-6 w-full max-w-md mx-auto space-y-4">
-          {/* Mobile Top Header (Visible only on < lg) */}
-          <div className="lg:hidden text-center space-y-2 mb-2">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-amber-400 p-0.5 mx-auto shadow-xl shadow-emerald-600/30 flex items-center justify-center">
-              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-2xl text-amber-300 font-black">
-                🕌
-              </div>
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-white tracking-tight">Islamic ChatGPT</h1>
-              <p className="text-xs text-emerald-400 font-urdu font-bold mt-0.5">
-                قرآن و صحیح احادیث و سپر AI اسٹوڈیو
-              </p>
-            </div>
-          </div>
-
-          {/* Auth Form Card Container */}
-          <div
-            dir={authLang === "english" ? "ltr" : "rtl"}
-            className={`bg-slate-900/90 border border-emerald-500/30 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-emerald-950/50 backdrop-blur-xl space-y-5 ${
-              authLang === "english" ? "text-left font-sans" : "text-right font-urdu"
-            }`}
-          >
-            {/* Language Switcher Selector Bar */}
-            <div dir="ltr" className="flex items-center justify-between gap-2 bg-slate-950/80 p-2 rounded-2xl border border-slate-800">
+        {/* Auth Form Card Container */}
+        <div
+          dir={authLang === "english" ? "ltr" : "rtl"}
+          className={`bg-slate-900/95 border border-emerald-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-emerald-950/70 backdrop-blur-xl space-y-4 sm:space-y-5 ${
+            authLang === "english" ? "text-left font-sans" : "text-right font-urdu"
+          }`}
+        >
+          {/* Language Switcher Selector Bar */}
+          <div dir="ltr" className="flex items-center justify-between gap-2 bg-slate-950/80 p-2 rounded-2xl border border-slate-800">
               <span className="text-[11px] font-extrabold text-slate-400 flex items-center gap-1">
                 <Globe className="w-3.5 h-3.5 text-emerald-400" />
                 <span>زبان / Language:</span>
@@ -743,7 +706,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
             </button>
           </div>
         </div>
-      </div>
 
       {/* Forgot Password Modal */}
       {isForgotOpen && (
