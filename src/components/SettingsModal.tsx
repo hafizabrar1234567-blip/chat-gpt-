@@ -61,6 +61,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
       const data = await res.json();
       if (data.success) {
+        localStorage.setItem("custom_gemini_api_key", apiKey.trim());
         setFeedback({
           type: "success",
           text: "Gemini API Key محفوظ ہو گئی ہے اور لائیو AI ایکٹو ہو گیا ہے! 🎉",

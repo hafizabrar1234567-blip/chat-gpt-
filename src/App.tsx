@@ -248,6 +248,7 @@ export default function App() {
           history: currentSession.messages,
           language,
           stream: true,
+          apiKey: localStorage.getItem("custom_gemini_api_key") || undefined,
         }),
       });
 
