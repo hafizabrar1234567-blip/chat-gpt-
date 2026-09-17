@@ -276,6 +276,23 @@ export default function App() {
               try {
                 const data = JSON.parse(trimmed.slice(6));
 
+                if (data.reset) {
+                  accumulatedText = "";
+                  setSessions((prev) =>
+                    prev.map((s) => {
+                      if (s.id === targetSessionId) {
+                        return {
+                          ...s,
+                          messages: s.messages.map((m) =>
+                            m.id === assistantMsgId ? { ...m, text: "" } : m
+                          ),
+                        };
+                      }
+                      return s;
+                    })
+                  );
+                }
+
                 if (data.chunk) {
                   accumulatedText += data.chunk;
                   setSessions((prev) =>

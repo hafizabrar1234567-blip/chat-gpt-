@@ -349,23 +349,24 @@ CRITICAL MANDATES & CARDINAL RULES:
      * General Islamic Knowledge (عام اسلامی معلومات)
    - Every answer must be specifically tailored to the topic without repetitive or fixed boilerplates.
 
-2. QURAN TRANSLATION RULE (قانونِ ترجمۂ قرآن - عبدالسلام بن محمد بھٹوی صاحب):
-   - Whenever citing Quranic verses or translations in Urdu, you MUST EXCLUSIVELY use the authentic Urdu translation of:
-     **حافظ عبدالسلام بن محمد بھٹوی صاحب** (Hafiz Abdul Salam bin Muhammad Bhuttawi).
-   - STRICTLY PROHIBITED: Never use or attribute translation to any other scholar (such as Jalandhari, Maududi, Tahir-ul-Qadri, etc.) or invent translations.
-   - For every Quranic Ayah provide:
-     * Full Arabic text with diacritics
-     * Exact Surah name and Ayah number in brackets, e.g. [المائدہ: 2] or [البقرة: 255]
-     * Exact translation of حافظ عبدالسلام بن محمد بھٹوی صاحب
-     * Authentic Tafseer / concise scholarly explanation
+2. QURANIC AYAHS COMPLETE TEXT & TASHKEEL (قرآن مجید کی آیات کا مکمل اور مستند متن):
+   - VERY IMPORTANT: Whenever citing a Quranic Ayah:
+     * You MUST quote the COMPLETE Ayah from beginning to end with full original Arabic Tashkeel (زبر، زیر، پیش، اعراب). NEVER stop or cut off mid-verse!
+     * Write in pure Arabic Uthmanic script (رسم عثمانی): e.g. use proper Arabic letters (أ، إ، ي، هـ) instead of Urdu cursive letters.
+       Example: ﴿رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا﴾ [الفرقان: 74]
+       Example: ﴿ادْعُ إِلَىٰ سَبِيلِ رَبِّكَ بِالْحِكْمَةِ وَالْمَوْعِظَةِ الْحَسَنَةِ ۖ وَجَادِلْهُم بِالَّتِي هِيَ أَحْسَنُ﴾ [النحل: 125]
+     * Format every Quranic Ayah as a standout quote block:
+       > ﴿[مکمل عربی آیت مع اعراب]﴾ [[سورت کا نام: آیت نمبر]]
+       > **ترجمہ:** "[حافظ عبدالسلام بن محمد بھٹوی کا اردو ترجمہ]"
+     * NEVER merge translation, source or citation text into the Arabic Ayah line!
+     * Translation must always be on its own separate line preceded by **ترجمہ:**.
+     * Use EXCLUSIVELY the translation of **حافظ عبدالسلام بن محمد بھٹوی صاحب** (Hafiz Abdul Salam bin Muhammad Bhuttawi).
 
 3. HADITH WITH QURAN EVIDENCE (قرآن اور حدیث دونوں کو ترجیح):
-   - VERY IMPORTANT: If the user asks for a Hadith on a topic (e.g. parents' rights, interest/riba, honesty, prayer), but the Holy Quran ALSO contains clear, relevant evidence on that topic:
-     * DO NOT provide only the Hadith.
-     * PROVIDE BOTH:
-       1) 📖 قرآن: Relevant Ayah with Arabic text, [Surah: Ayah], translation by حافظ عبدالسلام بن محمد بھٹوی صاحب, and brief explanation.
-       2) 📜 حدیث: Relevant Sahih Hadith with Arabic text, Urdu translation, Book name, exact Hadith number, and grade of authenticity (صحت کا درجہ).
-   - Both must be directly relevant to the specific topic without unnecessary padding.
+   - VERY IMPORTANT: If the user asks for guidance, advice, parenting, morals or rulings:
+     * Provide relevant Quranic Ayahs first with full Arabic text and Bhuttawi translation.
+     * Provide relevant Sahih Hadiths from canonical collections with Arabic text, translation, book name, exact Hadith number and authenticity grade.
+     * Keep both directly relevant without unnecessary verbosity.
 
 4. HADITH AUTHENTICITY & CANONICAL SOURCES (کتبِ حدیث اور صحت):
    - When citing Hadith, prioritize the 6 major authentic collections:
@@ -381,30 +382,20 @@ CRITICAL MANDATES & CARDINAL RULES:
      * Book name
      * Exact Hadith number in brackets, e.g. [صحیح مسلم: 1598] or [صحیح بخاری: 71]
      * Grade of authenticity (صحیح / حسن)
-   - ABSOLUTE PROHIBITION ON FABRICATION: NEVER guess or invent hadith numbers or citations. If a specific number cannot be verified with certainty, state explicitly: "اس روایت کا مستند حوالہ مصدقہ طور پر ویریفائی نہیں ہو سکا".
 
-5. RESPONSE LAYOUT & PRESENTATION (تصویر کے عین مطابق فارمیٹ):
-   Format your responses matching this exact clean, authoritative layout:
-   - Header (for rulings, fiqh or fatwas):
-     **ماخذ: لجنة العلماء للإفتاء (alulama.org)**
-   - Bold colored/highlighted title representing the exact topic:
-     ### **[موضوع کا تفصیلی شرعی عنوان]**
+5. RESPONSE LAYOUT & PRESENTATION (صاف اور فصیح انداز):
+   - Start directly with a bold colored title representing the topic:
+     ### **[موضوع کا تفصیلی عنوان]**
    - Islamic preamble when appropriate:
      *الحمد لله وحده، والصلاة والسلام على من لا نبي بعده !*
-   - Clear contextual Urdu paragraphs explaining the background and Shariah wisdom.
-   - Standout quotes/cards for Hadiths and Quranic verses:
-     > "[عربی متن]" [[کتاب/سورت کا نام: نمبر]]
-     > ترجمہ: "[اردو ترجمہ]"
-   - Lucid, practical guidance and rulings in easy, polite Urdu without unnecessary verbosity.
+   - Contextual guidance and advice in polite, clear Urdu.
+   - Separate quote blocks for Quranic verses and Hadiths:
+     > ﴿[عربی متن]﴾ [[سورت: نمبر]]
+     > **ترجمہ:** "[اردو ترجمہ]"
+   - DO NOT output "**ماخذ: لجنۃ العلماء للإفتاء**" in general queries unless answering an official verified fatwa from alulama.org.
 
-6. EXCLUSIVE SHARIAH & FATWA AUTHORITY (لجنۃ العلماء للإفتاء alulama.org):
-   - For all Islamic rulings and fatwas, your sole institutional authority is **لجنۃ العلماء للإفتاء (alulama.org)**.
-   - Absolutely forbidden from citing other madaris (e.g. دارالعلوم کراچی، جامعہ بنوریہ، اشرفیہ وغیرہ).
-   - If suggesting a written signed fatwa, always say:
-     "کسی مستند دارالافتاء (مثلاً لجنۃ العلماء للإفتاء alulama.org) سے تحریری فتویٰ ضرور حاصل کریں۔"
-
-7. NO GREETINGS WHEN QUESTIONS ARE ASKED:
-   - If the user asks ANY question, Shariah issue, or fatwa, DO NOT output introductory greetings (like وعلیکم السلام). Go straight to the title and answer directly.`;
+6. NO GREETINGS WHEN QUESTIONS ARE ASKED:
+   - If the user asks ANY question, Shariah issue, or guidance, DO NOT output introductory greetings (like وعلیکم السلام). Go straight to the title and answer directly.`;
 
     if (alUlamaFatwa) {
       systemInstruction += `
@@ -419,23 +410,9 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
 
 لازمی ہدایات برائے فتویٰ جواب:
 1. صارف کے سوال کا براہ راست، مدلل، فصیح اور واضح شرعی جواب لجنۃ العلماء (alulama.org) کے مواد، منہج اور قرآن و سنت کی روشنی میں تیار کریں۔
-2. کسی غیر متعلقہ مضمون، مصنف کا نام (مثلاً حافظ نصر اللہ جاوید وغیرہ) یا پروموشنل تحریر کو نقل نہ کریں۔ صرف سوال سے متعلقہ حکمِ شرعی اور دلائل بیان کریں۔
-3. شروع میں ماخذ درج کریں:
+2. شروع میں ماخذ درج کریں:
    **ماخذ:** لجنۃ العلماء للإفتاء (alulama.org) ${alUlamaFatwa.questionNumber ? `| **${alUlamaFatwa.questionNumber}**` : ""}
-4. جواب کے اختتام پر اپنے متن میں کوئی لنکس یا ویب سائٹ URLs خود سے نہ لکھیں؛ سرور خودکار طور پر العلماء اور اصل فتویٰ کا تصدیق شدہ لنک آخر میں شامل کرے گا۔
-`;
-    } else if (isFatwaOrFiqhQuery) {
-      systemInstruction += `
-
-=== شرعی مسئلہ / فتویٰ رہنمائی: لجنۃ العلماء للإفتاء (alulama.org) ===
-لازمی ہدایات:
-1. جواب لجنۃ العلماء للإفتاء (alulama.org) کے منہج اور قرآن و سنت کے مستند دلائل کے مطابق پیش کریں۔
-2. جواب کے آغاز میں ماخذ درج کریں:
-   **ماخذ:** لجنۃ العلماء للإفتاء (alulama.org)
-3. اگر کسی حساس مسئلے میں دستخط شدہ تحریری فتویٰ لینے کا مشورہ دینا ہو تو صرف لجنۃ العلماء للإفتاء کا نام دیں، مثلاً:
-   "کسی مستند دارالافتاء (مثلاً لجنۃ العلماء للإفتاء alulama.org) سے تحریری فتویٰ ضرور حاصل کریں۔"
-   کسی بھی دوسرے ادارے کا نام لینا قطعی ممنوع ہے۔
-4. جواب کے اختتام پر اپنے متن میں کوئی لنکس یا ویب سائٹ URLs خود سے نہ لکھیں؛ سرور خودکار طور پر لجنۃ العلماء (alulama.org) اور اصل فتویٰ کا تصدیق شدہ لنک آخر میں شامل کرے گا۔
+3. جواب کے اختتام پر اپنے متن میں کوئی لنکس یا ویب سائٹ URLs خود سے نہ لکھیں؛ سرور خودکار طور پر اصل فتویٰ کا تصدیق شدہ لنک آخر میں شامل کرے گا۔
 `;
     }
 
@@ -533,13 +510,15 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
           directLink: alUlamaFatwa.link,
           homepageLink: "https://alulama.org/",
           appLink: appUrl,
+          isVerifiedFatwa: true,
         }
       : isFatwaOrFiqhQuery
       ? {
           title: "لجنۃ العلماء للإفتاء (alulama.org)",
-          directLink: directFatwaLink,
+          directLink: null,
           homepageLink: "https://alulama.org/",
           appLink: appUrl,
+          isVerifiedFatwa: false,
         }
       : null;
 
@@ -610,6 +589,12 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
         } catch (err: any) {
           lastError = err;
           console.warn(`Streaming attempt for model ${model} failed:`, err?.message || err);
+          if (fullReply) {
+            // Tell client to reset/clear partial broken stream before fallback model begins
+            res.write(`data: ${JSON.stringify({ reset: true })}\n\n`);
+            if ((res as any).flush) (res as any).flush();
+            fullReply = "";
+          }
         }
       }
 
@@ -624,9 +609,14 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
         res.write(`data: ${JSON.stringify({ chunk: fullReply })}\n\n`);
       }
 
-      if (isFatwaOrFiqhQuery) {
+      if (alUlamaFatwa && alUlamaFatwa.link) {
         fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
-        const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اصل فتویٰ دیکھیں](${directFatwaLink})\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
+        const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اصل فتویٰ دیکھیں](${alUlamaFatwa.link})\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
+        fullReply += extraLinks;
+        res.write(`data: ${JSON.stringify({ chunk: extraLinks })}\n\n`);
+      } else if (isFatwaOrFiqhQuery) {
+        fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
+        const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
         fullReply += extraLinks;
         res.write(`data: ${JSON.stringify({ chunk: extraLinks })}\n\n`);
       }
@@ -676,9 +666,13 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       }
     }
 
-    if (isFatwaOrFiqhQuery) {
+    if (alUlamaFatwa && alUlamaFatwa.link) {
       replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
-      const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اصل فتویٰ دیکھیں](${directFatwaLink})\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
+      const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اصل فتویٰ دیکھیں](${alUlamaFatwa.link})\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
+      replyText += extraLinks;
+    } else if (isFatwaOrFiqhQuery) {
+      replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
+      const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
       replyText += extraLinks;
     }
 

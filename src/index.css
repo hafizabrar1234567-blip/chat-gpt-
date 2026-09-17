@@ -56,6 +56,15 @@
   direction: rtl;
 }
 
+.font-quran,
+.font-arabic,
+blockquote.font-arabic {
+  font-family: 'UthmanicHafs', 'KFGQPC Uthman Taha Naskh', 'Amiri Quran', 'Scheherazade New', 'Noto Naskh Arabic', 'Amiri', serif !important;
+  direction: rtl;
+  letter-spacing: 0.02em;
+  font-feature-settings: "cv01" on, "cv02" on;
+}
+
 /* Mobile Sidebar Drawer Styling: Slide DOWN from Top */
 @media (max-width: 1023px) {
   .mobile-sidebar-drawer {

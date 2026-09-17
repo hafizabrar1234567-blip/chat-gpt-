@@ -9,9 +9,10 @@ export interface Citation {
 
 export interface AlUlamaSourceInfo {
   title: string;
-  directLink: string;
+  directLink?: string | null;
   homepageLink?: string;
   questionNumber?: string;
+  isVerifiedFatwa?: boolean;
 }
 
 export interface ChatMessage {

@@ -588,7 +588,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                           remarkPlugins={[remarkGfm]}
                           components={{
                             blockquote: ({ children }) => (
-                              <blockquote className="border border-emerald-500/40 pr-4 pl-4 py-3.5 my-3.5 text-emerald-100 bg-[#031d16] rounded-2xl shadow-md font-arabic text-base sm:text-lg leading-[2.4] select-text text-right tracking-wide">
+                              <blockquote className="border border-emerald-500/40 pr-4 pl-4 py-3.5 my-3.5 text-emerald-100 bg-[#031d16] rounded-2xl shadow-md font-quran font-arabic text-base sm:text-xl leading-[2.6] select-text text-right tracking-wide">
                                 {children}
                               </blockquote>
                             ),
@@ -678,7 +678,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                             <span>العلماء ویب سائٹ کھولیں</span>
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
-                          {msg.alUlamaSource.directLink && (
+                          {msg.alUlamaSource.directLink && msg.alUlamaSource.isVerifiedFatwa && (
                             <a
                               href={msg.alUlamaSource.directLink}
                               target="_blank"
