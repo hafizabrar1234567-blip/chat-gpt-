@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { ChatSession, ChatMessage, BookRecord, LanguageOption } from "./types";
+import { ChatSession, ChatMessage, BookRecord, LanguageOption, UserAccount } from "./types";
 import { ChatSidebar } from "./components/ChatSidebar";
 import { ChatScreen } from "./components/ChatScreen";
 import { KnowledgeBaseModal } from "./components/KnowledgeBaseModal";
 import { TripleCalendarModal } from "./components/TripleCalendarModal";
 import { SettingsModal } from "./components/SettingsModal";
+import { FavoritesModal } from "./components/FavoritesModal";
+import { AuthScreen } from "./components/AuthScreen";
+import { getLocalUserFromSession, clearLocalSession } from "./utils/localAuth";
 
 const SESSIONS_STORAGE_KEY = "islami_chat_sessions_v2";
 const LANG_STORAGE_KEY = "islami_chat_lang_v2";
@@ -15,13 +18,26 @@ export default function App() {
     return (localStorage.getItem(LANG_STORAGE_KEY) as LanguageOption) || "urdu";
   });
 
-  // 2. Chat Sessions state
+  // 2. Chat Sessions state - Always opens with a fresh new chat on app launch
   const [sessions, setSessions] = useState<ChatSession[]>(() => {
     try {
       const saved = localStorage.getItem(SESSIONS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // If the most recent session already contains messages, start a fresh new chat!
+          if (parsed[0].messages && parsed[0].messages.length > 0) {
+            const freshSession: ChatSession = {
+              id: "session-" + Date.now(),
+              title: "نئی گفتگو",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messages: [],
+            };
+            return [freshSession, ...parsed];
+          }
+          return parsed;
+        }
       }
     } catch (e) {
       console.error("Error reading saved sessions:", e);
@@ -47,7 +63,26 @@ export default function App() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
+  const [favoritesCount, setFavoritesCount] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem("saved_islamic_messages");
+      return saved ? JSON.parse(saved).length : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
+
+  // User Authentication state
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    return getLocalUserFromSession();
+  });
+
+  const handleLogout = () => {
+    clearLocalSession();
+    setCurrentUser(null);
+  };
 
   // Save sessions to localStorage
   useEffect(() => {
@@ -146,10 +181,11 @@ export default function App() {
   };
 
   // Handle Send Message with real-time streaming
-  const handleSendMessage = async (text: string) => {
-    if (!text || !text.trim() || isLoading) return;
+  const handleSendMessage = async (text: string, image?: string | null) => {
+    if ((!text || !text.trim()) && !image) return;
+    if (isLoading) return;
 
-    const trimmedText = text.trim();
+    const trimmedText = text ? text.trim() : "";
     const targetSessionId = currentSessionId;
     const userMsgId = "msg-" + Date.now();
     const assistantMsgId = "msg-ai-" + (Date.now() + 1);
@@ -158,6 +194,7 @@ export default function App() {
       id: userMsgId,
       sender: "user",
       text: trimmedText,
+      imageUrl: image || undefined,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
@@ -172,7 +209,9 @@ export default function App() {
 
     // Determine auto-title if first message
     const isFirstMessage = currentSession.messages.length === 0;
-    const sessionTitle = isFirstMessage ? trimmedText.slice(0, 32) + (trimmedText.length > 32 ? "..." : "") : currentSession.title;
+    const sessionTitle = isFirstMessage
+      ? (trimmedText ? trimmedText.slice(0, 32) + (trimmedText.length > 32 ? "..." : "") : "تصویر کے حوالے سے رہنمائی")
+      : currentSession.title;
 
     // Immediately update state with user message AND assistant placeholder
     setSessions((prev) =>
@@ -205,6 +244,7 @@ export default function App() {
         },
         body: JSON.stringify({
           message: trimmedText,
+          image: image || null,
           history: currentSession.messages,
           language,
           stream: true,
@@ -258,6 +298,19 @@ export default function App() {
                 }
                 if (data.alUlamaSource !== undefined) {
                   alUlamaSource = data.alUlamaSource;
+                  setSessions((prev) =>
+                    prev.map((s) => {
+                      if (s.id === targetSessionId) {
+                        return {
+                          ...s,
+                          messages: s.messages.map((m) =>
+                            m.id === assistantMsgId ? { ...m, alUlamaSource } : m
+                          ),
+                        };
+                      }
+                      return s;
+                    })
+                  );
                 }
                 if (data.isAI !== undefined) {
                   isAI = data.isAI;
@@ -356,8 +409,19 @@ export default function App() {
     }
   };
 
+  // 0. If user is not logged in, show AuthScreen (Login via Google/Gmail or Email)
+  if (!currentUser) {
+    return (
+      <AuthScreen
+        onLoginSuccess={(_token, user) => {
+          setCurrentUser(user);
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="flex h-screen w-screen bg-[#050c0a] text-slate-100 font-sans overflow-hidden">
+    <div className="flex h-screen h-[100dvh] w-screen max-w-[100vw] bg-[#050c0a] text-slate-100 font-sans overflow-hidden">
       {/* 1. Left/Right Sidebar (ChatGPT History & Tools) */}
       <ChatSidebar
         isOpen={isSidebarOpen}
@@ -371,9 +435,13 @@ export default function App() {
         onOpenKnowledgeBase={() => setIsKnowledgeBaseOpen(true)}
         onOpenCalendar={() => setIsCalendarOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenFavorites={() => setIsFavoritesOpen(true)}
+        favoritesCount={favoritesCount}
         booksCount={books.length}
         language={language}
         onChangeLanguage={handleLanguageChange}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* 2. Main Chat Workspace */}
@@ -388,6 +456,11 @@ export default function App() {
           onOpenCalendar={() => setIsCalendarOpen(true)}
           onClearChat={handleClearChat}
           language={language}
+          onNewChat={handleNewChat}
+          onOpenFavorites={() => setIsFavoritesOpen(true)}
+          favoritesCount={favoritesCount}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          isSidebarOpen={isSidebarOpen}
         />
       </main>
 
@@ -410,6 +483,18 @@ export default function App() {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {/* 6. Favorites Modal */}
+      <FavoritesModal
+        isOpen={isFavoritesOpen}
+        onClose={() => {
+          setIsFavoritesOpen(false);
+          try {
+            const saved = localStorage.getItem("saved_islamic_messages");
+            setFavoritesCount(saved ? JSON.parse(saved).length : 0);
+          } catch {}
+        }}
       />
     </div>
   );

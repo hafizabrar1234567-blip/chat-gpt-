@@ -21,20 +21,42 @@ import {
   ArrowUp,
   ExternalLink,
   Info,
+  Image as ImageIcon,
+  X,
+  Play,
+  Pause,
+  Square,
+  Bookmark,
+  BookmarkCheck,
+  MessageSquarePlus,
+  Settings2,
 } from "lucide-react";
 import { IslamicLogo } from "./IslamicLogo";
 import { ChatMessage, ChatSession, BookRecord, LanguageOption } from "../types";
+import {
+  detectQuranAyah,
+  getQuranAudioUrl,
+  extractMessageSections,
+  quranAudioPlayer,
+  QARI_LIST,
+  QariId,
+} from "../utils/quranAudioService";
 
 interface ChatScreenProps {
   session: ChatSession;
   books: BookRecord[];
-  onSendMessage: (text: string) => Promise<void>;
+  onSendMessage: (text: string, image?: string | null) => Promise<void>;
   isLoading: boolean;
   onOpenSidebar: () => void;
   onOpenKnowledgeBase: () => void;
   onOpenCalendar: () => void;
   onClearChat: () => void;
   language: LanguageOption;
+  onNewChat?: () => void;
+  onOpenFavorites?: () => void;
+  favoritesCount?: number;
+  onOpenSettings?: () => void;
+  isSidebarOpen?: boolean;
 }
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({
@@ -47,14 +69,41 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   onOpenCalendar,
   onClearChat,
   language,
+  onNewChat,
+  onOpenFavorites,
+  favoritesCount = 0,
+  onOpenSettings,
+  isSidebarOpen = false,
 }) => {
   const [inputText, setInputText] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [isSpeakingId, setIsSpeakingId] = useState<string | null>(null);
+  const [sharedId, setSharedId] = useState<string | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(() => {
+    try {
+      const data = localStorage.getItem("saved_islamic_messages");
+      if (data) {
+        const arr = JSON.parse(data);
+        return new Set(arr.map((item: any) => item.id));
+      }
+    } catch {}
+    return new Set();
+  });
+  const [preferredQari, setPreferredQari] = useState<QariId>(() => {
+    return (localStorage.getItem("preferred_qari") as QariId) || "alafasy";
+  });
+  const [activeAudio, setActiveAudio] = useState<{
+    msgId: string;
+    type: "ayah" | "translation" | "tafseer" | "hadith" | "full";
+    isPlaying: boolean;
+    isPaused: boolean;
+    label?: string;
+  } | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -124,13 +173,28 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setSelectedImage(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || isLoading) return;
+    if ((!inputText.trim() && !selectedImage) || isLoading) return;
     const text = inputText.trim();
+    const image = selectedImage;
     setInputText("");
+    setSelectedImage(null);
     if (textareaRef.current) textareaRef.current.style.height = "48px";
-    await onSendMessage(text);
+    await onSendMessage(text, image);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -146,27 +210,183 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleSpeak = (text: string, id: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const handleToggleQari = (qariId: QariId) => {
+    setPreferredQari(qariId);
+    localStorage.setItem("preferred_qari", qariId);
+    // If currently playing ayah audio, restart with new qari
+    if (activeAudio && activeAudio.type === "ayah") {
+      quranAudioPlayer.stop();
+      setActiveAudio(null);
+    }
+  };
 
-    if (isSpeakingId === id) {
-      window.speechSynthesis.cancel();
-      setIsSpeakingId(null);
-      return;
+  const handlePlayAyah = (msgId: string, surah: number, ayah: number) => {
+    if (activeAudio?.msgId === msgId && activeAudio.type === "ayah") {
+      if (activeAudio.isPlaying) {
+        quranAudioPlayer.pause();
+        setActiveAudio({ ...activeAudio, isPlaying: false, isPaused: true });
+        return;
+      } else if (activeAudio.isPaused) {
+        quranAudioPlayer.resume();
+        setActiveAudio({ ...activeAudio, isPlaying: true, isPaused: false });
+        return;
+      }
     }
 
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    const url = getQuranAudioUrl(surah, ayah, preferredQari);
+    const qariObj = QARI_LIST.find((q) => q.id === preferredQari) || QARI_LIST[0];
+
+    setActiveAudio({
+      msgId,
+      type: "ayah",
+      isPlaying: true,
+      isPaused: false,
+      label: `آیت کی تلاوت (${qariObj.nameUrdu})`,
+    });
+
+    quranAudioPlayer.playAyah(url, `${msgId}-ayah`, (state) => {
+      if (!state.isPlaying && !state.isPaused) {
+        setActiveAudio(null);
+      } else {
+        setActiveAudio((prev) =>
+          prev ? { ...prev, isPlaying: state.isPlaying, isPaused: state.isPaused } : null
+        );
+      }
+    });
+  };
+
+  const handleSpeakSection = (
+    msgId: string,
+    text: string,
+    type: "translation" | "tafseer" | "hadith" | "full",
+    label: string
+  ) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    if (activeAudio?.msgId === msgId && activeAudio.type === type) {
+      if (activeAudio.isPlaying) {
+        window.speechSynthesis.pause();
+        setActiveAudio({ ...activeAudio, isPlaying: false, isPaused: true });
+        return;
+      } else if (activeAudio.isPaused) {
+        window.speechSynthesis.resume();
+        setActiveAudio({ ...activeAudio, isPlaying: true, isPaused: false });
+        return;
+      }
+    }
+
+    quranAudioPlayer.stop();
     window.speechSynthesis.cancel();
-    // Clean markdown symbols for cleaner speech
-    const cleanText = text.replace(/[#*`_>\[\]]/g, "").slice(0, 500);
+
+    const cleanText = text.replace(/[#*`_>\[\]]/g, "").slice(0, 1000);
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = language === "arabic" ? "ar-SA" : "ur-PK";
     utterance.rate = 0.95;
 
-    utterance.onend = () => setIsSpeakingId(null);
-    utterance.onerror = () => setIsSpeakingId(null);
+    utterance.onend = () => setActiveAudio(null);
+    utterance.onerror = () => setActiveAudio(null);
 
-    setIsSpeakingId(id);
     window.speechSynthesis.speak(utterance);
+    setActiveAudio({
+      msgId,
+      type,
+      isPlaying: true,
+      isPaused: false,
+      label,
+    });
+  };
+
+  const handlePauseAudio = () => {
+    if (activeAudio?.type === "ayah") {
+      quranAudioPlayer.pause();
+    } else if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.pause();
+    }
+    setActiveAudio((prev) => (prev ? { ...prev, isPlaying: false, isPaused: true } : null));
+  };
+
+  const handleResumeAudio = () => {
+    if (activeAudio?.type === "ayah") {
+      quranAudioPlayer.resume();
+    } else if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.resume();
+    }
+    setActiveAudio((prev) => (prev ? { ...prev, isPlaying: true, isPaused: false } : null));
+  };
+
+  const handleReplayAudio = (
+    msgId: string,
+    surah?: number,
+    ayah?: number,
+    text?: string,
+    type: "ayah" | "translation" | "tafseer" | "hadith" | "full" = "full",
+    label: string = "آڈیو"
+  ) => {
+    if (type === "ayah" && surah && ayah) {
+      const url = getQuranAudioUrl(surah, ayah, preferredQari);
+      quranAudioPlayer.replay();
+      setActiveAudio((prev) => (prev ? { ...prev, isPlaying: true, isPaused: false } : null));
+    } else if (text && type !== "ayah") {
+      handleSpeakSection(msgId, text, type, label);
+    }
+  };
+
+  const handleStopAudio = () => {
+    quranAudioPlayer.stop();
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setActiveAudio(null);
+  };
+
+  const handleToggleBookmark = (msg: ChatMessage) => {
+    try {
+      const raw = localStorage.getItem("saved_islamic_messages");
+      let list: any[] = raw ? JSON.parse(raw) : [];
+
+      if (savedIds.has(msg.id)) {
+        list = list.filter((item) => item.id !== msg.id);
+        savedIds.delete(msg.id);
+        setSavedIds(new Set(savedIds));
+      } else {
+        list.unshift({
+          id: msg.id,
+          text: msg.text,
+          timestamp: msg.timestamp || new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        });
+        savedIds.add(msg.id);
+        setSavedIds(new Set(savedIds));
+      }
+      localStorage.setItem("saved_islamic_messages", JSON.stringify(list));
+    } catch (e) {
+      console.error("Failed to toggle bookmark:", e);
+    }
+  };
+
+  const handleShareMessage = async (msg: ChatMessage) => {
+    const shareText = `${msg.text}\n\n---\n📱 اسلامی چیٹ جی پی ٹی (Islamic ChatGPT) سے ماخوذ`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "اسلامی چیٹ جی پی ٹی",
+          text: shareText,
+        });
+        setSharedId(msg.id);
+        setTimeout(() => setSharedId(null), 2000);
+        return;
+      } catch (err) {
+        // User cancelled or share error, fallback to clipboard
+      }
+    }
+
+    navigator.clipboard.writeText(shareText);
+    setSharedId(msg.id);
+    setTimeout(() => setSharedId(null), 2000);
   };
 
   const samplePrompts = [
@@ -191,20 +411,29 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   return (
     <div dir="rtl" className="flex-1 flex flex-col h-full bg-[#07130f] relative overflow-hidden">
       {/* Top Navigation Bar */}
-      <header className="h-14 sm:h-16 px-4 border-b border-emerald-950/70 bg-[#06100d]/90 backdrop-blur-md flex items-center justify-between z-30 shrink-0">
-        <div className="flex items-center gap-3">
+      <header className="h-14 sm:h-16 px-3 sm:px-4 border-b border-emerald-950/70 bg-[#06100d]/95 backdrop-blur-md flex items-center justify-between z-30 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
-            onClick={onOpenSidebar}
-            className="p-2 rounded-xl text-emerald-400 hover:text-white hover:bg-emerald-900/30 transition-colors"
-            title="مینیو کھولیں"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenSidebar();
+            }}
+            className="p-2 sm:p-2.5 rounded-xl text-emerald-400 hover:text-white hover:bg-emerald-900/40 active:scale-90 transition-all cursor-pointer shrink-0 flex items-center justify-center"
+            title={isSidebarOpen ? "ڈیش بورڈ بند کریں" : "ڈیش بورڈ / مینیو کھولیں"}
+            aria-label={isSidebarOpen ? "ڈیش بورڈ بند کریں" : "ڈیش بورڈ / مینیو کھولیں"}
           >
-            <Menu className="w-5 h-5" />
+            {isSidebarOpen ? (
+              <X className="w-5 h-5 text-emerald-300 transition-transform rotate-90" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
           </button>
 
-          <div className="flex items-center gap-2.5">
-            <IslamicLogo className="w-9 h-9 rounded-xl shadow-md" />
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-emerald-200 font-urdu leading-tight">
+          <div className="flex items-center gap-2 min-w-0">
+            <IslamicLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-md shrink-0" />
+            <div className="min-w-0">
+              <h2 className="text-xs sm:text-base font-bold text-emerald-200 font-urdu leading-tight truncate">
                 اسلامی چیٹ جی پی ٹی
               </h2>
             </div>
@@ -212,21 +441,60 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* New Chat Button (Easy 1-tap on Mobile) */}
+          {onNewChat && (
+            <button
+              onClick={onNewChat}
+              className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl text-emerald-400 hover:text-white bg-emerald-950/60 hover:bg-emerald-900/50 border border-emerald-800/50 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+              title="نئی چیٹ شروع کریں"
+            >
+              <MessageSquarePlus className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs font-urdu font-semibold">نئی چیٹ</span>
+            </button>
+          )}
+
+          {/* Favorites / محفوظ شدہ */}
+          {onOpenFavorites && (
+            <button
+              onClick={onOpenFavorites}
+              className="relative p-2 rounded-xl text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/50 active:scale-95 transition-all cursor-pointer"
+              title="محفوظ شدہ پیغامات"
+            >
+              <Bookmark className="w-4 h-4" />
+              {favoritesCount && favoritesCount > 0 ? (
+                <span className="absolute -top-0.5 -right-0.5 bg-emerald-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                  {favoritesCount}
+                </span>
+              ) : null}
+            </button>
+          )}
+
           {/* Calendar */}
           <button
             onClick={onOpenCalendar}
-            className="p-2 rounded-xl text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/40 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/50 active:scale-95 transition-all cursor-pointer"
             title="اسلامی کیلنڈر"
           >
             <Calendar className="w-4 h-4" />
           </button>
 
+          {/* AI Settings */}
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="p-2 rounded-xl text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/50 active:scale-95 transition-all cursor-pointer"
+              title="Gemini AI سیٹنگز"
+            >
+              <Settings2 className="w-4 h-4" />
+            </button>
+          )}
+
           {/* Clear Session */}
           {session.messages.length > 0 && (
             <button
               onClick={onClearChat}
-              className="p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-950/30 transition-colors"
+              className="p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-950/30 active:scale-95 transition-all cursor-pointer"
               title="چیٹ صاف کریں"
             >
               <Trash2 className="w-4 h-4" />
@@ -277,6 +545,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           <div className="max-w-3xl mx-auto space-y-6 pb-4">
             {session.messages.map((msg) => {
               const isUser = msg.sender === "user";
+              const detectedAyah = !isUser && msg.text ? detectQuranAyah(msg.text) : null;
+              const sections = !isUser && msg.text ? extractMessageSections(msg.text) : {};
 
               return (
                 <div
@@ -300,6 +570,17 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                         : "bg-[#061410] border border-emerald-950 text-slate-200 shadow-lg"
                     }`}
                   >
+                    {/* Attached Picture */}
+                    {msg.imageUrl && (
+                      <div className="mb-3 max-w-sm rounded-2xl overflow-hidden border border-emerald-700/50 shadow-md">
+                        <img
+                          src={msg.imageUrl}
+                          alt="منسلک تصویر"
+                          className="w-full max-h-72 object-contain bg-black/40 rounded-xl"
+                        />
+                      </div>
+                    )}
+
                     {/* Markdown Body */}
                     <div className="prose prose-invert prose-emerald max-w-none font-urdu leading-loose text-slate-200 select-text">
                       {msg.text ? (
@@ -307,7 +588,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                           remarkPlugins={[remarkGfm]}
                           components={{
                             blockquote: ({ children }) => (
-                              <blockquote className="border-r-4 border-emerald-400 pr-4 pl-3 py-3 my-3 text-emerald-100 bg-[#042017]/90 rounded-l-2xl shadow-inner font-arabic text-base sm:text-lg leading-[2.4] select-text text-right tracking-wide">
+                              <blockquote className="border border-emerald-500/40 pr-4 pl-4 py-3.5 my-3.5 text-emerald-100 bg-[#031d16] rounded-2xl shadow-md font-arabic text-base sm:text-lg leading-[2.4] select-text text-right tracking-wide">
                                 {children}
                               </blockquote>
                             ),
@@ -331,6 +612,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                             ),
                             a: ({ href, children }) => {
                               const isAlUlama = href && (href.includes("alulama.org") || href.includes("al-ulama"));
+                              const isApp = href && (href.includes("localhost") || href.includes("127.0.0.1") || href.includes("vercel") || href.includes("chatgpt"));
                               return (
                                 <a
                                   href={href}
@@ -345,6 +627,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                                   className={
                                     isAlUlama
                                       ? "inline-flex items-center gap-1.5 px-3 py-1.5 my-1.5 bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-md border border-emerald-400/40 transition-all cursor-pointer no-underline"
+                                      : isApp
+                                      ? "inline-flex items-center gap-1.5 px-3 py-1.5 my-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-bold text-xs rounded-xl shadow-md border border-emerald-700/50 transition-all cursor-pointer no-underline"
                                       : "inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-200 underline underline-offset-4 decoration-emerald-500/60 font-medium transition-colors my-1 px-1 bg-emerald-950/40 rounded-md border border-emerald-900/30"
                                   }
                                 >
@@ -441,14 +725,224 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                       </div>
                     )}
 
+                    {/* 🎙️ Quran Ayah Recitation & Qari Selection Card */}
+                    {!isUser && detectedAyah && (
+                      <div className="mt-4 p-3.5 bg-gradient-to-r from-[#031d16] to-[#01140e] border border-emerald-500/50 rounded-2xl shadow-lg space-y-3">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-emerald-900/60 pb-2">
+                          <div className="flex items-center gap-2 text-xs font-bold text-emerald-300 font-urdu">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>📖 قرآن مجید: {detectedAyah.surahName} [آیت: {detectedAyah.ayahNumber}]</span>
+                          </div>
+
+                          {/* Qari Selector Buttons */}
+                          <div className="flex items-center gap-1.5 bg-[#030c08] p-1 rounded-xl border border-emerald-900/60">
+                            <span className="text-[11px] text-slate-400 font-urdu px-1.5">قاری:</span>
+                            {QARI_LIST.map((qari) => (
+                              <button
+                                key={qari.id}
+                                type="button"
+                                onClick={() => handleToggleQari(qari.id)}
+                                className={`px-2 py-1 rounded-lg text-[11px] font-urdu transition-all cursor-pointer ${
+                                  preferredQari === qari.id
+                                    ? "bg-emerald-600 text-white font-bold shadow-sm"
+                                    : "text-slate-400 hover:text-emerald-300"
+                                }`}
+                              >
+                                {qari.id === "alafasy" ? "مشاری العفاسی" : "سعود الشریم"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Ayah Play / Pause Action Button */}
+                        <div className="flex items-center justify-between gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handlePlayAyah(msg.id, detectedAyah.surahNumber, detectedAyah.ayahNumber)}
+                            className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl text-xs font-urdu font-bold shadow-md flex items-center gap-2 transition-all cursor-pointer"
+                          >
+                            {activeAudio?.msgId === msg.id && activeAudio?.type === "ayah" && activeAudio?.isPlaying ? (
+                              <>
+                                <Pause className="w-4 h-4" />
+                                <span>تلاوت روکیں (Pause)</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-4 h-4 fill-white" />
+                                <span>🔊 آیت سنیں (عربی تلاوت)</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* Replay */}
+                          {activeAudio?.msgId === msg.id && activeAudio?.type === "ayah" && (
+                            <button
+                              type="button"
+                              onClick={() => handleReplayAudio(msg.id, detectedAyah.surahNumber, detectedAyah.ayahNumber, undefined, "ayah")}
+                              className="p-2 rounded-xl text-slate-300 hover:text-emerald-300 bg-emerald-950/60 border border-emerald-800/40 transition-colors flex items-center gap-1 text-xs font-urdu cursor-pointer"
+                              title="دوبارہ سنیں"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>دوبارہ سنیں</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 🔊 Granular Audio Listening Bar (آیت، ترجمہ، تفسیر، حدیث) */}
+                    {!isUser && msg.text && (sections.ayahTranslation || sections.tafseerText || sections.hadithText) && (
+                      <div className="mt-3 pt-2.5 border-t border-emerald-950/70 flex items-center gap-2 flex-wrap text-xs font-urdu">
+                        <span className="text-[11px] text-emerald-400/80 font-bold">🔊 سنیں:</span>
+
+                        {/* Translation Listen */}
+                        {sections.ayahTranslation && (
+                          <button
+                            type="button"
+                            onClick={() => handleSpeakSection(msg.id, sections.ayahTranslation!, "translation", "ترجمہ")}
+                            className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
+                              activeAudio?.msgId === msg.id && activeAudio?.type === "translation" && activeAudio?.isPlaying
+                                ? "bg-emerald-900 border-emerald-500 text-emerald-100"
+                                : "bg-[#040e0b] border-emerald-900/50 text-slate-300 hover:text-emerald-300"
+                            }`}
+                          >
+                            <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>ترجمہ سنیں</span>
+                          </button>
+                        )}
+
+                        {/* Tafseer Listen */}
+                        {sections.tafseerText && (
+                          <button
+                            type="button"
+                            onClick={() => handleSpeakSection(msg.id, sections.tafseerText!, "tafseer", "تفسیر")}
+                            className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
+                              activeAudio?.msgId === msg.id && activeAudio?.type === "tafseer" && activeAudio?.isPlaying
+                                ? "bg-emerald-900 border-emerald-500 text-emerald-100"
+                                : "bg-[#040e0b] border-emerald-900/50 text-slate-300 hover:text-emerald-300"
+                            }`}
+                          >
+                            <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>تفسیر سنیں</span>
+                          </button>
+                        )}
+
+                        {/* Hadith Listen */}
+                        {sections.hadithText && (
+                          <button
+                            type="button"
+                            onClick={() => handleSpeakSection(msg.id, sections.hadithText!, "hadith", "حدیث")}
+                            className={`px-2.5 py-1.5 rounded-xl border text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
+                              activeAudio?.msgId === msg.id && activeAudio?.type === "hadith" && activeAudio?.isPlaying
+                                ? "bg-emerald-900 border-emerald-500 text-emerald-100"
+                                : "bg-[#040e0b] border-emerald-900/50 text-slate-300 hover:text-emerald-300"
+                            }`}
+                          >
+                            <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>حدیث سنیں</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 🎛️ Active Audio Controller (When audio is playing/paused) */}
+                    {!isUser && activeAudio?.msgId === msg.id && (
+                      <div className="mt-3 p-2.5 bg-[#020b08] border border-emerald-600/50 rounded-xl flex items-center justify-between gap-2 text-xs font-urdu shadow-md animate-fadeIn">
+                        <div className="flex items-center gap-2 text-emerald-300">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className="font-bold">{activeAudio.label || "آڈیو"}</span>
+                          <span className="text-[11px] text-slate-400">
+                            {activeAudio.isPlaying ? "جاری ہے..." : "(موقوف / Paused)"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {activeAudio.isPlaying ? (
+                            <button
+                              type="button"
+                              onClick={handlePauseAudio}
+                              className="p-1 px-2 bg-emerald-950 hover:bg-emerald-900 border border-emerald-700/60 rounded-lg text-emerald-300 flex items-center gap-1 cursor-pointer"
+                              title="Pause"
+                            >
+                              <Pause className="w-3.5 h-3.5" />
+                              <span>Pause</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleResumeAudio}
+                              className="p-1 px-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg flex items-center gap-1 cursor-pointer font-bold"
+                              title="Resume"
+                            >
+                              <Play className="w-3.5 h-3.5 fill-white" />
+                              <span>Resume</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleStopAudio()}
+                            className="p-1 px-2 bg-red-950/60 hover:bg-red-900/80 border border-red-800/40 text-red-300 rounded-lg flex items-center gap-1 cursor-pointer"
+                            title="بند کریں"
+                          >
+                            <Square className="w-3 h-3" />
+                            <span>بند</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Bottom Message Actions */}
                     {!isUser && msg.text && (
-                      <div className="mt-4 pt-2 border-t border-emerald-950/60 flex items-center justify-between text-slate-400 text-xs">
+                      <div className="mt-4 pt-2.5 border-t border-emerald-950/60 flex items-center justify-between text-slate-400 text-xs flex-wrap gap-2">
                         <span className="text-[11px] text-slate-500 font-sans">{msg.timestamp}</span>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {/* Bookmark / محفوظ کریں */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBookmark(msg)}
+                            className={`p-1.5 px-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border ${
+                              savedIds.has(msg.id)
+                                ? "text-emerald-300 bg-emerald-900/50 border-emerald-500"
+                                : "text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/60 bg-emerald-950/30 border-emerald-900/40"
+                            }`}
+                            title="محفوظ کریں (Bookmark)"
+                          >
+                            {savedIds.has(msg.id) ? (
+                              <>
+                                <BookmarkCheck className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400/30" />
+                                <span className="text-[11px] font-urdu text-emerald-300">محفوظ شدہ</span>
+                              </>
+                            ) : (
+                              <>
+                                <Bookmark className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-[11px] font-urdu">محفوظ کریں</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* Share / شیئر کریں */}
+                          <button
+                            type="button"
+                            onClick={() => handleShareMessage(msg)}
+                            className="p-1.5 px-2 rounded-xl hover:text-emerald-300 hover:bg-emerald-950/60 bg-emerald-950/30 border border-emerald-900/40 transition-colors flex items-center gap-1.5 cursor-pointer text-slate-300"
+                            title="شیئر کریں"
+                          >
+                            {sharedId === msg.id ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-[11px] text-emerald-400 font-urdu">شیئر ہو گیا!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Share2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-[11px] font-urdu">شیئر کریں</span>
+                              </>
+                            )}
+                          </button>
+
                           {/* Full Copy Button */}
                           <button
+                            type="button"
                             onClick={() => handleCopy(msg.text, msg.id)}
                             className="p-1.5 px-2 rounded-xl hover:text-emerald-300 hover:bg-emerald-950/60 bg-emerald-950/30 border border-emerald-900/40 transition-colors flex items-center gap-1.5 cursor-pointer text-slate-300"
                             title="مکمل تحریر کاپی کریں"
@@ -466,17 +960,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                             )}
                           </button>
 
-                          {/* TTS Audio Reading */}
+                          {/* Full Speech Reading */}
                           <button
-                            onClick={() => handleSpeak(msg.text, msg.id)}
+                            type="button"
+                            onClick={() => handleSpeakSection(msg.id, msg.text, "full", "مکمل جواب")}
                             className={`p-1.5 px-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border ${
-                              isSpeakingId === msg.id
+                              activeAudio?.msgId === msg.id && activeAudio?.type === "full"
                                 ? "text-emerald-400 bg-emerald-950 border-emerald-600"
                                 : "text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/60 bg-emerald-950/30 border-emerald-900/40"
                             }`}
-                            title="آواز میں سنیں"
+                            title="مکمل جواب سنیں"
                           >
-                            {isSpeakingId === msg.id ? (
+                            {activeAudio?.msgId === msg.id && activeAudio?.type === "full" && activeAudio?.isPlaying ? (
                               <VolumeX className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
                             ) : (
                               <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -497,15 +992,56 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       </div>
 
       {/* Bottom Input Area */}
-      <div className="p-3 sm:p-4 bg-[#06100d]/95 border-t border-emerald-950/70 shrink-0 z-30">
+      <div className="p-2.5 sm:p-4 bg-[#06100d]/95 backdrop-blur-md border-t border-emerald-950/70 shrink-0 z-30 pb-[max(0.6rem,env(safe-area-inset-bottom))]">
         <form onSubmit={handleFormSubmit} className="max-w-3xl mx-auto relative">
-          <div className="relative flex items-center bg-[#030907] border border-emerald-900/50 focus-within:border-emerald-500 rounded-2xl shadow-xl transition-all">
+          {/* Selected Image Preview */}
+          {selectedImage && (
+            <div className="mb-2 flex items-center gap-2">
+              <div className="relative inline-block rounded-xl overflow-hidden border border-emerald-500/80 shadow-lg bg-emerald-950/80 p-1">
+                <img
+                  src={selectedImage}
+                  alt="Selected Preview"
+                  className="h-14 w-14 sm:h-16 sm:w-16 object-cover rounded-lg"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSelectedImage(null)}
+                  className="absolute -top-1 -right-1 bg-red-600 hover:bg-red-500 text-white rounded-full p-0.5 shadow-md transition-colors cursor-pointer"
+                  title="تصویر ہٹائیں"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <span className="text-xs text-emerald-400 font-urdu">تصویر منسلک ہے</span>
+            </div>
+          )}
+
+          <div className="relative flex items-center bg-[#030907] border border-emerald-900/50 focus-within:border-emerald-500 rounded-2xl shadow-xl transition-all p-1">
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageSelect}
+            />
+
+            {/* Picture Upload Button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 sm:p-2.5 text-slate-400 hover:text-emerald-300 active:scale-90 transition-all cursor-pointer shrink-0 rounded-xl"
+              title="تصویر شامل کریں (Add Picture)"
+            >
+              <ImageIcon className="w-5 h-5" />
+            </button>
+
             {/* Voice Input Button */}
             {speechSupported && (
               <button
                 type="button"
                 onClick={handleToggleVoice}
-                className={`p-3 rounded-xl transition-colors ${
+                className={`p-2 sm:p-2.5 rounded-xl active:scale-90 transition-all shrink-0 cursor-pointer ${
                   isListening
                     ? "text-red-400 bg-red-950/60 animate-pulse"
                     : "text-slate-400 hover:text-emerald-300"
@@ -523,22 +1059,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="اسلامی سوال پوچھیں یا کتاب کے حوالے سے رہنمائی طلب کریں..."
-              className="flex-1 py-3 px-3 bg-transparent text-slate-100 placeholder-slate-500 text-sm font-urdu focus:outline-none resize-none leading-relaxed"
+              placeholder="اسلامی سوال پوچھیں یا رہنمائی طلب کریں..."
+              className="flex-1 py-2 px-2.5 bg-transparent text-slate-100 placeholder-slate-500 text-base sm:text-sm font-urdu focus:outline-none resize-none leading-relaxed min-h-[38px] max-h-32"
             />
 
             {/* Send Button */}
             <button
               type="submit"
-              disabled={!inputText.trim() || isLoading}
-              className="m-1.5 p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 disabled:opacity-40 text-white shadow-md transition-all flex items-center justify-center shrink-0"
+              disabled={(!inputText.trim() && !selectedImage) || isLoading}
+              className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 disabled:opacity-40 text-white shadow-md transition-all flex items-center justify-center shrink-0 cursor-pointer active:scale-95"
             >
               <ArrowUp className="w-4 h-4" />
             </button>
           </div>
 
-          <p className="text-center text-[11px] text-slate-500 font-urdu mt-2">
-            اسلامی چیٹ جی پی ٹی مستند اسلامی کتب اور AI ماڈل پر مبنی ہے۔ نازک فقہی مسائل میں جید علماء سے رجوع فرمائیں۔
+          <p className="text-center text-[10px] sm:text-[11px] text-slate-500 font-urdu mt-1.5 leading-tight">
+            اسلامی چیٹ جی پی ٹی مستند اسلامی کتب اور AI ماڈل پر مبنی ہے۔
           </p>
         </form>
       </div>

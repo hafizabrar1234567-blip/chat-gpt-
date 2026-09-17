@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Key, CheckCircle2, AlertCircle, X, Sparkles, ExternalLink, ShieldCheck, Loader2 } from "lucide-react";
+import { Key, CheckCircle2, AlertCircle, X, Sparkles, ExternalLink, ShieldCheck, Loader2, Volume2 } from "lucide-react";
+import { QARI_LIST, QariId } from "../utils/quranAudioService";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -16,6 +17,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [hasKey, setHasKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [defaultQari, setDefaultQari] = useState<QariId>(() => {
+    return (localStorage.getItem("preferred_qari") as QariId) || "alafasy";
+  });
+
+  const handleQariChange = (id: QariId) => {
+    setDefaultQari(id);
+    localStorage.setItem("preferred_qari", id);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -197,6 +206,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <span>Google AI Studio سے مفت Key لیں</span>
               <ExternalLink className="w-3 h-3" />
             </a>
+          </div>
+
+          {/* Default Qari Selection */}
+          <div className="p-4 rounded-2xl bg-[#061410] border border-emerald-900/60 space-y-2.5">
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-300 font-urdu">
+              <Volume2 className="w-4 h-4 text-emerald-400" />
+              <span>قرآن کی تلاوت کے لیے پسندیدہ قاری (Default Qari):</span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-urdu leading-relaxed">
+              قرآن مجید کی عربی تلاوت سننے کے لیے اپنا پسندیدہ قاری منتخب کریں:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              {QARI_LIST.map((qari) => (
+                <button
+                  key={qari.id}
+                  type="button"
+                  onClick={() => handleQariChange(qari.id)}
+                  className={`p-3 rounded-xl border text-right transition-all font-urdu flex items-center justify-between cursor-pointer ${
+                    defaultQari === qari.id
+                      ? "bg-emerald-900/50 border-emerald-500 text-emerald-100 shadow-md"
+                      : "bg-[#040c09] border-emerald-950 text-slate-300 hover:border-emerald-800/60"
+                  }`}
+                >
+                  <div>
+                    <p className="text-xs font-bold">{qari.nameUrdu}</p>
+                    <p className="text-[10px] text-emerald-400/80 font-sans">{qari.nameEnglish}</p>
+                  </div>
+                  {defaultQari === qari.id && (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

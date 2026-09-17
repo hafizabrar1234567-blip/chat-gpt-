@@ -28,6 +28,7 @@ import {
   getAlUlamaSearchUrl,
   type AlUlamaFatwa,
 } from "./src/server/alUlamaService";
+import { generateSmartChatFallback } from "./src/server/smartChatEngine";
 import fs from "fs";
 
 // Ensure Node TLS handles local Windows certificate proxies cleanly
@@ -37,6 +38,7 @@ dotenv.config();
 
 export const app = express();
 const PORT = Number(process.env.PORT) || 5000;
+const appUrl = process.env.APP_URL || `http://localhost:${PORT}`;
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
@@ -224,7 +226,7 @@ app.get("/api/settings/status", (req, res) => {
   return res.json({
     success: true,
     hasGeminiKey,
-    model: "gemini-3.6-flash",
+    model: "gemini-3.1-flash-lite",
   });
 });
 
@@ -238,14 +240,25 @@ app.post("/api/settings/key", async (req, res) => {
     const testKey = apiKey.trim();
     const testAi = new GoogleGenAI({ apiKey: testKey });
 
-    // Validate key with real Gemini call
-    const testRes = await testAi.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: "ping",
-    });
+    // Validate key with real Gemini call across supported models
+    let testSuccess = false;
+    for (const m of ["gemini-3.1-flash-lite", "gemini-flash-lite-latest", "gemini-3.7-flash"]) {
+      try {
+        const testRes = await testAi.models.generateContent({
+          model: m,
+          contents: "ping",
+        });
+        if (testRes) {
+          testSuccess = true;
+          break;
+        }
+      } catch (testErr) {
+        // Continue to next model
+      }
+    }
 
-    if (!testRes) {
-      return res.status(400).json({ success: false, error: "API Key کی تصدیق نہیں ہو سکی" });
+    if (!testSuccess) {
+      return res.status(400).json({ success: false, error: "API Key کی تصدیق نہیں ہو سکی۔ برائے مہربانی درست Google AI Key درج کریں۔" });
     }
 
     process.env.GEMINI_API_KEY = testKey;
@@ -280,13 +293,14 @@ app.post("/api/chat", async (req, res) => {
   try {
     const {
       message = "",
+      image = null,
       history = [],
       language = "urdu",
       stream = true,
     } = req.body || {};
 
-    if (!message || typeof message !== "string" || !message.trim()) {
-      return res.status(400).json({ success: false, error: "سوال درج کرنا لازمی ہے" });
+    if ((!message || typeof message !== "string" || !message.trim()) && !image) {
+      return res.status(400).json({ success: false, error: "سوال یا تصویر درج کرنا لازمی ہے" });
     }
 
     const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : "";
@@ -320,69 +334,127 @@ app.post("/api/chat", async (req, res) => {
       alUlamaSearchUrl = getAlUlamaSearchUrl(message);
     }
 
-    let systemInstruction = `You are "Islamic ChatGPT" (اسلامی چیٹ جی پی ٹی), an intelligent, highly versatile, authentic, and helpful general-purpose AI assistant with deep appreciation for Islamic knowledge, ethics, universal science, history, technology, and general wisdom.
+    let systemInstruction = `You are "Islamic ChatGPT" (اسلامی چیٹ جی پی ٹی), an authentic, highly versatile, reliable, scholarly Islamic AI assistant and Shariah guide.
 
-Core Directives:
-1. Dynamically analyze each user question independently on its own merits and generate a relevant, intelligent, and tailored response.
-2. When the user greets (e.g. السلام علیکم, سلام, Hello, Hi, AOA) or asks for an introduction ("آپ کون ہیں", "Who are you", "تعارف"):
-   Respond warmly, politely, and comprehensively in this welcoming style:
-   "وعلیکم السلام ورحمۃ اللہ وبرکاتہ،
+CRITICAL MANDATES & CARDINAL RULES:
 
-خوش آمدید! میں آپ کا ڈیجیٹل اسسٹنٹ ہوں، جو اسلامی تعلیمات، مستند معلومات اور دیگر علمی و عمومی امور میں آپ کی رہنمائی کے لیے حاضر ہے۔
+1. INTELLIGENT QUESTION SYSTEM & TAILORED REASONING:
+   - Carefully understand each user question's true nature independently:
+     * Quran (قرآن / سورت / آیت)
+     * Hadith (حدیث / سنت / روایت)
+     * Fatwa (فتویٰ / دارالافتاء)
+     * Fiqh (فقہ / عبادات / نماز / روزہ / زکوٰۃ / حج / نکاح / معاملات)
+     * Seerat & Islamic History (سیرت النبی ﷺ / صحابہ کرام / تاریخ)
+     * Aqeedah (عقیدہ / توحید / ایمان)
+     * General Islamic Knowledge (عام اسلامی معلومات)
+   - Every answer must be specifically tailored to the topic without repetitive or fixed boilerplates.
 
-میں آپ کی کس طرح مدد کر سکتا ہوں؟ آپ مجھ سے قرآن و سنت کی روشنی میں سوالات پوچھ سکتے ہیں، کسی حدیث کی تحقیق کر سکتے ہیں، یا زندگی کے کسی بھی شعبے (سائنسی، تاریخی، تعلیمی یا عمومی) سے متعلق معلومات حاصل کر سکتے ہیں۔ 
+2. QURAN TRANSLATION RULE (قانونِ ترجمۂ قرآن - عبدالسلام بن محمد بھٹوی صاحب):
+   - Whenever citing Quranic verses or translations in Urdu, you MUST EXCLUSIVELY use the authentic Urdu translation of:
+     **حافظ عبدالسلام بن محمد بھٹوی صاحب** (Hafiz Abdul Salam bin Muhammad Bhuttawi).
+   - STRICTLY PROHIBITED: Never use or attribute translation to any other scholar (such as Jalandhari, Maududi, Tahir-ul-Qadri, etc.) or invent translations.
+   - For every Quranic Ayah provide:
+     * Full Arabic text with diacritics
+     * Exact Surah name and Ayah number in brackets, e.g. [المائدہ: 2] or [البقرة: 255]
+     * Exact translation of حافظ عبدالسلام بن محمد بھٹوی صاحب
+     * Authentic Tafseer / concise scholarly explanation
 
-فرمائیے، میں آپ کے لیے کیا کر سکتا ہوں؟"
-3. For Islamic topics (Quran, Hadith, Fiqh, Islamic History, Tajweed, Duas, Arabic linguistics, etc.), provide accurate, authentic, respectful, and well-researched Islamic explanations. When citing Quran or Hadith, provide accurate Arabic text, authentic translation, and exact references appropriate to the user's specific inquiry.
-4. For general-purpose topics (science, geography, world history, language, mathematics, literature, medicine, technology, daily life advice, general knowledge), answer accurately, logically, and comprehensively as a powerful, general-purpose AI assistant.
-5. Fluently adapt to the language and script used by the user (Urdu, English, Roman Urdu, Arabic, etc.). If the user asks in Urdu or Roman Urdu, answer naturally and clearly. If in English, answer in English.
-6. Understand conversation context and references for follow-up questions within the active chat session (e.g. understand what pronouns like "اس", "یہ", "it", "they" refer to from earlier in the conversation).
-7. When a user asks a completely new question on a different topic, immediately switch to the new topic without dragging previous unrelated context.
-8. Format responses beautifully using clean Markdown (headers, bullet points, quotes, bold text).`;
+3. HADITH WITH QURAN EVIDENCE (قرآن اور حدیث دونوں کو ترجیح):
+   - VERY IMPORTANT: If the user asks for a Hadith on a topic (e.g. parents' rights, interest/riba, honesty, prayer), but the Holy Quran ALSO contains clear, relevant evidence on that topic:
+     * DO NOT provide only the Hadith.
+     * PROVIDE BOTH:
+       1) 📖 قرآن: Relevant Ayah with Arabic text, [Surah: Ayah], translation by حافظ عبدالسلام بن محمد بھٹوی صاحب, and brief explanation.
+       2) 📜 حدیث: Relevant Sahih Hadith with Arabic text, Urdu translation, Book name, exact Hadith number, and grade of authenticity (صحت کا درجہ).
+   - Both must be directly relevant to the specific topic without unnecessary padding.
+
+4. HADITH AUTHENTICITY & CANONICAL SOURCES (کتبِ حدیث اور صحت):
+   - When citing Hadith, prioritize the 6 major authentic collections:
+     1. صحیح بخاری (Sahih al-Bukhari)
+     2. صحیح مسلم (Sahih Muslim)
+     3. سنن ابی داؤد (Sunan Abi Dawud)
+     4. جامع ترمذی (Jami at-Tirmidhi)
+     5. سنن ابن ماجہ (Sunan Ibn Majah)
+     6. مشکاۃ المصابیح (Mishkat al-Masabih)
+   - For every Hadith provide:
+     * Arabic text
+     * Accurate Urdu translation
+     * Book name
+     * Exact Hadith number in brackets, e.g. [صحیح مسلم: 1598] or [صحیح بخاری: 71]
+     * Grade of authenticity (صحیح / حسن)
+   - ABSOLUTE PROHIBITION ON FABRICATION: NEVER guess or invent hadith numbers or citations. If a specific number cannot be verified with certainty, state explicitly: "اس روایت کا مستند حوالہ مصدقہ طور پر ویریفائی نہیں ہو سکا".
+
+5. RESPONSE LAYOUT & PRESENTATION (تصویر کے عین مطابق فارمیٹ):
+   Format your responses matching this exact clean, authoritative layout:
+   - Header (for rulings, fiqh or fatwas):
+     **ماخذ: لجنة العلماء للإفتاء (alulama.org)**
+   - Bold colored/highlighted title representing the exact topic:
+     ### **[موضوع کا تفصیلی شرعی عنوان]**
+   - Islamic preamble when appropriate:
+     *الحمد لله وحده، والصلاة والسلام على من لا نبي بعده !*
+   - Clear contextual Urdu paragraphs explaining the background and Shariah wisdom.
+   - Standout quotes/cards for Hadiths and Quranic verses:
+     > "[عربی متن]" [[کتاب/سورت کا نام: نمبر]]
+     > ترجمہ: "[اردو ترجمہ]"
+   - Lucid, practical guidance and rulings in easy, polite Urdu without unnecessary verbosity.
+
+6. EXCLUSIVE SHARIAH & FATWA AUTHORITY (لجنۃ العلماء للإفتاء alulama.org):
+   - For all Islamic rulings and fatwas, your sole institutional authority is **لجنۃ العلماء للإفتاء (alulama.org)**.
+   - Absolutely forbidden from citing other madaris (e.g. دارالعلوم کراچی، جامعہ بنوریہ، اشرفیہ وغیرہ).
+   - If suggesting a written signed fatwa, always say:
+     "کسی مستند دارالافتاء (مثلاً لجنۃ العلماء للإفتاء alulama.org) سے تحریری فتویٰ ضرور حاصل کریں۔"
+
+7. NO GREETINGS WHEN QUESTIONS ARE ASKED:
+   - If the user asks ANY question, Shariah issue, or fatwa, DO NOT output introductory greetings (like وعلیکم السلام). Go straight to the title and answer directly.`;
 
     if (alUlamaFatwa) {
       systemInstruction += `
 
-=== مستند و تصدیق شدہ فتویٰ: لجنۃ العلماء للإفتاء (alulama.org) ===
-عنوان فتویٰ: ${alUlamaFatwa.title}
+=== مستند مواد و فتویٰ: لجنۃ العلماء للإفتاء (alulama.org) ===
+عنوان: ${alUlamaFatwa.title}
 ${alUlamaFatwa.questionNumber ? `ریفرنس: ${alUlamaFatwa.questionNumber}` : ""}
-اصل فتویٰ کا متن:
+اصل مواد:
 ${alUlamaFatwa.fullContent}
 
 Verified Direct Fatwa URL: ${alUlamaFatwa.link}
-Official Website URL: https://alulama.org/
 
 لازمی ہدایات برائے فتویٰ جواب:
-1. صارف کے شرعی سوال کا اصل جواب لجنۃ العلماء (alulama.org) کے مذکورہ بالا اصل تصدیق شدہ فتویٰ کی بنیاد پر پیش کریں۔
-2. جواب کو اس واضح، منظم اور مستند انداز میں پیش کریں:
-   ### **فتویٰ کا عنوان:** ${alUlamaFatwa.title}
-   **ماخذ:** لجنۃ العلماء للإفتاء (alulama.org)
-
-   **مختصر و مدلل جواب:**
-   [اصل فتویٰ کے مطابق واضح، جامع اور مدلل جواب]
-3. اصل فتویٰ کے مفہوم، دلائل یا حکم میں اپنی طرف سے کوئی تبدیلی نہ کریں۔
-4. جواب کے اختتام پر لازماً درج ذیل دو لنکس فراہم کریں:
-   * [العلماء ویب سائٹ کھولیں](https://alulama.org/)
-   * [اصل فتویٰ دیکھیں](${alUlamaFatwa.link})
-5. کوئی فرضی، من گھڑت، یا اندازے والا لنک ہرگز نہ بنائیں۔ صرف اور صرف اوپر دیا گیا اصل Verified URL ہی استعمال کریں۔
+1. صارف کے سوال کا براہ راست، مدلل، فصیح اور واضح شرعی جواب لجنۃ العلماء (alulama.org) کے مواد، منہج اور قرآن و سنت کی روشنی میں تیار کریں۔
+2. کسی غیر متعلقہ مضمون، مصنف کا نام (مثلاً حافظ نصر اللہ جاوید وغیرہ) یا پروموشنل تحریر کو نقل نہ کریں۔ صرف سوال سے متعلقہ حکمِ شرعی اور دلائل بیان کریں۔
+3. شروع میں ماخذ درج کریں:
+   **ماخذ:** لجنۃ العلماء للإفتاء (alulama.org) ${alUlamaFatwa.questionNumber ? `| **${alUlamaFatwa.questionNumber}**` : ""}
+4. جواب کے اختتام پر اپنے متن میں کوئی لنکس یا ویب سائٹ URLs خود سے نہ لکھیں؛ سرور خودکار طور پر العلماء اور اصل فتویٰ کا تصدیق شدہ لنک آخر میں شامل کرے گا۔
 `;
     } else if (isFatwaOrFiqhQuery) {
       systemInstruction += `
 
-اہم نوٹ برائے فتویٰ ماخذ (لجنۃ العلماء للإفتاء alulama.org):
-صارف نے شرعی مسئلہ / فتویٰ پوچھا ہے، لیکن اس مخصوص مسئلے کا بعینہٖ فتویٰ لجنۃ العلماء (alulama.org) کے پاس دستیاب نہیں ہے۔
-لہٰذا:
-1. جواب کے آغاز میں واضح طور پر درج کریں:
-   > ⚠️ **نوٹ:** اس مخصوص مسئلے کا فتویٰ لجنۃ العلماء (alulama.org) کی ویب سائٹ پر دستیاب نہیں ہے۔ درج ذیل شرعی رہنمائی قرآن و سنت کے دلائل کی روشنی میں پیش کی جا رہی ہے:
-2. اس کے بعد قرآن و سنت کے عمومی مستند دلائل کی روشنی میں صحیح رہنمائی پیش کریں۔
-3. جواب کے اختتام پر العلماء ویب سائٹ کا لنک فراہم کریں:
-   * [العلماء ویب سائٹ کھولیں](https://alulama.org/)
-4. سخت تنبیہ: کوئی فرضی، من گھڑت یا اندازے والا ڈائریکٹ پوسٹ لنک ہرگز نہ دیں اور نہ ہی کوئی فرضی URL بنائیں، کیونکہ اس مسئلے کا تصدیق شدہ فتویٰ موجود نہیں ہے۔
+=== شرعی مسئلہ / فتویٰ رہنمائی: لجنۃ العلماء للإفتاء (alulama.org) ===
+لازمی ہدایات:
+1. جواب لجنۃ العلماء للإفتاء (alulama.org) کے منہج اور قرآن و سنت کے مستند دلائل کے مطابق پیش کریں۔
+2. جواب کے آغاز میں ماخذ درج کریں:
+   **ماخذ:** لجنۃ العلماء للإفتاء (alulama.org)
+3. اگر کسی حساس مسئلے میں دستخط شدہ تحریری فتویٰ لینے کا مشورہ دینا ہو تو صرف لجنۃ العلماء للإفتاء کا نام دیں، مثلاً:
+   "کسی مستند دارالافتاء (مثلاً لجنۃ العلماء للإفتاء alulama.org) سے تحریری فتویٰ ضرور حاصل کریں۔"
+   کسی بھی دوسرے ادارے کا نام لینا قطعی ممنوع ہے۔
+4. جواب کے اختتام پر اپنے متن میں کوئی لنکس یا ویب سائٹ URLs خود سے نہ لکھیں؛ سرور خودکار طور پر لجنۃ العلماء (alulama.org) اور اصل فتویٰ کا تصدیق شدہ لنک آخر میں شامل کرے گا۔
 `;
     }
 
+    // Parse image if provided
+    let imagePart: any = null;
+    if (typeof image === "string" && image.startsWith("data:")) {
+      const matches = image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (matches) {
+        imagePart = {
+          inlineData: {
+            mimeType: matches[1],
+            data: matches[2],
+          },
+        };
+      }
+    }
+
     // Build multi-turn contents ensuring strictly valid turn alternation starting with 'user'
-    const contents: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }> = [];
+    const contents: Array<{ role: "user" | "model"; parts: Array<any> }> = [];
 
     if (Array.isArray(history) && history.length > 0) {
       for (const h of history) {
@@ -404,43 +476,97 @@ Official Website URL: https://alulama.org/
       }
     }
 
-    // Append the current user message as the final turn
-    if (contents.length > 0 && contents[contents.length - 1].role === "user") {
-      contents[contents.length - 1].parts[0].text += "\n\n" + message.trim();
-    } else {
-      contents.push({ role: "user", parts: [{ text: message.trim() }] });
+    // Current turn parts with optional image
+    const userParts: any[] = [];
+    if (imagePart) {
+      userParts.push(imagePart);
+    }
+    const currentPrompt = (typeof message === "string" && message.trim())
+      ? message.trim()
+      : (imagePart ? "برائے مہربانی اس تصویر کا جائزہ لے کر اسلامی و علمی رہنمائی فرمائیں۔" : "");
+
+    if (currentPrompt) {
+      userParts.push({ text: currentPrompt });
     }
 
-    // Fast, production-ready Gemini models in prioritized order
+    // Append the current user message as the final turn
+    if (contents.length > 0 && contents[contents.length - 1].role === "user") {
+      contents[contents.length - 1].parts.push(...userParts);
+    } else {
+      contents.push({ role: "user", parts: userParts });
+    }
+
+    // Resilient, high-speed prioritized Gemini models
     const candidateModels = [
       "gemini-3.6-flash",
+      "gemini-3.5-flash-lite",
       "gemini-3.7-flash",
       "gemini-3.1-flash-lite",
       "gemini-flash-latest",
-      "gemini-3.5-flash",
+      "gemini-flash-lite-latest",
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
     ];
 
     const getModelConfig = (modelName: string) => {
-      return {
+      const config: any = {
         systemInstruction: { parts: [{ text: systemInstruction }] },
         temperature: 0.7,
-        maxOutputTokens: 3000,
+        maxOutputTokens: 2500,
       };
+      if (
+        modelName.includes("2.5") ||
+        modelName.includes("2.0") ||
+        modelName.includes("flash")
+      ) {
+        config.thinkingConfig = { thinkingBudget: 0 };
+      }
+      return config;
     };
+
+    const directFatwaLink = alUlamaFatwa?.link || alUlamaSearchUrl || getAlUlamaSearchUrl(message) || "https://alulama.org/";
 
     const sourceToSend = alUlamaFatwa
       ? {
           title: alUlamaFatwa.title,
           directLink: alUlamaFatwa.link,
           homepageLink: "https://alulama.org/",
+          appLink: appUrl,
         }
       : isFatwaOrFiqhQuery
       ? {
           title: "لجنۃ العلماء للإفتاء (alulama.org)",
-          directLink: alUlamaSearchUrl || "https://alulama.org/",
+          directLink: directFatwaLink,
           homepageLink: "https://alulama.org/",
+          appLink: appUrl,
         }
       : null;
+
+    // Helper to format direct verified fatwa response
+    const formatDirectFatwaReply = (fatwa: AlUlamaFatwa) => {
+      let reply = `### **فتویٰ کا عنوان:** ${fatwa.title}\n`;
+      reply += `**ماخذ:** لجنۃ العلماء للإفتاء (alulama.org) ${fatwa.questionNumber ? `| **${fatwa.questionNumber}**` : ""}\n\n---\n\n`;
+      if (fatwa.questionText) {
+        const cleanQ = fatwa.questionText.replace(/^سوال\s*[:\s]*/i, "").trim();
+        reply += `#### **سوال:**\n${cleanQ || fatwa.questionText}\n\n`;
+      }
+      const cleanA = (fatwa.answerText || fatwa.fullContent).replace(/^جواب\s*[:\s]*/i, "").trim();
+      reply += `#### **شرعی جواب (لجنۃ العلماء للإفتاء):**\n${cleanA}\n\n---\n`;
+      reply += `* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n`;
+      reply += `* [اصل فتویٰ دیکھیں](${fatwa.link})\n`;
+      reply += `* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
+      return reply;
+    };
+
+    // Helper to generate friendly quota exhaustion explanation in Urdu
+    const formatQuotaErrorReply = (err: any) => {
+      const isQuota = err?.status === 429 || err?.message?.includes("429") || err?.message?.includes("quota") || err?.message?.includes("RESOURCE_EXHAUSTED");
+      if (isQuota) {
+        return `⚠️ **گوگل جیمینائی (Gemini API) کی مفت یومیہ حد (Quota) عارضی طور پر مکمل ہو چکی ہے:**\n\nگوگل کے مفت اکاؤنٹ میں روزانہ محدود درخواستوں کی حد ہوتی ہے۔\n\n**اس کے حل کے لیے آپ درج ذیل اقدامات کر سکتے ہیں:**\n1. **تھوڑی دیر انتظار کریں:** چند منٹ یا اگلے گھنٹے بعد گوگل کی طرف سے کوٹہ خودکار طور پر بحال ہو جاتا ہے۔\n2. **نئی مفت API Key حاصل کریں:** آپ بالکل مفت [Google AI Studio](https://aistudio.google.com/app/apikey) سے 1 منٹ میں نئی API Key بنا کر سائیڈبار میں **"Gemini AI سیٹنگز"** میں داخل کر سکتے ہیں۔`;
+      }
+      return `❌ **گوگل جیمینائی ایرر:** ماڈل سے رابطہ نہیں ہو سکا (${err?.message || "سرور کا عارضی مسئلہ"})۔ برائے مہربانی دوبارہ کوشش کریں۔`;
+    };
 
     if (isStreamRequest) {
       res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
@@ -453,6 +579,7 @@ Official Website URL: https://alulama.org/
         res.write(`data: ${JSON.stringify({ alUlamaSource: sourceToSend })}\n\n`);
         if ((res as any).flush) (res as any).flush();
       }
+
 
       let streamSuccess = false;
       let fullReply = "";
@@ -487,32 +614,21 @@ Official Website URL: https://alulama.org/
       }
 
       if (!streamSuccess && !fullReply) {
-        const errMsg = lastError?.message || "ماڈل سے جواب حاصل نہیں ہو سکا";
-        const failText = `❌ **Google Gemini API Error:** ${errMsg}\n\nبرائے مہربانی اپنی API Key اور انٹرنیٹ کنکشن کی جانچ فرمائیں۔`;
-        res.write(`data: ${JSON.stringify({ chunk: failText, error: errMsg, done: true, reply: failText })}\n\n`);
-        return res.end();
+        if (alUlamaFatwa) {
+          fullReply = formatDirectFatwaReply(alUlamaFatwa);
+        } else {
+          const searchResults = searchKnowledgeBase(message, 3);
+          const fallback = generateSmartChatFallback(message, searchResults);
+          fullReply = fallback.reply;
+        }
+        res.write(`data: ${JSON.stringify({ chunk: fullReply })}\n\n`);
       }
 
-      // Ensure exact verified Al-Ulama links are present in the response
-      if (alUlamaFatwa) {
-        let extraLinks = "";
-        if (!fullReply.includes("alulama.org") && !fullReply.includes("العلماء ویب سائٹ کھولیں")) {
-          extraLinks += `\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)`;
-        }
-        if (!fullReply.includes(alUlamaFatwa.link)) {
-          extraLinks += `\n* [اصل فتویٰ دیکھیں](${alUlamaFatwa.link})`;
-        }
-        if (extraLinks) {
-          fullReply += `\n\n---\n${extraLinks}`;
-          res.write(`data: ${JSON.stringify({ chunk: `\n\n---\n${extraLinks}` })}\n\n`);
-        }
-      } else if (isFatwaOrFiqhQuery) {
-        let extraLinks = `\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)`;
-        if (alUlamaSearchUrl) {
-          extraLinks += `\n* [العلماء پر مزید فتاویٰ سرچ کریں](${alUlamaSearchUrl})`;
-        }
-        fullReply += `\n\n---\n${extraLinks}`;
-        res.write(`data: ${JSON.stringify({ chunk: `\n\n---\n${extraLinks}` })}\n\n`);
+      if (isFatwaOrFiqhQuery) {
+        fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
+        const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اصل فتویٰ دیکھیں](${directFatwaLink})\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
+        fullReply += extraLinks;
+        res.write(`data: ${JSON.stringify({ chunk: extraLinks })}\n\n`);
       }
 
       res.write(
@@ -527,6 +643,7 @@ Official Website URL: https://alulama.org/
     }
 
     // Standard Non-streaming Response
+
     let replyText = "";
     let lastError: any = null;
 
@@ -550,32 +667,19 @@ Official Website URL: https://alulama.org/
     }
 
     if (!replyText) {
-      const errMsg = lastError?.message || "ماڈل سے جواب حاصل نہیں ہو سکا";
-      return res.status(200).json({
-        success: false,
-        reply: `❌ **Google Gemini API Error:** ${errMsg}\n\nبرائے مہربانی اپنی API Key اور انٹرنیٹ کنکشن کی جانچ فرمائیں۔`,
-        error: errMsg,
-      });
+      if (alUlamaFatwa) {
+        replyText = formatDirectFatwaReply(alUlamaFatwa);
+      } else {
+        const searchResults = searchKnowledgeBase(message, 3);
+        const fallback = generateSmartChatFallback(message, searchResults);
+        replyText = fallback.reply;
+      }
     }
 
-    // Ensure exact verified Al-Ulama links are present in the response
-    if (alUlamaFatwa) {
-      let extraLinks = "";
-      if (!replyText.includes("alulama.org") && !replyText.includes("العلماء ویب سائٹ کھولیں")) {
-        extraLinks += `\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)`;
-      }
-      if (!replyText.includes(alUlamaFatwa.link)) {
-        extraLinks += `\n* [اصل فتویٰ دیکھیں](${alUlamaFatwa.link})`;
-      }
-      if (extraLinks) {
-        replyText += `\n\n---\n${extraLinks}`;
-      }
-    } else if (isFatwaOrFiqhQuery) {
-      let extraLinks = `\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)`;
-      if (alUlamaSearchUrl) {
-        extraLinks += `\n* [العلماء پر مزید فتاویٰ سرچ کریں](${alUlamaSearchUrl})`;
-      }
-      replyText += `\n\n---\n${extraLinks}`;
+    if (isFatwaOrFiqhQuery) {
+      replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
+      const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اصل فتویٰ دیکھیں](${directFatwaLink})\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
+      replyText += extraLinks;
     }
 
     return res.json({
@@ -1395,16 +1499,10 @@ Return valid JSON adhering strictly to the requested schema.`;
     ) {
       // Candidate models for reliable high-speed generation (valid SDK model names)
       const candidateModels = [
-        "gemini-3.7-flash",
-        "gemini-3.5-flash",
-        "gemini-flash-latest",
-        "gemini-3.8-flash",
         "gemini-3.1-flash-lite",
         "gemini-flash-lite-latest",
-        "gemini-3.6-flash",
-        "gemini-pro-latest",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
+        "gemini-flash-latest",
+        "gemini-3.7-flash",
       ];
 
       // Universal Strict Output Directive enforcing clean, direct answers without introductory filler or pleasantries

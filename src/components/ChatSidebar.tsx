@@ -12,9 +12,11 @@ import {
   Check,
   Globe,
   Settings2,
+  Bookmark,
+  LogOut,
 } from "lucide-react";
 import { IslamicLogo } from "./IslamicLogo";
-import { ChatSession, BookRecord, LanguageOption } from "../types";
+import { ChatSession, BookRecord, LanguageOption, UserAccount } from "../types";
 
 interface ChatSidebarProps {
   isOpen: boolean;
@@ -28,9 +30,13 @@ interface ChatSidebarProps {
   onOpenKnowledgeBase: () => void;
   onOpenCalendar: () => void;
   onOpenSettings: () => void;
+  onOpenFavorites?: () => void;
+  favoritesCount?: number;
   booksCount: number;
   language: LanguageOption;
   onChangeLanguage: (lang: LanguageOption) => void;
+  currentUser?: UserAccount | null;
+  onLogout?: () => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -45,9 +51,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onOpenKnowledgeBase,
   onOpenCalendar,
   onOpenSettings,
+  onOpenFavorites,
+  favoritesCount = 0,
   booksCount,
   language,
   onChangeLanguage,
+  currentUser,
+  onLogout,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -85,8 +95,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       {/* Sidebar Container */}
       <aside
         dir="rtl"
-        className={`fixed lg:static top-0 bottom-0 right-0 z-50 w-72 sm:w-80 bg-[#06100d] border-l border-emerald-950/70 flex flex-col transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
+        className={`fixed lg:static top-0 bottom-0 right-0 z-50 w-[85vw] max-w-xs sm:w-80 bg-[#06100d] border-l border-emerald-950/70 flex flex-col shadow-2xl mobile-sidebar-drawer ${
+          isOpen ? "mobile-sidebar-open" : "mobile-sidebar-closed lg:translate-x-0"
         }`}
       >
         {/* Top Branding */}
@@ -104,22 +114,54 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white lg:hidden"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-emerald-950/60 active:scale-95 transition-all lg:hidden cursor-pointer"
+            title="بند کریں"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* User Profile Bar (When Logged In) */}
+        {currentUser && (
+          <div className="mx-3 mt-2.5 p-2 px-3 bg-[#081511] rounded-2xl border border-emerald-900/50 flex items-center justify-between gap-2 shadow-sm">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-emerald-200 truncate leading-tight">{currentUser.name}</p>
+                <p className="text-[10px] text-slate-400 truncate leading-tight font-sans" dir="ltr">{currentUser.email}</p>
+              </div>
+            </div>
+            {onLogout && (
+              <button
+                type="button"
+                onClick={() => {
+                  onLogout();
+                  if (window.innerWidth < 1024) onClose();
+                }}
+                className="py-1 px-2.5 text-[11px] font-urdu text-rose-300 hover:text-white bg-rose-950/60 hover:bg-rose-900/60 border border-rose-800/40 rounded-xl transition-all cursor-pointer shrink-0 flex items-center gap-1 active:scale-95"
+                title="لاگ آؤٹ کریں"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>لاگ آؤٹ</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="p-3 space-y-2">
           {/* New Chat Button */}
           <button
+            type="button"
             onClick={() => {
               onNewChat();
               if (window.innerWidth < 1024) onClose();
             }}
-            className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl font-urdu font-bold text-sm shadow-md shadow-emerald-950/40 flex items-center justify-center gap-2 transition-all group"
+            className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl font-urdu font-bold text-sm shadow-md shadow-emerald-950/40 flex items-center justify-center gap-2 transition-all group active:scale-98 cursor-pointer"
           >
             <MessageSquarePlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
             <span>نیا چیٹ (New Chat)</span>
@@ -127,8 +169,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
           {/* Knowledge Base Button */}
           <button
-            onClick={onOpenKnowledgeBase}
-            className="w-full py-2 px-3 bg-[#0a1b16] hover:bg-[#0e241e] border border-emerald-900/40 text-emerald-300 rounded-xl font-urdu text-xs font-semibold flex items-center justify-between transition-all"
+            type="button"
+            onClick={() => {
+              onOpenKnowledgeBase();
+              if (window.innerWidth < 1024) onClose();
+            }}
+            className="w-full py-2 px-3 bg-[#0a1b16] hover:bg-[#0e241e] border border-emerald-900/40 text-emerald-300 rounded-xl font-urdu text-xs font-semibold flex items-center justify-between transition-all active:scale-98 cursor-pointer"
           >
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-emerald-400" />
@@ -138,6 +184,26 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               {booksCount} کتب
             </span>
           </button>
+
+          {/* Favorites Button */}
+          {onOpenFavorites && (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenFavorites();
+                if (window.innerWidth < 1024) onClose();
+              }}
+              className="w-full py-2 px-3 bg-[#0a1b16] hover:bg-[#0e241e] border border-emerald-900/40 text-emerald-300 rounded-xl font-urdu text-xs font-semibold flex items-center justify-between transition-all active:scale-98 cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Bookmark className="w-4 h-4 text-emerald-400" />
+                <span>محفوظ شدہ (Favorites)</span>
+              </div>
+              <span className="px-2 py-0.5 bg-emerald-950 text-emerald-400 rounded-full text-[10px] border border-emerald-800/40">
+                {favoritesCount || 0}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Search Input */}
@@ -210,7 +276,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     {isEditing ? (
                       <button
                         onClick={(e) => saveRename(session.id, e)}
@@ -249,8 +315,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         <div className="p-3 border-t border-emerald-950/60 bg-[#040a08] space-y-2">
           {/* Gemini AI Settings */}
           <button
-            onClick={onOpenSettings}
-            className="w-full py-2 px-3 rounded-xl bg-[#0a1c17] hover:bg-[#0e2720] text-emerald-300 text-xs font-urdu flex items-center justify-between transition-colors border border-emerald-800/40"
+            type="button"
+            onClick={() => {
+              onOpenSettings();
+              if (window.innerWidth < 1024) onClose();
+            }}
+            className="w-full py-2 px-3 rounded-xl bg-[#0a1c17] hover:bg-[#0e2720] text-emerald-300 text-xs font-urdu flex items-center justify-between transition-colors border border-emerald-800/40 active:scale-98 cursor-pointer"
           >
             <div className="flex items-center gap-2">
               <Settings2 className="w-4 h-4 text-emerald-400" />
@@ -263,8 +333,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
           {/* Calendar trigger */}
           <button
-            onClick={onOpenCalendar}
-            className="w-full py-2 px-3 rounded-xl bg-[#091512] hover:bg-[#0d1e1a] text-slate-300 text-xs font-urdu flex items-center justify-between transition-colors border border-emerald-950"
+            type="button"
+            onClick={() => {
+              onOpenCalendar();
+              if (window.innerWidth < 1024) onClose();
+            }}
+            className="w-full py-2 px-3 rounded-xl bg-[#091512] hover:bg-[#0d1e1a] text-slate-300 text-xs font-urdu flex items-center justify-between transition-colors border border-emerald-950 active:scale-98 cursor-pointer"
           >
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-emerald-400" />
@@ -281,7 +355,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             <select
               value={language}
               onChange={(e) => onChangeLanguage(e.target.value as LanguageOption)}
-              className="bg-[#08120f] border border-emerald-900/40 text-emerald-300 text-xs rounded-lg px-2 py-1 focus:outline-none"
+              className="bg-[#08120f] border border-emerald-900/40 text-emerald-300 text-xs rounded-lg px-2 py-1 focus:outline-none cursor-pointer"
             >
               <option value="urdu">اردو</option>
               <option value="roman_urdu">Roman Urdu</option>

@@ -8,3 +8,5 @@ coverage/
 !.env.example
 *.zip
 temp_extract/
+
+.vercel

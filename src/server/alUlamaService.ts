@@ -198,7 +198,10 @@ const romanToUrduMap: Record<string, string> = {
   hijab: "حجاب",
   niqab: "نقاب",
   aurat: "عورت",
+  aurton: "عورت",
+  aurto: "عورت",
   khawateen: "خواتین",
+  group: "گروپ",
   mard: "مرد",
   bache: "بچے",
   bachon: "بچوں",
@@ -318,13 +321,22 @@ const genericWords = new Set([
   "رہا", "رہی", "رہے", "رہنا", "رہتا", "رہتی", "رہتے",
   "دیا", "دی", "دئے", "دیے", "دینا", "دیتے", "دیتی",
   "لیا", "لی", "لئے", "لیے", "لینا", "لیتے", "لیتی",
-  "کرنے", "کرتے", "کرتی", "کرتا", "کرے", "کروں", "کرلوں",
+  "کرنا", "کرنی", "کرنے", "کرتے", "کرتی", "کرتا", "کرے", "کروں", "کرلوں", "کرسکتے", "کرسکتی",
+  "ہونا", "ہونی", "ہونے", "ہوتا", "ہوتی", "ہوتے", "ساتھ", "ساتھوں",
+  "وجہ", "وجوہات", "دن", "دنوں", "ماہ", "مہینے", "مہینوں", "سال", "سالوں", "وقت", "اوقات", "طرح", "طریقے", "طریقوں", "صورت", "صورتوں", "حال", "حالت", "باعث", "سبب", "اسباب", "بار", "دفعہ", "مرتبہ",
   "سکوں", "لیکن", "مگر", "بلکہ", "چونکہ", "حالانکہ",
-  "جائز", "ناجائز", "حلال", "حرام", "مکروہ", "مستحب", "واجب", "حکم", "احکام", "مسئلہ", "مسائل", "شرعی", "فتوی", "فتویٰ", "فتاوی",
+  "جائز", "ناجائز", "حلال", "حرام", "مکروہ", "مستحب", "واجب", "حکم", "احکام", "مسئلہ", "مسائل", "شرعی", "فتوی", "فتویٰ", "فتوے", "فتاوی", "فتاویٰ",
+  "مجھے", "ہمیں", "میرا", "میری", "میرے", "مجھ", "ہمارا", "ہماری", "ہمارے",
+  "آپ", "آپکو", "آپکے", "آپکی", "تم", "تمہارا", "تمہاری", "تمہیں", "تجھ",
+  "کیے", "کیئے",
+  "پوچھنا", "چاہتا", "چاہتی", "چاہتے", "درکار", "ضرورت", "معلومات",
+  "کم", "زیادہ", "بچنے", "بچنا", "لکھوانا", "لکھنا", "لکھا", "بتانا", "بتایا", "پوچھا",
+  "کسی", "کوئی", "کچھ", "وغیرہ", "مثلا", "مثلاً", "دیں", "دے",
+  "اسکا", "اسکی", "اسکے", "انکا", "انکی", "انکے",
   "kia", "kya", "he", "hai", "hain", "k", "ke", "ki", "ka", "ks", "kis", "kisi",
   "mein", "me", "se", "par", "pr", "ko", "apna", "apni", "apne", "wala", "wali", "wale",
   "jaiz", "najaiz", "halal", "haram", "hukm", "hukam", "masla", "maslah", "fatwa",
-  "aur", "agr", "agar", "to", "yeh", "woh", "is", "us", "bhi", "hi", "krna", "karna",
+  "aur", "agr", "agar", "to", "yeh", "woh", "is", "us", "bhi", "hi", "krna", "karna", "sath",
   "baad", "bad", "pehle", "pehly", "qabl", "doran", "darmiyan",
   "lekin", "magar", "gya", "gaya", "gaye", "gai", "hua", "hui", "hue", "hoga", "hogi",
   "bataye", "batayein", "bataen", "plz", "please"
@@ -336,13 +348,18 @@ const genericWords = new Set([
 export function extractUrduTopicKeywords(query: string): string[] {
   if (!query || !query.trim()) return [];
 
-  // 1. Tokenize query with Urdu compound words normalized
+  // 1. Tokenize query with Arabic/Urdu diacritics stripped and compound words normalized
   const cleanStr = query
     .toLowerCase()
+    .replace(/[\u064B-\u065F\u0670]/g, "") // strip all A'raab/diacritics (zer, zabar, pesh, tanween)
     .replace(/[؟?!\.,۔،:;'"()\/\\\[\]{}*#_`~<>+=|-]/g, " ")
     .replace(/ہم\s+بستری/g, "ہمبستری")
     .replace(/حق\s+مہر/g, "حقمہر")
-    .replace(/اہل\s+حدیث/g, "اہلحدیث");
+    .replace(/اہل\s+حدیث/g, "اہلحدیث")
+    .replace(/عورتوں/g, "عورت")
+    .replace(/مردوں/g, "مرد")
+    .replace(/بچوں/g, "بچہ")
+    .replace(/کتوں/g, "کتا");
 
   const rawTokens = cleanStr.split(/\s+/).filter(Boolean);
 
@@ -376,26 +393,55 @@ export function isIslamicFatwaQuery(message: string): boolean {
 
   // If user is explicitly asking for Hadith, Quran, Tafsir or Story without asking for a ruling/fatwa/permissibility
   const isHadithOrQuranRequest =
-    /(حدیث|احادیث|روایت|hadees|hadith|سنن|بخاری|مسلم|قرآن|آیت|سورت|تفسیر|quran|surah|ayah)/i.test(lower);
+    /(حدیث|احادیث|روایت|hadees|hadith|سنن|بخاری|صحیح\s*مسلم|امام\s*مسلم|قرآن|آیت|سورت|تفسیر|quran|surah|ayah)/i.test(lower);
 
   const hasExplicitRulingWord =
-    /(فتوی|فتویٰ|فتاوی|فتاویٰ|fatwa|حکم|احکام|ruling|مسئلہ|مسائل|masla|maslah|جائز|ناجائز|jaiz|jayaz|najaiz|حلال|حرام|halal|haram|مکروہ|makrooh|واجب|wajib|بدعت|bidat|شرعی|sharia|shariah)/i.test(lower) ||
-    /کیا.*(جائز|حلال|حرام|ہو سکتا|کر سکتے|منع|صحیح)/i.test(lower);
+    /(فتوی|فتویٰ|فتاوی|فتاویٰ|فتوے|fatwa|حکم|احکام|ruling|مسئلہ|مسائل|مسئلے|masla|maslah|جائز|ناجائز|jaiz|jayaz|najaiz|حلال|حرام|halal|haram|مکروہ|makrooh|واجب|wajib|بدعت|bidat|شرعی|sharia|shariah)/i.test(lower) ||
+    /کیا.*(جائز|حلال|حرام|ہو سکتا|کر سکتے|منع|صحیح|درست)/i.test(lower);
 
   // If it's purely asking for a Hadith/Quran quote without asking for a ruling, do not treat as fatwa search
   if (isHadithOrQuranRequest && !hasExplicitRulingWord) {
     return false;
   }
 
-  // 1. Direct Urdu ruling keywords
+  // 1. Direct Urdu ruling keywords & Islamic Shariah topics
   const urduFatwaWords = [
-    "فتوی", "فتویٰ", "فتاوی", "فتاویٰ", "حکم", "احکام", "مسئلہ", "مسائل",
-    "جائز", "ناجائز", "حلال", "حرام", "مکروہ", "مستحب", "واجب", "بدعت", "شرعی",
-    "طلاق", "خلع", "عدت", "رجوع", "حلالہ", "مہر", "ولیمہ", "وراثت", "ترکہ",
-    "قصر", "تیمم", "مسح", "استنجاء",
-    "تولیہ", "خضاب", "دودھ", "رضاعت",
-    "سود", "کرپٹو", "بٹ کوائن", "ٹریڈنگ", "بیمہ", "انشورنس", "لاٹری", "جوا",
-    "alulama", "العلماء"
+    // Rulings & Shariah
+    "فتوی", "فتویٰ", "فتاوی", "فتاویٰ", "فتوے", "حکم", "احکام", "مسئلہ", "مسائل", "مسئلے",
+    "شرعی", "شریعت", "فقہ", "فقہی", "جائز", "ناجائز", "حلال", "حرام", "مکروہ", "مستحب",
+    "واجب", "فرض", "سنت", "بدعت", "شرک", "کفر", "گناہ", "ثواب", "کفارہ", "فدیہ", "مباح",
+
+    // Medical, Pregnancy, Abortion & Embryology
+    "حمل", "اسقاط", "ضائع", "ابارشن", "تھیلیسیمیا", "تھیلیسمیا", "جنین", "روح", "120 دن", "۱۲۰ دن",
+    "بچہ گرانا", "پیدائش", "آپریشن", "حاملہ",
+
+    // Taharat & Cleanliness
+    "وضو", "غسل", "طہارت", "پاک", "ناپاک", "نجاست", "استنجاء", "تیمم", "مسح",
+    "حیض", "نفاس", "استحاضہ", "منی", "مذی", "تولیہ", "خضاب",
+
+    // Worship (Salah, Sawm, Zakat, Hajj)
+    "نماز", "روزہ", "سجدہ", "سہو", "قصر", "تراویح", "جنازہ", "اذان", "اقامت", "امامت", "مقتدی",
+    "جمعہ", "وتر", "تہجد", "اشراق", "چاشت", "سفر", "مسافر", "قضا", "اعتکاف",
+    "زکوۃ", "زکوٰۃ", "عشر", "فطرانہ", "فطرہ", "صدقہ", "حج", "عمرہ", "طواف", "قربانی", "عقیقہ",
+
+    // Family, Marriage & Relations
+    "نکاح", "شادی", "طلاق", "خلع", "عدت", "رجوع", "حلالہ", "مہر", "ولیمہ", "وراثت", "ترکہ",
+    "رضاعت", "دودھ", "محرم", "نامحرم", "ہمبستری", "جماع", "مباشرت", "خلوت", "بیوی", "شوہر",
+
+    // Finance, Commerce, Civics & Modern Issues
+    "سود", "ربا", "بینک", "انشورنس", "بیمہ", "کریڈٹ کارڈ", "قرض", "کرپٹو", "بٹ کوائن",
+    "ٹریڈنگ", "سٹاک", "شیئرز", "لاٹری", "جوا", "پرائز بانڈ", "کمیٹی", "رشوت", "بیع", "خرید", "فروخت",
+    "ٹیکس", "ٹیکسز", "رجسٹری", "دستاویزات", "دستاویز", "کاغذات", "غلط بیانی", "کم قیمت", "جھوٹ",
+    "دھوکہ", "فریب", "چوری", "خیانت", "امانت", "معاہدہ", "نوکری", "ملازمت", "تنخواہ", "جاب",
+    "کاروبار", "تجارت", "پراپرٹی", "جائیداد", "زمین", "پلاٹ", "قرضہ", "شراکت", "مضاربت", "قسط",
+    "اقساط", "عدالت", "کیس", "گواہی", "جھوٹی گواہی", "حلف", "حق", "حقوق", "ایگریمنٹ", "سرکاری",
+
+    // Food & Animals
+    "ذبح", "ذبیحہ", "گوشت", "کتا", "بلی", "سور", "شراب", "نشہ", "سگریٹ",
+
+    // Ethics & Appearance
+    "پردہ", "حجاب", "داڑھی", "بال", "ناخن", "تصویر", "موسیقی", "گانا", "قسم", "نذر", "منت",
+    "alulama", "العلماء", "لجنۃ"
   ];
 
   for (const w of urduFatwaWords) {
@@ -403,10 +449,16 @@ export function isIslamicFatwaQuery(message: string): boolean {
   }
 
   // Check question patterns like "کیا ... جائز ہے", "کیا ... کر سکتے ہیں" or roman "kia ... jaiz he"
-  if (/کیا.*(جائز|حلال|حرام|ہو سکتا|کر سکتے|منع|درست|صحیح)/i.test(lower)) {
+  if (/(کیا|کیا.*(جائز|حلال|حرام|ہو سکتا|کر سکتے|منع|درست|صحیح|حکم|طریقہ|گناہ|ثواب|کفارہ|لکھوانا|کرنا))/i.test(lower)) {
     return true;
   }
-  if (/(kia|kya|kis)\b.*(jaiz|najaiz|halal|haram|hukm|hukam|mana|kr sakty|kr sakte|peena|pina|doodh|dodh)/i.test(lower)) {
+  if (/(بچنے کے لیے|غرض سے|کرنا کیسا|کرنے کا حکم|کیا حکم|شریعت کا کیا حکم|شرعی رہنمائی|جھوٹ بولنا|دھوکہ دینا)/i.test(lower)) {
+    return true;
+  }
+  if (/(حمل|اسقاط|بچہ|روح|تھیلیسیمیا).*(ضائع|گرانا|ختم|حکم|جائز)/i.test(lower)) {
+    return true;
+  }
+  if (/(kia|kya|kis)\b.*(jaiz|najaiz|halal|haram|hukm|hukam|mana|kr sakty|kr sakte|peena|pina|doodh|dodh|hamal|zaya)/i.test(lower)) {
     return true;
   }
 
@@ -415,12 +467,24 @@ export function isIslamicFatwaQuery(message: string): boolean {
     "fatwa", "fatwah", "fatawa", "hukam", "hukm", "masla", "maslah", "masail",
     "jaiz", "jayaz", "najaiz", "najayaz", "halal", "haram", "makrooh", "makruh",
     "wajib", "bidat", "talaq", "khula", "iddat", "toliya", "towel", "doodh", "dodh", "razaat", "sood", "riba",
-    "crypto", "bitcoin", "sharia", "shariah", "ruling", "permissible"
+    "crypto", "bitcoin", "sharia", "shariah", "ruling", "permissible", "tax", "registry",
+    "hamal", "isqat", "abortion", "thalassemia", "zaya", "namaz", "wuzu", "ghusl", "roza", "zakat", "hajj",
+    "umrah", "qurbani", "nikah", "rooh"
   ];
 
   const words = lower.replace(/[^\w\s]/g, " ").split(/\s+/);
   for (const rw of romanFatwaWords) {
     if (words.includes(rw) || lower.includes(rw)) return true;
+  }
+
+  // In an Islamic ChatGPT app, any Urdu/Arabic query asking a question or situation
+  // that is not a pure greeting or technical code/math is treated as an Islamic guidance query
+  const hasUrduArabic = /[\u0600-\u06FF]/.test(message);
+  const isPureGreeting = /^(السلام\s*علیکم|سلام|ہیلو|ہائے|صبح\s*بخیر|شام\s*بخیر|آپ\s*کون\s*ہیں|تعارف|اپنا\s*تعارف|hello|hi|hey|aoa)[\s!?.]*$/i.test(message.trim());
+  const isPureMathOrCode = /^(\d+[\s+\-*/^]+\d+|solve\s+\d+|function\s*\(|class\s+\w+|console\.log)/i.test(message.trim());
+
+  if (hasUrduArabic && !isPureGreeting && !isPureMathOrCode) {
+    return true;
   }
 
   return false;
@@ -508,11 +572,49 @@ const synonymDict: Record<string, string[]> = {
   "تصویر": ["تصویر", "فوٹو", "ویڈیو"],
   "موسیقی": ["موسیقی", "گانا", "میوزک"],
   "خضاب": ["خضاب", "مہندی", "بال رنگنا"],
-  "کتا": ["کتا", "کلب"],
+  "کتا": ["کتا", "کتے", "کتوں", "کلب"],
+  "کتے": ["کتے", "کتا", "کتوں", "کلب"],
+  "کاٹنا": ["کاٹنا", "کاٹنے", "کاٹا", "کاٹ", "ڈسنا", "زخمی"],
+  "کاٹنے": ["کاٹنے", "کاٹنا", "کاٹا", "کاٹ", "ڈسنا", "زخمی"],
+  "ذبح": ["ذبح", "ذبیحہ", "نحر", "حلال"],
+  "جانور": ["جانور", "حیوان", "مویشی"],
   "بلی": ["بلی", "ہرہ"],
   "تولیہ": ["تولیہ", "خشک کرنا"],
   "انجکشن": ["انجکشن", "سوئی", "ڈرپ"],
+
+  // Medical, Pregnancy & Abortion
+  "تھیلیسیمیا": ["تھیلیسیمیا", "تھیلیسمیا", "بیماری", "thalassemia"],
+  "تھیلیسمیا": ["تھیلیسیمیا", "تھیلیسمیا", "بیماری"],
+  "حمل": ["حمل", "جنین", "بچہ", "پیٹ", "پریگننسی", "حاملہ"],
+  "ضائع": ["ضائع", "اسقاط", "ساقط", "گرانا", "ختم"],
+  "اسقاط": ["اسقاط", "ضائع", "ساقط", "گرانا", "ختم", "حمل ضائع"],
 };
+
+export function cleanHtmlToMarkdown(html: string): string {
+  if (!html) return "";
+  return html
+    .replace(/<br\s*[\/]?>/gi, "\n")
+    .replace(/<\/(h[1-6]|p|div|li)>/gi, "\n\n")
+    .replace(/<li[^>]*>/gi, "* ")
+    .replace(/<strong>(.*?)<\/strong>/gi, "**$1**")
+    .replace(/<b>(.*?)<\/b>/gi, "**$1**")
+    .replace(/<em>(.*?)<\/em>/gi, "*$1*")
+    .replace(/<i>(.*?)<\/i>/gi, "*$1*")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#8220;/g, "“")
+    .replace(/&#8221;/g, "”")
+    .replace(/&#8216;/g, "‘")
+    .replace(/&#8217;/g, "’")
+    .replace(/&#8211;/g, "–")
+    .replace(/&#8212;/g, "—")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#038;/g, "&")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n\s*\n+/g, "\n\n")
+    .trim();
+}
 
 function normalizeUrduText(text: string): string {
   if (!text) return "";
@@ -522,6 +624,9 @@ function normalizeUrduText(text: string): string {
     .replace(/&amp;/g, "&")
     .replace(/<[^>]+>/g, " ")
     .replace(/[\u064B-\u065F\u0670]/g, "") // remove arabic diacritics
+    .replace(/تھیلیسیمیا\s*کی/g, "تھیلیسیمیا کی")
+    .replace(/تھیلیسمیا/g, "تھیلیسیمیا")
+    .replace(/اسقاط\s*حمل/g, "اسقاط حمل")
     .replace(/ہم\s+بستری/g, "ہمبستری")
     .replace(/حق\s+مہر/g, "حقمہر")
     .replace(/اہل\s+حدیث/g, "اہلحدیث")
@@ -530,6 +635,20 @@ function normalizeUrduText(text: string): string {
 }
 
 function matchesWordOrSynonyms(target: string, word: string): boolean {
+  if (!target || !word) return false;
+  if (word.length <= 3) {
+    const regex = new RegExp(`(^|[^\\p{L}\\p{N}])${word}([^\\p{L}\\p{N}]|$)`, "u");
+    if (regex.test(target)) return true;
+    const synonyms = synonymDict[word] || [];
+    return synonyms.some((syn) => {
+      if (syn.length <= 3) {
+        const synRegex = new RegExp(`(^|[^\\p{L}\\p{N}])${syn}([^\\p{L}\\p{N}]|$)`, "u");
+        return synRegex.test(target);
+      }
+      return target.includes(syn);
+    });
+  }
+
   if (target.includes(word)) return true;
   const synonyms = synonymDict[word] || [];
   return synonyms.some((syn) => target.includes(syn));
@@ -554,10 +673,122 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
     questionSection = normContent.slice(0, 500);
   }
 
+  // Mandatory Core Domain check:
+  // If user asks about a specific Islamic domain/topic, reject candidate posts that do not belong to that domain
+  const coreDomains: Array<{ queryTriggers: string[]; requiredCandidates: string[] }> = [
+    {
+      queryTriggers: ["روزہ", "روزے", "روزوں", "روزہ دار", "صوم", "صیام", "سحری", "افطار", "اعتکاف"],
+      requiredCandidates: ["روزہ", "روزے", "روزوں", "صوم", "صیام", "سحری", "افطار", "اعتکاف"],
+    },
+    {
+      queryTriggers: ["نماز", "نمازیں", "نمازوں", "نمازی", "صلوۃ", "صلات", "سجدہ", "تراویح", "جنازہ", "قصر", "وتر"],
+      requiredCandidates: ["نماز", "نمازیں", "نمازوں", "صلوۃ", "صلات", "سجدہ", "تراویح", "جنازہ", "قصر", "وتر"],
+    },
+    {
+      queryTriggers: ["وضو", "طہارت", "مسح", "موزے", "تیمم"],
+      requiredCandidates: ["وضو", "طہارت", "مسح", "موزے", "تیمم"],
+    },
+    {
+      queryTriggers: ["غسل", "جنابت", "ناپاکی", "احتلام"],
+      requiredCandidates: ["غسل", "جنابت", "ناپاکی", "احتلام", "طہارت"],
+    },
+    {
+      queryTriggers: ["عمرہ", "عمرے", "حج", "طواف", "احرام", "میقات", "منی", "مزدلفہ", "عرفات"],
+      requiredCandidates: ["عمرہ", "عمرے", "حج", "طواف", "احرام", "میقات", "منی", "مزدلفہ", "عرفات"],
+    },
+    {
+      queryTriggers: ["زکوۃ", "زکوٰۃ", "عشر", "فطرانہ", "فطرہ"],
+      requiredCandidates: ["زکوۃ", "زکوٰۃ", "عشر", "فطرانہ", "فطرہ", "صدقہ"],
+    },
+    {
+      queryTriggers: ["قربانی", "عقیقہ", "ذبیحہ", "اضحیہ"],
+      requiredCandidates: ["قربانی", "عقیقہ", "ذبیحہ", "اضحیہ"],
+    },
+    {
+      queryTriggers: ["نکاح", "شادی", "عقد", "رخصتی", "ولیمہ", "منگنی"],
+      requiredCandidates: ["نکاح", "شادی", "عقد", "رخصتی", "ولیمہ", "منگنی"],
+    },
+    {
+      queryTriggers: ["طلاق", "خلع", "عدت", "رجوع", "حلالہ"],
+      requiredCandidates: ["طلاق", "خلع", "عدت", "رجوع", "حلالہ"],
+    },
+    {
+      queryTriggers: ["وراثت", "ورثاء", "ترکہ", "میراث", "وارث"],
+      requiredCandidates: ["وراثت", "ورثاء", "ترکہ", "میراث", "وارث"],
+    },
+    {
+      queryTriggers: ["سود", "ربا", "سودی", "انشورنس", "بینک"],
+      requiredCandidates: ["سود", "ربا", "سودی", "انشورنس", "بینک"],
+    },
+    {
+      queryTriggers: ["انجکشن", "ٹیکہ", "ڈرپ"],
+      requiredCandidates: ["انجکشن", "ٹیکہ", "ڈرپ"],
+    },
+    {
+      queryTriggers: ["خون", "بلڈ"],
+      requiredCandidates: ["خون", "بلڈ"],
+    },
+    {
+      queryTriggers: ["تھیلیسیمیا", "تھیلیسمیا"],
+      requiredCandidates: ["تھیلیسیمیا", "تھیلیسمیا"],
+    },
+    {
+      queryTriggers: ["اسقاط", "حمل ضائع"],
+      requiredCandidates: ["اسقاط", "حمل", "ساقط"],
+    },
+    {
+      queryTriggers: ["خضاب", "مہندی"],
+      requiredCandidates: ["خضاب", "مہندی"],
+    },
+    {
+      queryTriggers: ["تولیہ"],
+      requiredCandidates: ["تولیہ", "خشک"],
+    },
+  ];
+
+  for (const domain of coreDomains) {
+    const isDomainInQuery = domain.queryTriggers.some((t) => normQuery.includes(t));
+    if (isDomainInQuery) {
+      const hasDomainMatch = domain.requiredCandidates.some(
+        (rc) => normTitle.includes(rc) || questionSection.includes(rc)
+      );
+      if (!hasDomainMatch) {
+        return 0; // Strict rejection of completely unrelated domain false positives
+      }
+    }
+  }
+
+  // Specific idiosyncratic case / role conflict:
+  // Reject posts centered on narrow, specific circumstances not asked by the user
+  const specificTitleScenarios = [
+    "دو بیٹوں", "تین بیٹوں", "تین بیٹیوں", "چار بھائی", "ایک بیٹا", "دو بیویاں",
+    "لیڈی ڈاکٹر", "خفیہ نکاح", "نکاح سے قبل", "جھوٹی گواہی", "سائٹ ٹیسٹ", "پہلے فوت",
+    "اولاد کا فوت", "اولاد فوت", "زندگی میں اولاد",
+    "قبضہ", "کرایہ", "کرایے", "دکان", "مکان",
+    "قبروں", "قبر", "حیات النبی"
+  ];
+  for (const scenario of specificTitleScenarios) {
+    if (normTitle.includes(scenario) && !normQuery.includes(scenario)) {
+      return 0; // Reject if user didn't ask for this specific scenario
+    }
+  }
+
+  // Life vs Estate conflict: If user specifies living person / lifetime gift, but candidate is about deceased estate / heirs
+  if ((normQuery.includes("زندہ") || normQuery.includes("حیات") || normQuery.includes("زندگی")) && (normTitle.includes("ترکہ") || normTitle.includes("ورثاء"))) {
+    return 0;
+  }
+
   const broadWords = new Set([
-    "نماز", "روزہ", "وضو", "غسل", "اسلام", "دین", "مسئلہ", "حکم", "شرعی", "احکام", "بارے",
-    "طلاق", "نکاح", "شادی",
-    "حدیث", "احادیث", "روایت", "قرآن", "آیت", "سورت", "ترجمہ", "فضیلت", "بیان", "واقعہ", "قصہ"
+    "عورت", "عورتوں", "مرد", "مردوں", "لوگ", "شخص", "انسان",
+    "باپ", "والد", "والدہ", "ماں", "بیٹا", "بیٹے", "بیٹی", "بیٹیاں", "بھائی", "بہن", "بہنوں", "اولاد", "بچے", "بچہ", "بچوں", "خاندان",
+    "نماز", "نمازیں", "نمازوں", "روزہ", "روزے", "روزوں", "وضو", "غسل", "اسلام", "دین", "مسئلہ", "حکم", "شرعی", "احکام", "بارے",
+    "طلاق", "نکاح", "شادی", "سفر", "مسافر", "تعین", "رخ",
+    "وراثت", "ترکہ", "میراث", "جائیداد", "تقسیم", "زمین", "پلاٹ", "مال", "پیسہ", "پیسے",
+    "زندہ", "حیات", "زندگی",
+    "جانور", "گوشت", "چیز", "بات", "کام", "طریقہ", "جلسے", "تبلیغی", "پروگرام",
+    "وقت", "دن", "رات", "سال", "مہینہ", "فوت", "وفات", "انتقال", "مرنا", "مرنے",
+    "ٹیسٹ", "سائٹ",
+    "حدیث", "احادیث", "روایت", "قرآن", "آیت", "سورت", "ترجمہ", "فضیلت", "بیان", "واقعہ", "قصہ", "کہانی", "سائنسدان"
   ]);
   const specificKeywords = topicKeywords.filter((w) => !broadWords.has(w));
   const primaryKeywords = specificKeywords.length > 0 ? specificKeywords : topicKeywords;
@@ -565,7 +796,8 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
   // Conflict detection: If user query did NOT mention a sensitive status keyword, but candidate title is centered on it
   const conflictingWords = [
     "منگنی", "طلاق", "خلع", "عدت", "سود", "قرض", "انتقال", "وفات", "جنازہ",
-    "بچے", "بچہ", "اولاد", "حمل", "پیدا" // child / pregnancy conflicts when user only asked about marital intimacy
+    "بچے", "بچہ", "اولاد", "حمل", "پیدا", // child / pregnancy conflicts when user only asked about marital intimacy
+    "جلسے", "تبلیغی"
   ];
   let conflictPenalty = 0;
   for (const cw of conflictingWords) {
@@ -595,26 +827,40 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
     }
   }
 
-  // Either title OR the post's question section MUST match at least one specific keyword or direct synonym
   const strongMatches = Math.max(titleMatches, questionMatches);
-  if (specificKeywords.length > 0 && strongMatches === 0) {
-    return 0; // Reject false positives where neither title nor question relates to topic
+
+  // Strict specificity guard:
+  if (specificKeywords.length === 0) {
+    // Pure generic query - candidate title must match at least 3 distinct topic keywords
+    if (titleMatches < 3) {
+      return 0;
+    }
+  } else {
+    // Post title MUST match at least one specific topic keyword or direct synonym
+    if (titleMatches === 0) {
+      return 0; // Reject false positives where title does not address the specific topic
+    }
   }
 
-  // If multiple specific keywords exist, ensure they appear in title, question, or content
-  if (specificKeywords.length >= 2) {
+  // If multiple specific keywords exist, ensure post is not completely unrelated
+  if (specificKeywords.length >= 2 && titleMatches < 2) {
     const missingKeywords = specificKeywords.filter(
       (kw) =>
         !matchesWordOrSynonyms(normTitle, kw) &&
         !matchesWordOrSynonyms(questionSection, kw) &&
         !matchesWordOrSynonyms(normContent, kw)
     );
-    if (missingKeywords.length > 0) {
+    if (missingKeywords.length > 0 && strongMatches < 2) {
       return 0; // Reject post if core distinguishing keywords are completely missing
     }
   }
 
-  let score = titleMatches * 40 + questionMatches * 35;
+  let score = titleMatches * 60 + questionMatches * 35;
+
+  // High bonus if multiple specific keywords or synonyms appear in title
+  if (titleMatches >= 2) {
+    score += titleMatches * 40;
+  }
 
   // High bonus if all specific keywords or synonyms appear in title or question section
   if (specificKeywords.length > 0 && strongMatches === specificKeywords.length) {
@@ -657,35 +903,56 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       return null;
     }
 
-    // Build smart search terms: combined primary phrase, synonym-expanded phrases, and individual topic keywords
+    // Build smart search terms: combined primary phrase, specific core pairs, and topic keywords
     const searchTerms: string[] = [];
+
+    // 1. Full cleaned topic phrase (e.g. عورت گروپ عمرہ, تھیلیسیمیا حمل ضائع)
     if (topicKeywords.length >= 2) {
-      searchTerms.push(topicKeywords.slice(0, 3).join(" "));
+      searchTerms.push(topicKeywords.join(" "));
     }
 
-    // Synonym-expanded phrases (e.g. نکاح رخصتی ہمبستری -> نکاح رخصتی جماع)
+    // 2. High-specificity pairs with religious core topics (e.g. عمرہ, حج, روزہ, نماز, طلاق, تھیلیسیمیا, حمل, اسقاط)
+    const religiousCoreList = [
+      "عمرہ", "حج", "نماز", "روزہ", "وضو", "غسل", "زکوۃ", "زکوٰۃ", "قربانی", "عقیقہ",
+      "نکاح", "طلاق", "سود", "حمل", "اسقاط", "تھیلیسیمیا", "خضاب", "تولیہ", "موزے", "مسح", "جنازہ", "تراویح"
+    ];
+    const religiousCore = topicKeywords.filter((w) => religiousCoreList.includes(w));
+    const otherKeywords = topicKeywords.filter((w) => !religiousCoreList.includes(w));
+
+    for (const core of religiousCore) {
+      for (const other of otherKeywords) {
+        if (!["بات", "چیز", "کام"].includes(other)) {
+          searchTerms.push(`${other} ${core}`);
+        }
+      }
+      searchTerms.push(core);
+    }
+
+    // 3. Synonym-expanded phrases (e.g. عورت عمرہ -> عورت حج)
     for (const kw of topicKeywords) {
       const syns = synonymDict[kw];
       if (syns && syns.length > 1) {
-        for (const s of syns.slice(1, 3)) {
+        for (const s of syns.slice(1, 2)) {
           const altPhrase = topicKeywords.map((k) => (k === kw ? s : k)).slice(0, 3).join(" ");
           searchTerms.push(altPhrase);
         }
       }
     }
 
-    // Add individual topic keywords
-    for (const kw of topicKeywords) {
-      searchTerms.push(kw);
+    // 4. Distinctive keywords alone (excluding general subjects like عورت, مرد)
+    for (const kw of otherKeywords) {
+      if (!["عورت", "مرد", "لوگ", "شخص", "بات", "چیز"].includes(kw)) {
+        searchTerms.push(kw);
+      }
     }
 
-    const finalSearchTerms = Array.from(new Set(searchTerms)).slice(0, 6);
+    const finalSearchTerms = Array.from(new Set(searchTerms)).slice(0, 4);
 
-    // Fetch candidate terms in parallel with 3.5s timeout
+    // Fetch candidate terms in parallel with fast 1.5s timeout
     const fetchPromises = finalSearchTerms.map(async (term) => {
-      const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=10`;
+      const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=5`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
 
       try {
         const response = await fetch(url, {
@@ -737,8 +1004,8 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       }
     }
 
-    // Require strict minimum threshold score of 35 (at least one specific primary topic keyword in the title)
-    if (bestScore < 35 || !bestPost) {
+    // Require strict minimum threshold score of 50 (must match specific primary topic keywords in the title)
+    if (bestScore < 50 || !bestPost) {
       fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
@@ -747,21 +1014,15 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
     const title = rawTitle
       .replace(/&#8217;/g, "'")
       .replace(/&#8211;/g, "-")
+      .replace(/&#8220;/g, "“")
+      .replace(/&#8221;/g, "”")
+      .replace(/&quot;/g, '"')
       .replace(/&amp;/g, "&")
       .replace(/<[^>]+>/g, "")
       .trim();
 
     const rawContent = bestPost.content?.rendered || "";
-    const textContent = rawContent
-      .replace(/<br\s*[\/]?>/gi, "\n")
-      .replace(/<\/p>/gi, "\n\n")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&#8217;/g, "'")
-      .replace(/&#8211;/g, "-")
-      .replace(/&amp;/g, "&")
-      .replace(/\n\s*\n/g, "\n\n")
-      .trim();
+    const textContent = cleanHtmlToMarkdown(rawContent);
 
     const link = bestPost.link || `https://alulama.org/?p=${bestPost.id}`;
 

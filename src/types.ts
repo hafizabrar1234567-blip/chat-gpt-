@@ -26,6 +26,7 @@ export interface ChatMessage {
   isLoading?: boolean;
   intent?: string;
   data?: any;
+  imageUrl?: string;
 }
 
 export interface ChatSession {
