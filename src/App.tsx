@@ -8,7 +8,7 @@ import { SettingsModal } from "./components/SettingsModal";
 import { FavoritesModal } from "./components/FavoritesModal";
 import { AuthScreen } from "./components/AuthScreen";
 import { LandingPage } from "./components/LandingPage";
-import { getLocalUserFromSession, clearLocalSession } from "./utils/localAuth";
+import { getLocalUserFromSession, clearLocalSession, saveLocalSession } from "./utils/localAuth";
 
 const SESSIONS_STORAGE_KEY = "islami_chat_sessions_v2";
 const LANG_STORAGE_KEY = "islami_chat_lang_v2";
@@ -91,6 +91,13 @@ export default function App() {
         handleSendMessage(initialPrompt.trim());
       }, 100);
     }
+  };
+
+  const handleLoginSuccess = (token: string, user: UserAccount) => {
+    saveLocalSession(token, user);
+    setCurrentUser(user);
+    setIsAuthModalOpen(false);
+    setCurrentView("chat");
   };
 
   const handleLogout = () => {
@@ -474,10 +481,7 @@ export default function App() {
         {/* Dedicated Auth Modal */}
         {isAuthModalOpen && (
           <AuthScreen
-            onLoginSuccess={(_token, user) => {
-              setCurrentUser(user);
-              setIsAuthModalOpen(false);
-            }}
+            onLoginSuccess={handleLoginSuccess}
             onClose={() => setIsAuthModalOpen(false)}
             isModal={true}
           />
@@ -508,7 +512,6 @@ export default function App() {
         onChangeLanguage={handleLanguageChange}
         currentUser={currentUser}
         onLogout={handleLogout}
-        onOpenHome={() => setCurrentView("landing")}
         onOpenAuth={() => setIsAuthModalOpen(true)}
       />
 
@@ -529,7 +532,6 @@ export default function App() {
           favoritesCount={favoritesCount}
           onOpenSettings={() => setIsSettingsOpen(true)}
           isSidebarOpen={isSidebarOpen}
-          onOpenHome={() => setCurrentView("landing")}
         />
       </main>
 
@@ -569,10 +571,7 @@ export default function App() {
       {/* 7. Dedicated Auth Modal */}
       {isAuthModalOpen && (
         <AuthScreen
-          onLoginSuccess={(_token, user) => {
-            setCurrentUser(user);
-            setIsAuthModalOpen(false);
-          }}
+          onLoginSuccess={handleLoginSuccess}
           onClose={() => setIsAuthModalOpen(false)}
           isModal={true}
         />

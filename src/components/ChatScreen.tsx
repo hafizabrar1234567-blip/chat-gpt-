@@ -440,16 +440,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                 اسلامی چیٹ جی پی ٹی
               </h2>
             </div>
-            {onOpenHome && (
-              <button
-                onClick={onOpenHome}
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-emerald-400 hover:text-white bg-[#0a1e17] hover:bg-emerald-900/60 border border-emerald-800/40 active:scale-95 transition-all text-xs font-urdu font-bold cursor-pointer mr-2 shadow-sm"
-                title="ہوم پیج پر جائیں"
-              >
-                <Home className="w-3.5 h-3.5 text-emerald-400" />
-                <span>ہوم پیج</span>
-              </button>
-            )}
           </div>
         </div>
 
@@ -577,6 +567,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
                   {/* Message Bubble */}
                   <div
+                    dir="auto"
                     className={`flex-1 rounded-3xl p-4 sm:p-5 transition-all text-sm leading-relaxed font-urdu select-text selection:bg-emerald-600 selection:text-white ${
                       isUser
                         ? "bg-[#0c241d] border border-emerald-800/40 text-slate-100 shadow-md"
@@ -1068,12 +1059,17 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             {/* Expanding Textarea */}
             <textarea
               ref={textareaRef}
+              dir="auto"
               rows={1}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="اسلامی سوال پوچھیں یا رہنمائی طلب کریں..."
-              className="flex-1 py-2 px-2.5 bg-transparent text-slate-100 placeholder-slate-500 text-base sm:text-sm font-urdu focus:outline-none resize-none leading-relaxed min-h-[38px] max-h-32"
+              className={`flex-1 py-2 px-2.5 bg-transparent text-slate-100 placeholder-slate-500 text-base sm:text-sm focus:outline-none resize-none leading-relaxed min-h-[38px] max-h-32 transition-all ${
+                inputText.trim() && /^[a-zA-Z0-9]/.test(inputText.trim()[0])
+                  ? "text-left font-sans"
+                  : "text-right font-urdu"
+              }`}
             />
 
             {/* Send Button */}

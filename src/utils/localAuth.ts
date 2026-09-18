@@ -30,6 +30,10 @@ function saveStoredUsers(users: StoredLocalUser[]) {
 
 export function saveLocalSession(token: string, user: UserAccount) {
   try {
+    const todayStr = getTodayDateString();
+    if (!user.dailyUsage) {
+      user.dailyUsage = { date: todayStr, count: 0 };
+    }
     localStorage.setItem("postly_auth_token", token);
     localStorage.setItem(LOCAL_CURRENT_USER_KEY, JSON.stringify(user));
   } catch (e) {
@@ -43,7 +47,10 @@ export function getLocalUserFromSession(): UserAccount | null {
     if (!raw) return null;
     const user: UserAccount = JSON.parse(raw);
     const todayStr = getTodayDateString();
-    if (user.dailyUsage.date !== todayStr) {
+    if (!user.dailyUsage) {
+      user.dailyUsage = { date: todayStr, count: 0 };
+      localStorage.setItem(LOCAL_CURRENT_USER_KEY, JSON.stringify(user));
+    } else if (user.dailyUsage.date !== todayStr) {
       user.dailyUsage = { date: todayStr, count: 0 };
       localStorage.setItem(LOCAL_CURRENT_USER_KEY, JSON.stringify(user));
     }
