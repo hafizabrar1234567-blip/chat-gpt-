@@ -4117,7 +4117,7 @@ function cleanHtmlToMarkdown(html) {
 }
 function normalizeUrduText(text) {
   if (!text) return "";
-  return text.replace(/&#8217;/g, "'").replace(/&#8211;/g, "-").replace(/&amp;/g, "&").replace(/<[^>]+>/g, " ").replace(/[\u064B-\u065F\u0670]/g, "").replace(/تھیلیسیمیا\s*کی/g, "\u062A\u06BE\u06CC\u0644\u06CC\u0633\u06CC\u0645\u06CC\u0627 \u06A9\u06CC").replace(/تھیلیسمیا/g, "\u062A\u06BE\u06CC\u0644\u06CC\u0633\u06CC\u0645\u06CC\u0627").replace(/اسقاط\s*حمل/g, "\u0627\u0633\u0642\u0627\u0637 \u062D\u0645\u0644").replace(/ہم\s+بستری/g, "\u06C1\u0645\u0628\u0633\u062A\u0631\u06CC").replace(/حق\s+مہر/g, "\u062D\u0642\u0645\u06C1\u0631").replace(/اہل\s+حدیث/g, "\u0627\u06C1\u0644\u062D\u062F\u06CC\u062B").replace(/قبل\s+از\s+رخصتی/g, "\u0631\u062E\u0635\u062A\u06CC \u0633\u06D2 \u067E\u06C1\u0644\u06D2").toLowerCase();
+  return text.replace(/&#8217;/g, "'").replace(/&#8211;/g, "-").replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/\u00A0/g, " ").replace(/<[^>]+>/g, " ").replace(/[\u064B-\u065F\u0670]/g, "").replace(/تھیلیسیمیا\s*کی/g, "\u062A\u06BE\u06CC\u0644\u06CC\u0633\u06CC\u0645\u06CC\u0627 \u06A9\u06CC").replace(/تھیلیسمیا/g, "\u062A\u06BE\u06CC\u0644\u06CC\u0633\u06CC\u0645\u06CC\u0627").replace(/اسقاط\s*حمل/g, "\u0627\u0633\u0642\u0627\u0637 \u062D\u0645\u0644").replace(/ہم\s+بستری/g, "\u06C1\u0645\u0628\u0633\u062A\u0631\u06CC").replace(/حق\s+مہر/g, "\u062D\u0642\u0645\u06C1\u0631").replace(/اہل\s+حدیث/g, "\u0627\u06C1\u0644\u062D\u062F\u06CC\u062B").replace(/قبل\s+از\s+رخصتی/g, "\u0631\u062E\u0635\u062A\u06CC \u0633\u06D2 \u067E\u06C1\u0644\u06D2").replace(/\s+/g, " ").toLowerCase();
 }
 function matchesWordOrSynonyms(target, word) {
   if (!target || !word) return false;
@@ -4459,6 +4459,10 @@ async function searchAlUlamaFatwa(userQuery) {
     }
     const searchTerms = /* @__PURE__ */ new Set();
     const cleanLowerQuery = normalizedQuery;
+    const cleanUserQuery = userQuery.trim().replace(/[؟?!.,،]/g, " ").replace(/\s+/g, " ").trim();
+    if (cleanUserQuery.length >= 4) {
+      searchTerms.add(cleanUserQuery.slice(0, 45).trim());
+    }
     if (topicKeywords.includes("\u0637\u0644\u0627\u0642") || cleanLowerQuery.includes("\u0637\u0644\u0627\u0642")) {
       if (topicKeywords.includes("\u0633\u0627\u0626\u0646") || cleanLowerQuery.includes("\u0633\u0627\u0626\u0646") || topicKeywords.includes("\u062F\u0633\u062A\u062E\u0637") || cleanLowerQuery.includes("\u062F\u0633\u062A\u062E\u0637")) {
         searchTerms.add("\u0637\u0644\u0627\u0642 \u0646\u0627\u0645\u06C1 \u0633\u0627\u0626\u0646");
@@ -4481,6 +4485,25 @@ async function searchAlUlamaFatwa(userQuery) {
         searchTerms.add("\u062A\u06CC\u0646 \u0637\u0644\u0627\u0642\u06CC\u06BA");
       }
     }
+    if (cleanLowerQuery.includes("\u0639\u062F\u062A")) {
+      if (cleanLowerQuery.includes("\u0635\u0644\u062D")) {
+        searchTerms.add("\u0639\u062F\u062A \u062E\u062A\u0645 \u0622\u067E\u0633\u06CC \u0635\u0644\u062D");
+        searchTerms.add("\u0622\u067E\u0633\u06CC \u0635\u0644\u062D");
+        searchTerms.add("\u0639\u062F\u062A \u0635\u0644\u062D");
+      }
+      if (cleanLowerQuery.includes("\u062E\u062A\u0645")) {
+        searchTerms.add("\u0639\u062F\u062A \u062E\u062A\u0645 \u06C1\u0648 \u062C\u0627\u0646\u06D2 \u06A9\u06D2 \u0628\u0639\u062F");
+        searchTerms.add("\u0639\u062F\u062A \u062E\u062A\u0645");
+      }
+    }
+    if (cleanLowerQuery.includes("\u0635\u0644\u062D")) {
+      searchTerms.add("\u0622\u067E\u0633\u06CC \u0635\u0644\u062D");
+      searchTerms.add("\u0635\u0644\u062D");
+    }
+    if (cleanLowerQuery.includes("\u0648\u0644\u06CC") || cleanLowerQuery.includes("\u0648\u0627\u0644\u062F")) {
+      if (cleanLowerQuery.includes("\u0627\u0646\u06A9\u0627\u0631")) searchTerms.add("\u0648\u0644\u06CC \u0627\u0646\u06A9\u0627\u0631");
+      if (cleanLowerQuery.includes("\u0635\u0644\u062D")) searchTerms.add("\u0648\u0644\u06CC \u0635\u0644\u062D");
+    }
     if (topicKeywords.includes("\u0646\u06A9\u0627\u062D") || cleanLowerQuery.includes("\u0646\u06A9\u0627\u062D")) {
       if (cleanLowerQuery.includes("\u0632\u0628\u0631\u062F\u0633\u062A\u06CC") || cleanLowerQuery.includes("\u0645\u062C\u0628\u0648\u0631")) {
         searchTerms.add("\u0632\u0628\u0631\u062F\u0633\u062A\u06CC \u0646\u06A9\u0627\u062D");
@@ -4502,6 +4525,9 @@ async function searchAlUlamaFatwa(userQuery) {
     if (topicKeywords.length >= 2) {
       searchTerms.add(topicKeywords.slice(0, 3).join(" "));
     }
+    if (topicKeywords.length >= 4) {
+      searchTerms.add(topicKeywords.slice(0, 4).join(" "));
+    }
     const religiousCoreList = [
       "\u0639\u0645\u0631\u06C1",
       "\u062D\u062C",
@@ -4515,6 +4541,10 @@ async function searchAlUlamaFatwa(userQuery) {
       "\u0639\u0642\u06CC\u0642\u06C1",
       "\u0646\u06A9\u0627\u062D",
       "\u0637\u0644\u0627\u0642",
+      "\u0639\u062F\u062A",
+      "\u0635\u0644\u062D",
+      "\u0631\u062C\u0648\u0639",
+      "\u0648\u0644\u06CC",
       "\u0633\u0648\u062F",
       "\u062D\u0645\u0644",
       "\u0627\u0633\u0642\u0627\u0637",
@@ -4536,9 +4566,9 @@ async function searchAlUlamaFatwa(userQuery) {
       }
       searchTerms.add(core);
     }
-    const finalSearchTerms = Array.from(searchTerms).slice(0, 8);
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 10);
     const fetchPromises = finalSearchTerms.map(async (term) => {
-      const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=5`;
+      const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=15`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4e3);
       try {

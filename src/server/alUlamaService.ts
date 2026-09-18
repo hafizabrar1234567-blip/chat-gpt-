@@ -636,6 +636,8 @@ function normalizeUrduText(text: string): string {
     .replace(/&#8217;/g, "'")
     .replace(/&#8211;/g, "-")
     .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\u00A0/g, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/[\u064B-\u065F\u0670]/g, "") // remove arabic diacritics
     .replace(/تھیلیسیمیا\s*کی/g, "تھیلیسیمیا کی")
@@ -645,6 +647,7 @@ function normalizeUrduText(text: string): string {
     .replace(/حق\s+مہر/g, "حقمہر")
     .replace(/اہل\s+حدیث/g, "اہلحدیث")
     .replace(/قبل\s+از\s+رخصتی/g, "رخصتی سے پہلے")
+    .replace(/\s+/g, " ")
     .toLowerCase();
 }
 
@@ -938,6 +941,12 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
     const searchTerms = new Set<string>();
     const cleanLowerQuery = normalizedQuery;
 
+    // 0. Clean user query natural phrase (up to 45 chars)
+    const cleanUserQuery = userQuery.trim().replace(/[؟?!.,،]/g, " ").replace(/\s+/g, " ").trim();
+    if (cleanUserQuery.length >= 4) {
+      searchTerms.add(cleanUserQuery.slice(0, 45).trim());
+    }
+
     // 1. High-impact semantic topic pairs
     if (topicKeywords.includes("طلاق") || cleanLowerQuery.includes("طلاق")) {
       if (topicKeywords.includes("سائن") || cleanLowerQuery.includes("سائن") || topicKeywords.includes("دستخط") || cleanLowerQuery.includes("دستخط")) {
@@ -962,6 +971,28 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       }
     }
 
+    if (cleanLowerQuery.includes("عدت")) {
+      if (cleanLowerQuery.includes("صلح")) {
+        searchTerms.add("عدت ختم آپسی صلح");
+        searchTerms.add("آپسی صلح");
+        searchTerms.add("عدت صلح");
+      }
+      if (cleanLowerQuery.includes("ختم")) {
+        searchTerms.add("عدت ختم ہو جانے کے بعد");
+        searchTerms.add("عدت ختم");
+      }
+    }
+
+    if (cleanLowerQuery.includes("صلح")) {
+      searchTerms.add("آپسی صلح");
+      searchTerms.add("صلح");
+    }
+
+    if (cleanLowerQuery.includes("ولی") || cleanLowerQuery.includes("والد")) {
+      if (cleanLowerQuery.includes("انکار")) searchTerms.add("ولی انکار");
+      if (cleanLowerQuery.includes("صلح")) searchTerms.add("ولی صلح");
+    }
+
     if (topicKeywords.includes("نکاح") || cleanLowerQuery.includes("نکاح")) {
       if (cleanLowerQuery.includes("زبردستی") || cleanLowerQuery.includes("مجبور")) {
         searchTerms.add("زبردستی نکاح");
@@ -984,15 +1015,18 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
     }
 
-    // 3. Cleaned primary topic phrase (top 3 keywords)
+    // 3. Cleaned primary topic phrase (top 3 and top 4 keywords)
     if (topicKeywords.length >= 2) {
       searchTerms.add(topicKeywords.slice(0, 3).join(" "));
+    }
+    if (topicKeywords.length >= 4) {
+      searchTerms.add(topicKeywords.slice(0, 4).join(" "));
     }
 
     // 4. High-specificity pairs with religious core topics
     const religiousCoreList = [
       "عمرہ", "حج", "نماز", "روزہ", "وضو", "غسل", "زکوۃ", "زکوٰۃ", "قربانی", "عقیقہ",
-      "نکاح", "طلاق", "سود", "حمل", "اسقاط", "تھیلیسیمیا", "خضاب", "تولیہ", "موزے", "مسح", "جنازہ", "تراویح"
+      "نکاح", "طلاق", "عدت", "صلح", "رجوع", "ولی", "سود", "حمل", "اسقاط", "تھیلیسیمیا", "خضاب", "تولیہ", "موزے", "مسح", "جنازہ", "تراویح"
     ];
     const religiousCore = topicKeywords.filter((w) => religiousCoreList.includes(w));
     const otherKeywords = topicKeywords.filter((w) => !religiousCoreList.includes(w));
@@ -1006,11 +1040,11 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       searchTerms.add(core);
     }
 
-    const finalSearchTerms = Array.from(searchTerms).slice(0, 8);
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 10);
 
-    // Fetch candidate terms in parallel with robust 4.0s timeout
+    // Fetch candidate terms in parallel with robust 4.0s timeout and per_page=15
     const fetchPromises = finalSearchTerms.map(async (term) => {
-      const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=5`;
+      const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=15`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
 
