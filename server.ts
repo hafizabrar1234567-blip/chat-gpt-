@@ -292,14 +292,19 @@ app.post("/api/chat", async (req, res) => {
 
     const ai = getGeminiClient(apiKey);
 
-    // 1. Search Al-Ulama (alulama.org) for authentic fatwas if query relates to fiqh, fatwa or islamic rulings
+    // 1. Search Al-Ulama (alulama.org) for authentic fatwas across all queries
+    const isGreetingOrShort = /^(سلام|السلام\s*علیکم|ہیلو|شکریہ|hi|hello|thanks|ok|okay|bye)$/i.test(message.trim());
     const isFatwaOrFiqhQuery = isIslamicFatwaQuery(message);
 
     let alUlamaFatwa: AlUlamaFatwa | null = null;
     let alUlamaSearchUrl = "";
-    if (isFatwaOrFiqhQuery) {
+    if (!isGreetingOrShort && message.trim().length >= 3) {
       alUlamaFatwa = await searchAlUlamaFatwa(message);
-      alUlamaSearchUrl = getAlUlamaSearchUrl(message);
+      if (alUlamaFatwa) {
+        alUlamaSearchUrl = alUlamaFatwa.link;
+      } else {
+        alUlamaSearchUrl = getAlUlamaSearchUrl(message);
+      }
     }
 
     let systemInstruction = `You are "Islamic ChatGPT" (اسلامی چیٹ جی پی ٹی), an authentic, highly versatile, reliable, scholarly Islamic AI assistant and Shariah guide.
