@@ -3423,6 +3423,7 @@ var genericWords = /* @__PURE__ */ new Set([
   "\u0634\u06A9\u0631\u06CC\u06C1",
   "\u0633\u06A9\u062A\u06CC",
   "\u0633\u06A9\u062A\u0627",
+  "\u0633\u06A9\u062A\u06D2",
   "\u0686\u0627\u06C1\u06CC\u06D2",
   "\u0686\u0627\u06C1\u0626\u06D2",
   "\u06CC\u0627",
@@ -3456,11 +3457,13 @@ var genericWords = /* @__PURE__ */ new Set([
   "\u06C1\u0648\u0626\u06CC",
   "\u06C1\u0648\u0626",
   "\u06C1\u0648\u0626\u06D2",
+  "\u06C1\u0648\u06D2",
   "\u06C1\u0648\u062A\u06D2",
   "\u06C1\u0648\u06AF\u0627",
   "\u06C1\u0648\u06AF\u06CC",
   "\u06C1\u0648\u06BA\u06AF\u06D2",
   "\u06C1\u0648\u06BA\u06AF\u06CC",
+  "\u06C1\u0648\u06AF\u06CC\u0627",
   "\u06AF\u06CC\u0627",
   "\u06AF\u0626\u06CC",
   "\u06AF\u0626\u06D2",
@@ -4109,7 +4112,11 @@ var synonymDict = {
   "\u062A\u06BE\u06CC\u0644\u06CC\u0633\u0645\u06CC\u0627": ["\u062A\u06BE\u06CC\u0644\u06CC\u0633\u06CC\u0645\u06CC\u0627", "\u062A\u06BE\u06CC\u0644\u06CC\u0633\u0645\u06CC\u0627", "\u0628\u06CC\u0645\u0627\u0631\u06CC"],
   "\u062D\u0645\u0644": ["\u062D\u0645\u0644", "\u062C\u0646\u06CC\u0646", "\u0628\u0686\u06C1", "\u067E\u06CC\u0679", "\u067E\u0631\u06CC\u06AF\u0646\u0646\u0633\u06CC", "\u062D\u0627\u0645\u0644\u06C1"],
   "\u0636\u0627\u0626\u0639": ["\u0636\u0627\u0626\u0639", "\u0627\u0633\u0642\u0627\u0637", "\u0633\u0627\u0642\u0637", "\u06AF\u0631\u0627\u0646\u0627", "\u062E\u062A\u0645"],
-  "\u0627\u0633\u0642\u0627\u0637": ["\u0627\u0633\u0642\u0627\u0637", "\u0636\u0627\u0626\u0639", "\u0633\u0627\u0642\u0637", "\u06AF\u0631\u0627\u0646\u0627", "\u062E\u062A\u0645", "\u062D\u0645\u0644 \u0636\u0627\u0626\u0639"]
+  "\u0627\u0633\u0642\u0627\u0637": ["\u0627\u0633\u0642\u0627\u0637", "\u0636\u0627\u0626\u0639", "\u0633\u0627\u0642\u0637", "\u06AF\u0631\u0627\u0646\u0627", "\u062E\u062A\u0645", "\u062D\u0645\u0644 \u0636\u0627\u0626\u0639"],
+  // Alcohol & Intoxicants
+  "\u0634\u0631\u0627\u0628": ["\u0634\u0631\u0627\u0628", "\u0634\u0631\u0627\u0628\u06CC", "\u0646\u0634\u06C1", "\u062E\u0645\u0631", "\u0645\u06D2", "\u0634\u0631\u0627\u0628 \u0646\u0648\u0634\u06CC"],
+  "\u0634\u0631\u0627\u0628\u06CC": ["\u0634\u0631\u0627\u0628\u06CC", "\u0634\u0631\u0627\u0628", "\u0646\u0634\u0626\u06CC", "\u0646\u0634\u06C1", "\u0634\u0631\u0627\u0628 \u0646\u0648\u0634\u06CC"],
+  "\u0646\u0634\u06C1": ["\u0646\u0634\u06C1", "\u0634\u0631\u0627\u0628", "\u0634\u0631\u0627\u0628\u06CC", "\u0645\u0646\u0634\u06CC\u0627\u062A", "\u0627\u0646\u062C\u06A9\u0634\u0646", "\u0686\u0631\u0633"]
 };
 function cleanHtmlToMarkdown(html) {
   if (!html) return "";
@@ -4217,6 +4224,10 @@ function scoreCandidatePost(post, userQuery, topicKeywords) {
     {
       queryTriggers: ["\u062A\u0648\u0644\u06CC\u06C1"],
       requiredCandidates: ["\u062A\u0648\u0644\u06CC\u06C1", "\u062E\u0634\u06A9"]
+    },
+    {
+      queryTriggers: ["\u0634\u0631\u0627\u0628", "\u0634\u0631\u0627\u0628\u06CC", "\u0646\u0634\u06C1"],
+      requiredCandidates: ["\u0634\u0631\u0627\u0628", "\u0634\u0631\u0627\u0628\u06CC", "\u0646\u0634\u06C1", "\u062E\u0645\u0631"]
     }
   ];
   for (const domain of coreDomains) {
@@ -4519,14 +4530,18 @@ async function searchAlUlamaFatwa(userQuery) {
       if (cleanLowerQuery.includes("\u062A\u0648\u0644\u06CC\u06C1")) searchTerms.add("\u0648\u0636\u0648 \u062A\u0648\u0644\u06CC\u06C1");
       if (cleanLowerQuery.includes("\u0645\u0648\u0632\u06D2") || cleanLowerQuery.includes("\u062C\u0631\u0627\u0628\u06CC\u06BA")) searchTerms.add("\u0645\u0648\u0632\u0648\u06BA \u0645\u0633\u062D");
     }
-    for (let i = 0; i < topicKeywords.length - 1; i++) {
-      searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
-    }
-    if (topicKeywords.length >= 2) {
-      searchTerms.add(topicKeywords.slice(0, 3).join(" "));
-    }
-    if (topicKeywords.length >= 4) {
-      searchTerms.add(topicKeywords.slice(0, 4).join(" "));
+    if (cleanLowerQuery.includes("\u0634\u0631\u0627\u0628") || cleanLowerQuery.includes("\u0646\u0634\u06C1")) {
+      if (cleanLowerQuery.includes("\u062C\u0646\u0627\u0632\u06C1")) {
+        searchTerms.add("\u0634\u0631\u0627\u0628 \u062C\u0646\u0627\u0632\u06C1");
+        searchTerms.add("\u0634\u0631\u0627\u0628\u06CC \u062C\u0646\u0627\u0632\u06C1");
+        searchTerms.add("\u0634\u0631\u0627\u0628\u06CC \u06A9\u06CC \u0646\u0645\u0627\u0632 \u062C\u0646\u0627\u0632\u06C1");
+      }
+      if (cleanLowerQuery.includes("\u0641\u0648\u062A") || cleanLowerQuery.includes("\u0645\u0648\u062A")) {
+        searchTerms.add("\u0646\u0634\u06D2 \u0633\u06D2 \u0645\u0648\u062A");
+        searchTerms.add("\u0634\u0631\u0627\u0628 \u0645\u0648\u062A");
+      }
+      searchTerms.add("\u0634\u0631\u0627\u0628\u06CC");
+      searchTerms.add("\u0634\u0631\u0627\u0628");
     }
     const religiousCoreList = [
       "\u0639\u0645\u0631\u06C1",
@@ -4545,6 +4560,8 @@ async function searchAlUlamaFatwa(userQuery) {
       "\u0635\u0644\u062D",
       "\u0631\u062C\u0648\u0639",
       "\u0648\u0644\u06CC",
+      "\u0634\u0631\u0627\u0628",
+      "\u0646\u0634\u06C1",
       "\u0633\u0648\u062F",
       "\u062D\u0645\u0644",
       "\u0627\u0633\u0642\u0627\u0637",
@@ -4560,13 +4577,22 @@ async function searchAlUlamaFatwa(userQuery) {
     const otherKeywords = topicKeywords.filter((w) => !religiousCoreList.includes(w));
     for (const core of religiousCore) {
       for (const other of otherKeywords) {
-        if (!["\u0628\u0627\u062A", "\u0686\u06CC\u0632", "\u06A9\u0627\u0645"].includes(other)) {
+        if (!["\u0628\u0627\u062A", "\u0686\u06CC\u0632", "\u06A9\u0627\u0645", "\u06C1\u0648\u06D2", "\u067E\u06CC\u062A\u06D2"].includes(other)) {
           searchTerms.add(`${other} ${core}`);
         }
       }
       searchTerms.add(core);
     }
-    const finalSearchTerms = Array.from(searchTerms).slice(0, 10);
+    if (topicKeywords.length >= 2) {
+      searchTerms.add(topicKeywords.slice(0, 3).join(" "));
+    }
+    if (topicKeywords.length >= 4) {
+      searchTerms.add(topicKeywords.slice(0, 4).join(" "));
+    }
+    for (let i = 0; i < topicKeywords.length - 1; i++) {
+      searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
+    }
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 12);
     const fetchPromises = finalSearchTerms.map(async (term) => {
       const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=15`;
       const controller = new AbortController();

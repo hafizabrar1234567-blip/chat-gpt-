@@ -312,11 +312,11 @@ const genericWords = new Set([
   "بتائیں", "بتائیے", "وضاحت", "کریں", "فرمائیں", "کے", "کی", "کا", "میں",
   "سے", "پر", "کو", "اور", "اگر", "تو", "اس", "یہ", "وہ", "ان", "اپنے", "اپنی",
   "ایک", "بارے", "متعلق", "پوچھا", "سوال", "رہنمائی", "کیجئے", "شکریہ",
-  "سکتی", "سکتا", "چاہیے", "چاہئے", "یا", "نہ", "نہیں", "بھی", "ہی", "تک",
+  "سکتی", "سکتا", "سکتے", "چاہیے", "چاہئے", "یا", "نہ", "نہیں", "بھی", "ہی", "تک",
   "جب", "تب", "اب", "سب", "کہ", "کون", "کس", "کسے", "کیسے", "کیوں", "کتنا",
   "طور", "العلماء", "علماء", "لجنۃ", "alulama",
   "بعد", "پہلے", "قبل", "دوران", "درمیان",
-  "ہوا", "ہوئی", "ہوئ", "ہوئے", "ہوتے", "ہوگا", "ہوگی", "ہوںگے", "ہوںگی",
+  "ہوا", "ہوئی", "ہوئ", "ہوئے", "ہوے", "ہوتے", "ہوگا", "ہوگی", "ہوںگے", "ہوںگی", "ہوگیا",
   "گیا", "گئی", "گئے", "جا", "جائے", "جائیں", "جاتا", "جاتی", "جاتے",
   "رہا", "رہی", "رہے", "رہنا", "رہتا", "رہتی", "رہتے",
   "دیا", "دی", "دئے", "دیے", "دینا", "دیتے", "دیتی",
@@ -602,6 +602,11 @@ const synonymDict: Record<string, string[]> = {
   "حمل": ["حمل", "جنین", "بچہ", "پیٹ", "پریگننسی", "حاملہ"],
   "ضائع": ["ضائع", "اسقاط", "ساقط", "گرانا", "ختم"],
   "اسقاط": ["اسقاط", "ضائع", "ساقط", "گرانا", "ختم", "حمل ضائع"],
+
+  // Alcohol & Intoxicants
+  "شراب": ["شراب", "شرابی", "نشہ", "خمر", "مے", "شراب نوشی"],
+  "شرابی": ["شرابی", "شراب", "نشئی", "نشہ", "شراب نوشی"],
+  "نشہ": ["نشہ", "شراب", "شرابی", "منشیات", "انجکشن", "چرس"],
 };
 
 export function cleanHtmlToMarkdown(html: string): string {
@@ -760,6 +765,10 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
     {
       queryTriggers: ["تولیہ"],
       requiredCandidates: ["تولیہ", "خشک"],
+    },
+    {
+      queryTriggers: ["شراب", "شرابی", "نشہ"],
+      requiredCandidates: ["شراب", "شرابی", "نشہ", "خمر"],
     },
   ];
 
@@ -1010,9 +1019,35 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       if (cleanLowerQuery.includes("موزے") || cleanLowerQuery.includes("جرابیں")) searchTerms.add("موزوں مسح");
     }
 
-    // 2. Bigrams of adjacent keywords
-    for (let i = 0; i < topicKeywords.length - 1; i++) {
-      searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
+    if (cleanLowerQuery.includes("شراب") || cleanLowerQuery.includes("نشہ")) {
+      if (cleanLowerQuery.includes("جنازہ")) {
+        searchTerms.add("شراب جنازہ");
+        searchTerms.add("شرابی جنازہ");
+        searchTerms.add("شرابی کی نماز جنازہ");
+      }
+      if (cleanLowerQuery.includes("فوت") || cleanLowerQuery.includes("موت")) {
+        searchTerms.add("نشے سے موت");
+        searchTerms.add("شراب موت");
+      }
+      searchTerms.add("شرابی");
+      searchTerms.add("شراب");
+    }
+
+    // 2. High-specificity pairs with religious core topics (prioritized before generic adjacent bigrams)
+    const religiousCoreList = [
+      "عمرہ", "حج", "نماز", "روزہ", "وضو", "غسل", "زکوۃ", "زکوٰۃ", "قربانی", "عقیقہ",
+      "نکاح", "طلاق", "عدت", "صلح", "رجوع", "ولی", "شراب", "نشہ", "سود", "حمل", "اسقاط", "تھیلیسیمیا", "خضاب", "تولیہ", "موزے", "مسح", "جنازہ", "تراویح"
+    ];
+    const religiousCore = topicKeywords.filter((w) => religiousCoreList.includes(w));
+    const otherKeywords = topicKeywords.filter((w) => !religiousCoreList.includes(w));
+
+    for (const core of religiousCore) {
+      for (const other of otherKeywords) {
+        if (!["بات", "چیز", "کام", "ہوے", "پیتے"].includes(other)) {
+          searchTerms.add(`${other} ${core}`);
+        }
+      }
+      searchTerms.add(core);
     }
 
     // 3. Cleaned primary topic phrase (top 3 and top 4 keywords)
@@ -1023,24 +1058,12 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       searchTerms.add(topicKeywords.slice(0, 4).join(" "));
     }
 
-    // 4. High-specificity pairs with religious core topics
-    const religiousCoreList = [
-      "عمرہ", "حج", "نماز", "روزہ", "وضو", "غسل", "زکوۃ", "زکوٰۃ", "قربانی", "عقیقہ",
-      "نکاح", "طلاق", "عدت", "صلح", "رجوع", "ولی", "سود", "حمل", "اسقاط", "تھیلیسیمیا", "خضاب", "تولیہ", "موزے", "مسح", "جنازہ", "تراویح"
-    ];
-    const religiousCore = topicKeywords.filter((w) => religiousCoreList.includes(w));
-    const otherKeywords = topicKeywords.filter((w) => !religiousCoreList.includes(w));
-
-    for (const core of religiousCore) {
-      for (const other of otherKeywords) {
-        if (!["بات", "چیز", "کام"].includes(other)) {
-          searchTerms.add(`${other} ${core}`);
-        }
-      }
-      searchTerms.add(core);
+    // 4. Bigrams of adjacent keywords
+    for (let i = 0; i < topicKeywords.length - 1; i++) {
+      searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
     }
 
-    const finalSearchTerms = Array.from(searchTerms).slice(0, 10);
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 12);
 
     // Fetch candidate terms in parallel with robust 4.0s timeout and per_page=15
     const fetchPromises = finalSearchTerms.map(async (term) => {
