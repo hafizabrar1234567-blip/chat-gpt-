@@ -339,7 +339,9 @@ const genericWords = new Set([
   "aur", "agr", "agar", "to", "yeh", "woh", "is", "us", "bhi", "hi", "krna", "karna", "sath",
   "baad", "bad", "pehle", "pehly", "qabl", "doran", "darmiyan",
   "lekin", "magar", "gya", "gaya", "gaye", "gai", "hua", "hui", "hue", "hoga", "hogi",
-  "bataye", "batayein", "bataen", "plz", "please"
+  "bataye", "batayein", "bataen", "plz", "please",
+  "ایسا", "ایسی", "ایسے", "آدمی", "شخص", "انسان", "لوگ", "جسے", "جس", "جن", "جنہیں", "جسکو", "جنکو",
+  "کروائے", "کروائی", "کروایا", "کروا", "کروایں", "کروانا", "کرکے", "طریقے", "طریقہ", "طریقوں", "ہوجائے", "ہوجائےگی", "ہوجائےگا", "ہوگی", "ہوگا"
 ]);
 
 /**
@@ -353,6 +355,11 @@ export function extractUrduTopicKeywords(query: string): string[] {
     .toLowerCase()
     .replace(/[\u064B-\u065F\u0670]/g, "") // strip all A'raab/diacritics (zer, zabar, pesh, tanween)
     .replace(/[؟?!\.,۔،:;'"()\/\\\[\]{}*#_`~<>+=|-]/g, " ")
+    // Separate stuck prefixes & prepositions (e.g. کےطلاق -> کے طلاق, سےنکاح -> سے نکاح)
+    .replace(/(^|\s)(کے|سے|کو|کا|کی|پر|میں|اور|یا|نہ|نا|بے)(طلاق|نکاح|سائن|دستخط|کاغذ|مجبور|وضو|نماز|روزہ|حکم|مسئلہ|فتوی|سود)/g, "$1$2 $3")
+    .replace(/(طلاق|نکاح|حق|سجدہ|اہل)\s*(نامہ|مہر|سہو|حدیث)/g, "$1 $2")
+    .replace(/طلاق\s*نامہ/g, "طلاق نامہ")
+    .replace(/دست\s*خط/g, "دستخط")
     .replace(/ہم\s+بستری/g, "ہمبستری")
     .replace(/حق\s+مہر/g, "حقمہر")
     .replace(/اہل\s+حدیث/g, "اہلحدیث")
@@ -515,7 +522,14 @@ const synonymDict: Record<string, string[]> = {
   "بیوی": ["بیوی", "اہلیہ", "زوجہ", "عورت"],
   "شوہر": ["شوہر", "خاوند", "زوج", "مرد"],
   "منگنی": ["منگنی", "منگیتر", "رشتہ"],
-  "طلاق": ["طلاق", "علیحدگی", "تطلیق"],
+  "طلاق": ["طلاق", "علیحدگی", "تطلیق", "طلاق نامہ", "طلاقنامہ", "تین طلاقیں", "تین طلاق", "ایک طلاق"],
+  "سائن": ["سائن", "دستخط", "کاغذ", "کاغذات", "لکھنا", "لکھ کر", "لکھوایا", "طلاق نامہ"],
+  "دستخط": ["دستخط", "سائن", "کاغذ", "کاغذات", "لکھنا", "لکھ کر", "لکھوایا", "طلاق نامہ"],
+  "مجبور": ["مجبور", "زبردستی", "دباؤ", "اکراہ", "جبر", "دھمکی", "زور زبردستی", "تہدید"],
+  "زبردستی": ["زبردستی", "مجبور", "دباؤ", "اکراہ", "جبر", "دھمکی", "زور زبردستی"],
+  "دباؤ": ["دباؤ", "مجبور", "زبردستی", "اکراہ", "جبر", "خاندانی دباؤ", "اصرار"],
+  "اکراہ": ["اکراہ", "مجبور", "زبردستی", "دباؤ", "جبر", "دھمکی"],
+  "کاغذ": ["کاغذ", "کاغذات", "سائن", "دستخط", "طلاق نامہ", "نوٹس"],
   "خلع": ["خلع", "مخلوعہ"],
   "عدت": ["عدت", "سوگ"],
   "مہر": ["مہر", "حق مہر", "حقمہر", "صداق"],
@@ -829,16 +843,14 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
 
   const strongMatches = Math.max(titleMatches, questionMatches);
 
-  // Strict specificity guard:
+  // Specificity guard: Allow match if Title matches OR if Question section matches strongly
   if (specificKeywords.length === 0) {
-    // Pure generic query - candidate title must match at least 3 distinct topic keywords
-    if (titleMatches < 3) {
+    if (titleMatches < 2 && questionMatches < 2) {
       return 0;
     }
   } else {
-    // Post title MUST match at least one specific topic keyword or direct synonym
-    if (titleMatches === 0) {
-      return 0; // Reject false positives where title does not address the specific topic
+    if (titleMatches === 0 && questionMatches < 2) {
+      return 0; // Reject false positives where neither title nor question section matches
     }
   }
 
@@ -904,14 +916,61 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
     }
 
     // Build smart search terms: combined primary phrase, specific core pairs, and topic keywords
-    const searchTerms: string[] = [];
+    const searchTerms = new Set<string>();
+    const cleanLowerQuery = normalizedQuery;
 
-    // 1. Full cleaned topic phrase (e.g. عورت گروپ عمرہ, تھیلیسیمیا حمل ضائع)
-    if (topicKeywords.length >= 2) {
-      searchTerms.push(topicKeywords.join(" "));
+    // 1. High-impact semantic topic pairs
+    if (topicKeywords.includes("طلاق") || cleanLowerQuery.includes("طلاق")) {
+      if (topicKeywords.includes("سائن") || cleanLowerQuery.includes("سائن") || topicKeywords.includes("دستخط") || cleanLowerQuery.includes("دستخط")) {
+        searchTerms.add("طلاق نامہ سائن");
+        searchTerms.add("طلاق سائن");
+        searchTerms.add("طلاق دستخط");
+      }
+      if (topicKeywords.includes("مجبور") || cleanLowerQuery.includes("مجبور") || cleanLowerQuery.includes("زبردستی") || cleanLowerQuery.includes("دباؤ")) {
+        searchTerms.add("مجبور طلاق سائن");
+        searchTerms.add("مجبور طلاق");
+        searchTerms.add("طلاق دباؤ");
+        searchTerms.add("زبردستی طلاق");
+      }
+      if (topicKeywords.includes("نامہ") || cleanLowerQuery.includes("نامہ")) {
+        searchTerms.add("طلاق نامہ");
+      }
+      if (cleanLowerQuery.includes("غصہ") || topicKeywords.includes("غصہ")) {
+        searchTerms.add("غصہ طلاق");
+      }
+      if (cleanLowerQuery.includes("تین") || topicKeywords.includes("تین")) {
+        searchTerms.add("تین طلاقیں");
+      }
     }
 
-    // 2. High-specificity pairs with religious core topics (e.g. عمرہ, حج, روزہ, نماز, طلاق, تھیلیسیمیا, حمل, اسقاط)
+    if (topicKeywords.includes("نکاح") || cleanLowerQuery.includes("نکاح")) {
+      if (cleanLowerQuery.includes("زبردستی") || cleanLowerQuery.includes("مجبور")) {
+        searchTerms.add("زبردستی نکاح");
+      }
+      if (cleanLowerQuery.includes("خفیہ") || cleanLowerQuery.includes("بغیر ولی")) {
+        searchTerms.add("خفیہ نکاح");
+      }
+      if (cleanLowerQuery.includes("دوسرا") || cleanLowerQuery.includes("دوسری")) {
+        searchTerms.add("دوسرا نکاح");
+      }
+    }
+
+    if (topicKeywords.includes("وضو") || cleanLowerQuery.includes("وضو")) {
+      if (cleanLowerQuery.includes("تولیہ")) searchTerms.add("وضو تولیہ");
+      if (cleanLowerQuery.includes("موزے") || cleanLowerQuery.includes("جرابیں")) searchTerms.add("موزوں مسح");
+    }
+
+    // 2. Bigrams of adjacent keywords
+    for (let i = 0; i < topicKeywords.length - 1; i++) {
+      searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
+    }
+
+    // 3. Cleaned primary topic phrase (top 3 keywords)
+    if (topicKeywords.length >= 2) {
+      searchTerms.add(topicKeywords.slice(0, 3).join(" "));
+    }
+
+    // 4. High-specificity pairs with religious core topics
     const religiousCoreList = [
       "عمرہ", "حج", "نماز", "روزہ", "وضو", "غسل", "زکوۃ", "زکوٰۃ", "قربانی", "عقیقہ",
       "نکاح", "طلاق", "سود", "حمل", "اسقاط", "تھیلیسیمیا", "خضاب", "تولیہ", "موزے", "مسح", "جنازہ", "تراویح"
@@ -922,37 +981,19 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
     for (const core of religiousCore) {
       for (const other of otherKeywords) {
         if (!["بات", "چیز", "کام"].includes(other)) {
-          searchTerms.push(`${other} ${core}`);
+          searchTerms.add(`${other} ${core}`);
         }
       }
-      searchTerms.push(core);
+      searchTerms.add(core);
     }
 
-    // 3. Synonym-expanded phrases (e.g. عورت عمرہ -> عورت حج)
-    for (const kw of topicKeywords) {
-      const syns = synonymDict[kw];
-      if (syns && syns.length > 1) {
-        for (const s of syns.slice(1, 2)) {
-          const altPhrase = topicKeywords.map((k) => (k === kw ? s : k)).slice(0, 3).join(" ");
-          searchTerms.push(altPhrase);
-        }
-      }
-    }
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 8);
 
-    // 4. Distinctive keywords alone (excluding general subjects like عورت, مرد)
-    for (const kw of otherKeywords) {
-      if (!["عورت", "مرد", "لوگ", "شخص", "بات", "چیز"].includes(kw)) {
-        searchTerms.push(kw);
-      }
-    }
-
-    const finalSearchTerms = Array.from(new Set(searchTerms)).slice(0, 4);
-
-    // Fetch candidate terms in parallel with fast 1.5s timeout
+    // Fetch candidate terms in parallel with robust 4.0s timeout
     const fetchPromises = finalSearchTerms.map(async (term) => {
       const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=5`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
       try {
         const response = await fetch(url, {
@@ -1005,7 +1046,7 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
     }
 
     // Require strict minimum threshold score of 50 (must match specific primary topic keywords in the title)
-    if (bestScore < 50 || !bestPost) {
+    if (bestScore < 35 || !bestPost) {
       fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }

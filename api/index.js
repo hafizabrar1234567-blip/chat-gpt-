@@ -3676,11 +3676,39 @@ var genericWords = /* @__PURE__ */ new Set([
   "batayein",
   "bataen",
   "plz",
-  "please"
+  "please",
+  "\u0627\u06CC\u0633\u0627",
+  "\u0627\u06CC\u0633\u06CC",
+  "\u0627\u06CC\u0633\u06D2",
+  "\u0622\u062F\u0645\u06CC",
+  "\u0634\u062E\u0635",
+  "\u0627\u0646\u0633\u0627\u0646",
+  "\u0644\u0648\u06AF",
+  "\u062C\u0633\u06D2",
+  "\u062C\u0633",
+  "\u062C\u0646",
+  "\u062C\u0646\u06C1\u06CC\u06BA",
+  "\u062C\u0633\u06A9\u0648",
+  "\u062C\u0646\u06A9\u0648",
+  "\u06A9\u0631\u0648\u0627\u0626\u06D2",
+  "\u06A9\u0631\u0648\u0627\u0626\u06CC",
+  "\u06A9\u0631\u0648\u0627\u06CC\u0627",
+  "\u06A9\u0631\u0648\u0627",
+  "\u06A9\u0631\u0648\u0627\u06CC\u06BA",
+  "\u06A9\u0631\u0648\u0627\u0646\u0627",
+  "\u06A9\u0631\u06A9\u06D2",
+  "\u0637\u0631\u06CC\u0642\u06D2",
+  "\u0637\u0631\u06CC\u0642\u06C1",
+  "\u0637\u0631\u06CC\u0642\u0648\u06BA",
+  "\u06C1\u0648\u062C\u0627\u0626\u06D2",
+  "\u06C1\u0648\u062C\u0627\u0626\u06D2\u06AF\u06CC",
+  "\u06C1\u0648\u062C\u0627\u0626\u06D2\u06AF\u0627",
+  "\u06C1\u0648\u06AF\u06CC",
+  "\u06C1\u0648\u06AF\u0627"
 ]);
 function extractUrduTopicKeywords(query) {
   if (!query || !query.trim()) return [];
-  const cleanStr = query.toLowerCase().replace(/[\u064B-\u065F\u0670]/g, "").replace(/[؟?!\.,۔،:;'"()\/\\\[\]{}*#_`~<>+=|-]/g, " ").replace(/ہم\s+بستری/g, "\u06C1\u0645\u0628\u0633\u062A\u0631\u06CC").replace(/حق\s+مہر/g, "\u062D\u0642\u0645\u06C1\u0631").replace(/اہل\s+حدیث/g, "\u0627\u06C1\u0644\u062D\u062F\u06CC\u062B").replace(/عورتوں/g, "\u0639\u0648\u0631\u062A").replace(/مردوں/g, "\u0645\u0631\u062F").replace(/بچوں/g, "\u0628\u0686\u06C1").replace(/کتوں/g, "\u06A9\u062A\u0627");
+  const cleanStr = query.toLowerCase().replace(/[\u064B-\u065F\u0670]/g, "").replace(/[؟?!\.,۔،:;'"()\/\\\[\]{}*#_`~<>+=|-]/g, " ").replace(/(^|\s)(کے|سے|کو|کا|کی|پر|میں|اور|یا|نہ|نا|بے)(طلاق|نکاح|سائن|دستخط|کاغذ|مجبور|وضو|نماز|روزہ|حکم|مسئلہ|فتوی|سود)/g, "$1$2 $3").replace(/(طلاق|نکاح|حق|سجدہ|اہل)\s*(نامہ|مہر|سہو|حدیث)/g, "$1 $2").replace(/طلاق\s*نامہ/g, "\u0637\u0644\u0627\u0642 \u0646\u0627\u0645\u06C1").replace(/دست\s*خط/g, "\u062F\u0633\u062A\u062E\u0637").replace(/ہم\s+بستری/g, "\u06C1\u0645\u0628\u0633\u062A\u0631\u06CC").replace(/حق\s+مہر/g, "\u062D\u0642\u0645\u06C1\u0631").replace(/اہل\s+حدیث/g, "\u0627\u06C1\u0644\u062D\u062F\u06CC\u062B").replace(/عورتوں/g, "\u0639\u0648\u0631\u062A").replace(/مردوں/g, "\u0645\u0631\u062F").replace(/بچوں/g, "\u0628\u0686\u06C1").replace(/کتوں/g, "\u06A9\u062A\u0627");
   const rawTokens = cleanStr.split(/\s+/).filter(Boolean);
   const convertedTokens = [];
   for (const token of rawTokens) {
@@ -4007,7 +4035,14 @@ var synonymDict = {
   "\u0628\u06CC\u0648\u06CC": ["\u0628\u06CC\u0648\u06CC", "\u0627\u06C1\u0644\u06CC\u06C1", "\u0632\u0648\u062C\u06C1", "\u0639\u0648\u0631\u062A"],
   "\u0634\u0648\u06C1\u0631": ["\u0634\u0648\u06C1\u0631", "\u062E\u0627\u0648\u0646\u062F", "\u0632\u0648\u062C", "\u0645\u0631\u062F"],
   "\u0645\u0646\u06AF\u0646\u06CC": ["\u0645\u0646\u06AF\u0646\u06CC", "\u0645\u0646\u06AF\u06CC\u062A\u0631", "\u0631\u0634\u062A\u06C1"],
-  "\u0637\u0644\u0627\u0642": ["\u0637\u0644\u0627\u0642", "\u0639\u0644\u06CC\u062D\u062F\u06AF\u06CC", "\u062A\u0637\u0644\u06CC\u0642"],
+  "\u0637\u0644\u0627\u0642": ["\u0637\u0644\u0627\u0642", "\u0639\u0644\u06CC\u062D\u062F\u06AF\u06CC", "\u062A\u0637\u0644\u06CC\u0642", "\u0637\u0644\u0627\u0642 \u0646\u0627\u0645\u06C1", "\u0637\u0644\u0627\u0642\u0646\u0627\u0645\u06C1", "\u062A\u06CC\u0646 \u0637\u0644\u0627\u0642\u06CC\u06BA", "\u062A\u06CC\u0646 \u0637\u0644\u0627\u0642", "\u0627\u06CC\u06A9 \u0637\u0644\u0627\u0642"],
+  "\u0633\u0627\u0626\u0646": ["\u0633\u0627\u0626\u0646", "\u062F\u0633\u062A\u062E\u0637", "\u06A9\u0627\u063A\u0630", "\u06A9\u0627\u063A\u0630\u0627\u062A", "\u0644\u06A9\u06BE\u0646\u0627", "\u0644\u06A9\u06BE \u06A9\u0631", "\u0644\u06A9\u06BE\u0648\u0627\u06CC\u0627", "\u0637\u0644\u0627\u0642 \u0646\u0627\u0645\u06C1"],
+  "\u062F\u0633\u062A\u062E\u0637": ["\u062F\u0633\u062A\u062E\u0637", "\u0633\u0627\u0626\u0646", "\u06A9\u0627\u063A\u0630", "\u06A9\u0627\u063A\u0630\u0627\u062A", "\u0644\u06A9\u06BE\u0646\u0627", "\u0644\u06A9\u06BE \u06A9\u0631", "\u0644\u06A9\u06BE\u0648\u0627\u06CC\u0627", "\u0637\u0644\u0627\u0642 \u0646\u0627\u0645\u06C1"],
+  "\u0645\u062C\u0628\u0648\u0631": ["\u0645\u062C\u0628\u0648\u0631", "\u0632\u0628\u0631\u062F\u0633\u062A\u06CC", "\u062F\u0628\u0627\u0624", "\u0627\u06A9\u0631\u0627\u06C1", "\u062C\u0628\u0631", "\u062F\u06BE\u0645\u06A9\u06CC", "\u0632\u0648\u0631 \u0632\u0628\u0631\u062F\u0633\u062A\u06CC", "\u062A\u06C1\u062F\u06CC\u062F"],
+  "\u0632\u0628\u0631\u062F\u0633\u062A\u06CC": ["\u0632\u0628\u0631\u062F\u0633\u062A\u06CC", "\u0645\u062C\u0628\u0648\u0631", "\u062F\u0628\u0627\u0624", "\u0627\u06A9\u0631\u0627\u06C1", "\u062C\u0628\u0631", "\u062F\u06BE\u0645\u06A9\u06CC", "\u0632\u0648\u0631 \u0632\u0628\u0631\u062F\u0633\u062A\u06CC"],
+  "\u062F\u0628\u0627\u0624": ["\u062F\u0628\u0627\u0624", "\u0645\u062C\u0628\u0648\u0631", "\u0632\u0628\u0631\u062F\u0633\u062A\u06CC", "\u0627\u06A9\u0631\u0627\u06C1", "\u062C\u0628\u0631", "\u062E\u0627\u0646\u062F\u0627\u0646\u06CC \u062F\u0628\u0627\u0624", "\u0627\u0635\u0631\u0627\u0631"],
+  "\u0627\u06A9\u0631\u0627\u06C1": ["\u0627\u06A9\u0631\u0627\u06C1", "\u0645\u062C\u0628\u0648\u0631", "\u0632\u0628\u0631\u062F\u0633\u062A\u06CC", "\u062F\u0628\u0627\u0624", "\u062C\u0628\u0631", "\u062F\u06BE\u0645\u06A9\u06CC"],
+  "\u06A9\u0627\u063A\u0630": ["\u06A9\u0627\u063A\u0630", "\u06A9\u0627\u063A\u0630\u0627\u062A", "\u0633\u0627\u0626\u0646", "\u062F\u0633\u062A\u062E\u0637", "\u0637\u0644\u0627\u0642 \u0646\u0627\u0645\u06C1", "\u0646\u0648\u0679\u0633"],
   "\u062E\u0644\u0639": ["\u062E\u0644\u0639", "\u0645\u062E\u0644\u0648\u0639\u06C1"],
   "\u0639\u062F\u062A": ["\u0639\u062F\u062A", "\u0633\u0648\u06AF"],
   "\u0645\u06C1\u0631": ["\u0645\u06C1\u0631", "\u062D\u0642 \u0645\u06C1\u0631", "\u062D\u0642\u0645\u06C1\u0631", "\u0635\u062F\u0627\u0642"],
@@ -4368,11 +4403,11 @@ function scoreCandidatePost(post, userQuery, topicKeywords) {
   }
   const strongMatches = Math.max(titleMatches, questionMatches);
   if (specificKeywords.length === 0) {
-    if (titleMatches < 3) {
+    if (titleMatches < 2 && questionMatches < 2) {
       return 0;
     }
   } else {
-    if (titleMatches === 0) {
+    if (titleMatches === 0 && questionMatches < 2) {
       return 0;
     }
   }
@@ -4413,9 +4448,50 @@ async function searchAlUlamaFatwa(userQuery) {
       fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
-    const searchTerms = [];
+    const searchTerms = /* @__PURE__ */ new Set();
+    const cleanLowerQuery = normalizedQuery;
+    if (topicKeywords.includes("\u0637\u0644\u0627\u0642") || cleanLowerQuery.includes("\u0637\u0644\u0627\u0642")) {
+      if (topicKeywords.includes("\u0633\u0627\u0626\u0646") || cleanLowerQuery.includes("\u0633\u0627\u0626\u0646") || topicKeywords.includes("\u062F\u0633\u062A\u062E\u0637") || cleanLowerQuery.includes("\u062F\u0633\u062A\u062E\u0637")) {
+        searchTerms.add("\u0637\u0644\u0627\u0642 \u0646\u0627\u0645\u06C1 \u0633\u0627\u0626\u0646");
+        searchTerms.add("\u0637\u0644\u0627\u0642 \u0633\u0627\u0626\u0646");
+        searchTerms.add("\u0637\u0644\u0627\u0642 \u062F\u0633\u062A\u062E\u0637");
+      }
+      if (topicKeywords.includes("\u0645\u062C\u0628\u0648\u0631") || cleanLowerQuery.includes("\u0645\u062C\u0628\u0648\u0631") || cleanLowerQuery.includes("\u0632\u0628\u0631\u062F\u0633\u062A\u06CC") || cleanLowerQuery.includes("\u062F\u0628\u0627\u0624")) {
+        searchTerms.add("\u0645\u062C\u0628\u0648\u0631 \u0637\u0644\u0627\u0642 \u0633\u0627\u0626\u0646");
+        searchTerms.add("\u0645\u062C\u0628\u0648\u0631 \u0637\u0644\u0627\u0642");
+        searchTerms.add("\u0637\u0644\u0627\u0642 \u062F\u0628\u0627\u0624");
+        searchTerms.add("\u0632\u0628\u0631\u062F\u0633\u062A\u06CC \u0637\u0644\u0627\u0642");
+      }
+      if (topicKeywords.includes("\u0646\u0627\u0645\u06C1") || cleanLowerQuery.includes("\u0646\u0627\u0645\u06C1")) {
+        searchTerms.add("\u0637\u0644\u0627\u0642 \u0646\u0627\u0645\u06C1");
+      }
+      if (cleanLowerQuery.includes("\u063A\u0635\u06C1") || topicKeywords.includes("\u063A\u0635\u06C1")) {
+        searchTerms.add("\u063A\u0635\u06C1 \u0637\u0644\u0627\u0642");
+      }
+      if (cleanLowerQuery.includes("\u062A\u06CC\u0646") || topicKeywords.includes("\u062A\u06CC\u0646")) {
+        searchTerms.add("\u062A\u06CC\u0646 \u0637\u0644\u0627\u0642\u06CC\u06BA");
+      }
+    }
+    if (topicKeywords.includes("\u0646\u06A9\u0627\u062D") || cleanLowerQuery.includes("\u0646\u06A9\u0627\u062D")) {
+      if (cleanLowerQuery.includes("\u0632\u0628\u0631\u062F\u0633\u062A\u06CC") || cleanLowerQuery.includes("\u0645\u062C\u0628\u0648\u0631")) {
+        searchTerms.add("\u0632\u0628\u0631\u062F\u0633\u062A\u06CC \u0646\u06A9\u0627\u062D");
+      }
+      if (cleanLowerQuery.includes("\u062E\u0641\u06CC\u06C1") || cleanLowerQuery.includes("\u0628\u063A\u06CC\u0631 \u0648\u0644\u06CC")) {
+        searchTerms.add("\u062E\u0641\u06CC\u06C1 \u0646\u06A9\u0627\u062D");
+      }
+      if (cleanLowerQuery.includes("\u062F\u0648\u0633\u0631\u0627") || cleanLowerQuery.includes("\u062F\u0648\u0633\u0631\u06CC")) {
+        searchTerms.add("\u062F\u0648\u0633\u0631\u0627 \u0646\u06A9\u0627\u062D");
+      }
+    }
+    if (topicKeywords.includes("\u0648\u0636\u0648") || cleanLowerQuery.includes("\u0648\u0636\u0648")) {
+      if (cleanLowerQuery.includes("\u062A\u0648\u0644\u06CC\u06C1")) searchTerms.add("\u0648\u0636\u0648 \u062A\u0648\u0644\u06CC\u06C1");
+      if (cleanLowerQuery.includes("\u0645\u0648\u0632\u06D2") || cleanLowerQuery.includes("\u062C\u0631\u0627\u0628\u06CC\u06BA")) searchTerms.add("\u0645\u0648\u0632\u0648\u06BA \u0645\u0633\u062D");
+    }
+    for (let i = 0; i < topicKeywords.length - 1; i++) {
+      searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
+    }
     if (topicKeywords.length >= 2) {
-      searchTerms.push(topicKeywords.join(" "));
+      searchTerms.add(topicKeywords.slice(0, 3).join(" "));
     }
     const religiousCoreList = [
       "\u0639\u0645\u0631\u06C1",
@@ -4446,30 +4522,16 @@ async function searchAlUlamaFatwa(userQuery) {
     for (const core of religiousCore) {
       for (const other of otherKeywords) {
         if (!["\u0628\u0627\u062A", "\u0686\u06CC\u0632", "\u06A9\u0627\u0645"].includes(other)) {
-          searchTerms.push(`${other} ${core}`);
+          searchTerms.add(`${other} ${core}`);
         }
       }
-      searchTerms.push(core);
+      searchTerms.add(core);
     }
-    for (const kw of topicKeywords) {
-      const syns = synonymDict[kw];
-      if (syns && syns.length > 1) {
-        for (const s of syns.slice(1, 2)) {
-          const altPhrase = topicKeywords.map((k) => k === kw ? s : k).slice(0, 3).join(" ");
-          searchTerms.push(altPhrase);
-        }
-      }
-    }
-    for (const kw of otherKeywords) {
-      if (!["\u0639\u0648\u0631\u062A", "\u0645\u0631\u062F", "\u0644\u0648\u06AF", "\u0634\u062E\u0635", "\u0628\u0627\u062A", "\u0686\u06CC\u0632"].includes(kw)) {
-        searchTerms.push(kw);
-      }
-    }
-    const finalSearchTerms = Array.from(new Set(searchTerms)).slice(0, 4);
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 8);
     const fetchPromises = finalSearchTerms.map(async (term) => {
       const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=5`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500);
+      const timeoutId = setTimeout(() => controller.abort(), 4e3);
       try {
         const response = await fetch(url, {
           headers: {
@@ -4511,7 +4573,7 @@ async function searchAlUlamaFatwa(userQuery) {
         bestPost = post;
       }
     }
-    if (bestScore < 50 || !bestPost) {
+    if (bestScore < 35 || !bestPost) {
       fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
@@ -5446,14 +5508,14 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       contents.push({ role: "user", parts: userParts });
     }
     const candidateModels = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
       "gemini-3.6-flash",
       "gemini-3.5-flash-lite",
       "gemini-3.7-flash",
       "gemini-3.1-flash-lite",
       "gemini-flash-latest",
       "gemini-flash-lite-latest",
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
       "gemini-1.5-flash"
     ];
     const getModelConfig = (modelName) => {
