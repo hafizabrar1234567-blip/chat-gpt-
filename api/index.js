@@ -3687,6 +3687,8 @@ var genericWords = /* @__PURE__ */ new Set([
   "\u0634\u062E\u0635",
   "\u0627\u0646\u0633\u0627\u0646",
   "\u0644\u0648\u06AF",
+  "\u0628\u0646\u062F\u06C1",
+  "\u0628\u0646\u062F\u06D2",
   "\u062C\u0633\u06D2",
   "\u062C\u0633",
   "\u062C\u0646",
@@ -3700,6 +3702,7 @@ var genericWords = /* @__PURE__ */ new Set([
   "\u06A9\u0631\u0648\u0627\u06CC\u06BA",
   "\u06A9\u0631\u0648\u0627\u0646\u0627",
   "\u06A9\u0631\u06A9\u06D2",
+  "\u06A9\u0631",
   "\u0637\u0631\u06CC\u0642\u06D2",
   "\u0637\u0631\u06CC\u0642\u06C1",
   "\u0637\u0631\u06CC\u0642\u0648\u06BA",
@@ -3707,7 +3710,27 @@ var genericWords = /* @__PURE__ */ new Set([
   "\u06C1\u0648\u062C\u0627\u0626\u06D2\u06AF\u06CC",
   "\u06C1\u0648\u062C\u0627\u0626\u06D2\u06AF\u0627",
   "\u06C1\u0648\u06AF\u06CC",
-  "\u06C1\u0648\u06AF\u0627"
+  "\u06C1\u0648\u06AF\u0627",
+  "\u062C\u0627\u0646\u06D2",
+  "\u062C\u0627\u0646\u0627",
+  "\u062C\u0627\u0624",
+  "\u0622\u0646\u06D2",
+  "\u0622\u0646\u0627",
+  "\u0622\u062A\u06D2",
+  "\u0622\u062A\u06CC",
+  "\u0622\u062A\u0627",
+  "\u0622\u0626\u06D2",
+  "\u0622\u0626\u06CC",
+  "\u0622\u06CC\u0627",
+  "\u067E\u06CC\u062A\u06D2",
+  "\u067E\u06CC\u062A\u0627",
+  "\u067E\u06CC\u062A\u06CC",
+  "\u06A9\u06BE\u0627\u062A\u06D2",
+  "\u06A9\u06BE\u0627\u062A\u06CC",
+  "\u06A9\u06BE\u0627\u062A\u0627",
+  "\u067E\u0691\u06BE\u062A\u06D2",
+  "\u067E\u0691\u06BE\u062A\u06CC",
+  "\u067E\u0691\u06BE\u062A\u0627"
 ]);
 function extractUrduTopicKeywords(query) {
   if (!query || !query.trim()) return [];
@@ -4474,125 +4497,56 @@ async function searchAlUlamaFatwa(userQuery) {
     if (cleanUserQuery.length >= 4) {
       searchTerms.add(cleanUserQuery.slice(0, 45).trim());
     }
-    if (topicKeywords.includes("\u0637\u0644\u0627\u0642") || cleanLowerQuery.includes("\u0637\u0644\u0627\u0642")) {
-      if (topicKeywords.includes("\u0633\u0627\u0626\u0646") || cleanLowerQuery.includes("\u0633\u0627\u0626\u0646") || topicKeywords.includes("\u062F\u0633\u062A\u062E\u0637") || cleanLowerQuery.includes("\u062F\u0633\u062A\u062E\u0637")) {
-        searchTerms.add("\u0637\u0644\u0627\u0642 \u0646\u0627\u0645\u06C1 \u0633\u0627\u0626\u0646");
-        searchTerms.add("\u0637\u0644\u0627\u0642 \u0633\u0627\u0626\u0646");
-        searchTerms.add("\u0637\u0644\u0627\u0642 \u062F\u0633\u062A\u062E\u0637");
-      }
-      if (topicKeywords.includes("\u0645\u062C\u0628\u0648\u0631") || cleanLowerQuery.includes("\u0645\u062C\u0628\u0648\u0631") || cleanLowerQuery.includes("\u0632\u0628\u0631\u062F\u0633\u062A\u06CC") || cleanLowerQuery.includes("\u062F\u0628\u0627\u0624")) {
-        searchTerms.add("\u0645\u062C\u0628\u0648\u0631 \u0637\u0644\u0627\u0642 \u0633\u0627\u0626\u0646");
-        searchTerms.add("\u0645\u062C\u0628\u0648\u0631 \u0637\u0644\u0627\u0642");
-        searchTerms.add("\u0637\u0644\u0627\u0642 \u062F\u0628\u0627\u0624");
-        searchTerms.add("\u0632\u0628\u0631\u062F\u0633\u062A\u06CC \u0637\u0644\u0627\u0642");
-      }
-      if (topicKeywords.includes("\u0646\u0627\u0645\u06C1") || cleanLowerQuery.includes("\u0646\u0627\u0645\u06C1")) {
-        searchTerms.add("\u0637\u0644\u0627\u0642 \u0646\u0627\u0645\u06C1");
-      }
-      if (cleanLowerQuery.includes("\u063A\u0635\u06C1") || topicKeywords.includes("\u063A\u0635\u06C1")) {
-        searchTerms.add("\u063A\u0635\u06C1 \u0637\u0644\u0627\u0642");
-      }
-      if (cleanLowerQuery.includes("\u062A\u06CC\u0646") || topicKeywords.includes("\u062A\u06CC\u0646")) {
-        searchTerms.add("\u062A\u06CC\u0646 \u0637\u0644\u0627\u0642\u06CC\u06BA");
-      }
-    }
-    if (cleanLowerQuery.includes("\u0639\u062F\u062A")) {
-      if (cleanLowerQuery.includes("\u0635\u0644\u062D")) {
-        searchTerms.add("\u0639\u062F\u062A \u062E\u062A\u0645 \u0622\u067E\u0633\u06CC \u0635\u0644\u062D");
-        searchTerms.add("\u0622\u067E\u0633\u06CC \u0635\u0644\u062D");
-        searchTerms.add("\u0639\u062F\u062A \u0635\u0644\u062D");
-      }
-      if (cleanLowerQuery.includes("\u062E\u062A\u0645")) {
-        searchTerms.add("\u0639\u062F\u062A \u062E\u062A\u0645 \u06C1\u0648 \u062C\u0627\u0646\u06D2 \u06A9\u06D2 \u0628\u0639\u062F");
-        searchTerms.add("\u0639\u062F\u062A \u062E\u062A\u0645");
-      }
-    }
-    if (cleanLowerQuery.includes("\u0635\u0644\u062D")) {
-      searchTerms.add("\u0622\u067E\u0633\u06CC \u0635\u0644\u062D");
-      searchTerms.add("\u0635\u0644\u062D");
-    }
-    if (cleanLowerQuery.includes("\u0648\u0644\u06CC") || cleanLowerQuery.includes("\u0648\u0627\u0644\u062F")) {
-      if (cleanLowerQuery.includes("\u0627\u0646\u06A9\u0627\u0631")) searchTerms.add("\u0648\u0644\u06CC \u0627\u0646\u06A9\u0627\u0631");
-      if (cleanLowerQuery.includes("\u0635\u0644\u062D")) searchTerms.add("\u0648\u0644\u06CC \u0635\u0644\u062D");
-    }
-    if (topicKeywords.includes("\u0646\u06A9\u0627\u062D") || cleanLowerQuery.includes("\u0646\u06A9\u0627\u062D")) {
-      if (cleanLowerQuery.includes("\u0632\u0628\u0631\u062F\u0633\u062A\u06CC") || cleanLowerQuery.includes("\u0645\u062C\u0628\u0648\u0631")) {
-        searchTerms.add("\u0632\u0628\u0631\u062F\u0633\u062A\u06CC \u0646\u06A9\u0627\u062D");
-      }
-      if (cleanLowerQuery.includes("\u062E\u0641\u06CC\u06C1") || cleanLowerQuery.includes("\u0628\u063A\u06CC\u0631 \u0648\u0644\u06CC")) {
-        searchTerms.add("\u062E\u0641\u06CC\u06C1 \u0646\u06A9\u0627\u062D");
-      }
-      if (cleanLowerQuery.includes("\u062F\u0648\u0633\u0631\u0627") || cleanLowerQuery.includes("\u062F\u0648\u0633\u0631\u06CC")) {
-        searchTerms.add("\u062F\u0648\u0633\u0631\u0627 \u0646\u06A9\u0627\u062D");
-      }
-    }
-    if (topicKeywords.includes("\u0648\u0636\u0648") || cleanLowerQuery.includes("\u0648\u0636\u0648")) {
-      if (cleanLowerQuery.includes("\u062A\u0648\u0644\u06CC\u06C1")) searchTerms.add("\u0648\u0636\u0648 \u062A\u0648\u0644\u06CC\u06C1");
-      if (cleanLowerQuery.includes("\u0645\u0648\u0632\u06D2") || cleanLowerQuery.includes("\u062C\u0631\u0627\u0628\u06CC\u06BA")) searchTerms.add("\u0645\u0648\u0632\u0648\u06BA \u0645\u0633\u062D");
-    }
-    if (cleanLowerQuery.includes("\u0634\u0631\u0627\u0628") || cleanLowerQuery.includes("\u0646\u0634\u06C1")) {
-      if (cleanLowerQuery.includes("\u062C\u0646\u0627\u0632\u06C1")) {
-        searchTerms.add("\u0634\u0631\u0627\u0628 \u062C\u0646\u0627\u0632\u06C1");
-        searchTerms.add("\u0634\u0631\u0627\u0628\u06CC \u062C\u0646\u0627\u0632\u06C1");
-        searchTerms.add("\u0634\u0631\u0627\u0628\u06CC \u06A9\u06CC \u0646\u0645\u0627\u0632 \u062C\u0646\u0627\u0632\u06C1");
-      }
-      if (cleanLowerQuery.includes("\u0641\u0648\u062A") || cleanLowerQuery.includes("\u0645\u0648\u062A")) {
-        searchTerms.add("\u0646\u0634\u06D2 \u0633\u06D2 \u0645\u0648\u062A");
-        searchTerms.add("\u0634\u0631\u0627\u0628 \u0645\u0648\u062A");
-      }
-      searchTerms.add("\u0634\u0631\u0627\u0628\u06CC");
-      searchTerms.add("\u0634\u0631\u0627\u0628");
-    }
-    const religiousCoreList = [
-      "\u0639\u0645\u0631\u06C1",
-      "\u062D\u062C",
-      "\u0646\u0645\u0627\u0632",
-      "\u0631\u0648\u0632\u06C1",
-      "\u0648\u0636\u0648",
-      "\u063A\u0633\u0644",
-      "\u0632\u06A9\u0648\u06C3",
-      "\u0632\u06A9\u0648\u0670\u06C3",
-      "\u0642\u0631\u0628\u0627\u0646\u06CC",
-      "\u0639\u0642\u06CC\u0642\u06C1",
-      "\u0646\u06A9\u0627\u062D",
-      "\u0637\u0644\u0627\u0642",
-      "\u0639\u062F\u062A",
-      "\u0635\u0644\u062D",
-      "\u0631\u062C\u0648\u0639",
-      "\u0648\u0644\u06CC",
-      "\u0634\u0631\u0627\u0628",
-      "\u0646\u0634\u06C1",
-      "\u0633\u0648\u062F",
-      "\u062D\u0645\u0644",
-      "\u0627\u0633\u0642\u0627\u0637",
-      "\u062A\u06BE\u06CC\u0644\u06CC\u0633\u06CC\u0645\u06CC\u0627",
-      "\u062E\u0636\u0627\u0628",
-      "\u062A\u0648\u0644\u06CC\u06C1",
-      "\u0645\u0648\u0632\u06D2",
-      "\u0645\u0633\u062D",
-      "\u062C\u0646\u0627\u0632\u06C1",
-      "\u062A\u0631\u0627\u0648\u06CC\u062D"
-    ];
-    const religiousCore = topicKeywords.filter((w) => religiousCoreList.includes(w));
-    const otherKeywords = topicKeywords.filter((w) => !religiousCoreList.includes(w));
-    for (const core of religiousCore) {
-      for (const other of otherKeywords) {
-        if (!["\u0628\u0627\u062A", "\u0686\u06CC\u0632", "\u06A9\u0627\u0645", "\u06C1\u0648\u06D2", "\u067E\u06CC\u062A\u06D2"].includes(other)) {
-          searchTerms.add(`${other} ${core}`);
-        }
-      }
-      searchTerms.add(core);
-    }
     if (topicKeywords.length >= 2) {
       searchTerms.add(topicKeywords.slice(0, 3).join(" "));
     }
     if (topicKeywords.length >= 4) {
       searchTerms.add(topicKeywords.slice(0, 4).join(" "));
     }
+    const maxCore = Math.min(topicKeywords.length, 6);
+    for (let i = 0; i < maxCore; i++) {
+      for (let j = i + 1; j < maxCore; j++) {
+        searchTerms.add(`${topicKeywords[i]} ${topicKeywords[j]}`);
+      }
+    }
+    for (const kw of topicKeywords.slice(0, 5)) {
+      let stem = "";
+      if (kw.endsWith("\u06CC") && kw.length > 3) {
+        stem = kw.slice(0, -1);
+      } else if (kw.endsWith("\u0648\u06BA") && kw.length > 3) {
+        stem = kw.slice(0, -2);
+      } else if (kw.endsWith("\u06CC\u06BA") && kw.length > 3) {
+        stem = kw.slice(0, -2);
+      } else if (kw.endsWith("\u06D2") && kw.length > 3) {
+        stem = kw.slice(0, -1) + "\u0627";
+      }
+      if (stem && stem.length >= 2) {
+        searchTerms.add(stem);
+        for (const other of topicKeywords.slice(0, 4)) {
+          if (other !== kw) {
+            searchTerms.add(`${stem} ${other}`);
+          }
+        }
+      }
+      const synonyms = synonymDict[kw] || [];
+      for (const syn of synonyms.slice(0, 2)) {
+        if (syn !== kw) {
+          searchTerms.add(syn);
+          for (const other of topicKeywords.slice(0, 3)) {
+            if (other !== kw) {
+              searchTerms.add(`${syn} ${other}`);
+            }
+          }
+        }
+      }
+      if (kw.length >= 4 || ["\u062D\u062C", "\u062F\u0645", "\u0639\u06CC\u062F", "\u062D\u0645\u0644", "\u0633\u0648\u062F", "\u0628\u06CC\u0639", "\u062E\u0644\u0639", "\u0648\u062A\u0631", "\u0642\u0635\u0631"].includes(kw)) {
+        searchTerms.add(kw);
+      }
+    }
     for (let i = 0; i < topicKeywords.length - 1; i++) {
       searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
     }
-    const finalSearchTerms = Array.from(searchTerms).slice(0, 12);
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 15);
     const fetchPromises = finalSearchTerms.map(async (term) => {
       const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=15`;
       const controller = new AbortController();

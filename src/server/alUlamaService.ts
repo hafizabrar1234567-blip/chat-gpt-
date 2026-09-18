@@ -340,8 +340,10 @@ const genericWords = new Set([
   "baad", "bad", "pehle", "pehly", "qabl", "doran", "darmiyan",
   "lekin", "magar", "gya", "gaya", "gaye", "gai", "hua", "hui", "hue", "hoga", "hogi",
   "bataye", "batayein", "bataen", "plz", "please",
-  "ایسا", "ایسی", "ایسے", "آدمی", "شخص", "انسان", "لوگ", "جسے", "جس", "جن", "جنہیں", "جسکو", "جنکو",
-  "کروائے", "کروائی", "کروایا", "کروا", "کروایں", "کروانا", "کرکے", "طریقے", "طریقہ", "طریقوں", "ہوجائے", "ہوجائےگی", "ہوجائےگا", "ہوگی", "ہوگا"
+  "ایسا", "ایسی", "ایسے", "آدمی", "شخص", "انسان", "لوگ", "بندہ", "بندے", "جسے", "جس", "جن", "جنہیں", "جسکو", "جنکو",
+  "کروائے", "کروائی", "کروایا", "کروا", "کروایں", "کروانا", "کرکے", "کر", "طریقے", "طریقہ", "طریقوں", "ہوجائے", "ہوجائےگی", "ہوجائےگا", "ہوگی", "ہوگا",
+  "جانے", "جانا", "جاؤ", "آنے", "آنا", "آتے", "آتی", "آتا", "آئے", "آئی", "آیا",
+  "پیتے", "پیتا", "پیتی", "کھاتے", "کھاتی", "کھاتا", "پڑھتے", "پڑھتی", "پڑھتا"
 ]);
 
 /**
@@ -950,107 +952,13 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
     const searchTerms = new Set<string>();
     const cleanLowerQuery = normalizedQuery;
 
-    // 0. Clean user query natural phrase (up to 45 chars)
+    // 1. Natural user query phrase (up to 45 chars)
     const cleanUserQuery = userQuery.trim().replace(/[؟?!.,،]/g, " ").replace(/\s+/g, " ").trim();
     if (cleanUserQuery.length >= 4) {
       searchTerms.add(cleanUserQuery.slice(0, 45).trim());
     }
 
-    // 1. High-impact semantic topic pairs
-    if (topicKeywords.includes("طلاق") || cleanLowerQuery.includes("طلاق")) {
-      if (topicKeywords.includes("سائن") || cleanLowerQuery.includes("سائن") || topicKeywords.includes("دستخط") || cleanLowerQuery.includes("دستخط")) {
-        searchTerms.add("طلاق نامہ سائن");
-        searchTerms.add("طلاق سائن");
-        searchTerms.add("طلاق دستخط");
-      }
-      if (topicKeywords.includes("مجبور") || cleanLowerQuery.includes("مجبور") || cleanLowerQuery.includes("زبردستی") || cleanLowerQuery.includes("دباؤ")) {
-        searchTerms.add("مجبور طلاق سائن");
-        searchTerms.add("مجبور طلاق");
-        searchTerms.add("طلاق دباؤ");
-        searchTerms.add("زبردستی طلاق");
-      }
-      if (topicKeywords.includes("نامہ") || cleanLowerQuery.includes("نامہ")) {
-        searchTerms.add("طلاق نامہ");
-      }
-      if (cleanLowerQuery.includes("غصہ") || topicKeywords.includes("غصہ")) {
-        searchTerms.add("غصہ طلاق");
-      }
-      if (cleanLowerQuery.includes("تین") || topicKeywords.includes("تین")) {
-        searchTerms.add("تین طلاقیں");
-      }
-    }
-
-    if (cleanLowerQuery.includes("عدت")) {
-      if (cleanLowerQuery.includes("صلح")) {
-        searchTerms.add("عدت ختم آپسی صلح");
-        searchTerms.add("آپسی صلح");
-        searchTerms.add("عدت صلح");
-      }
-      if (cleanLowerQuery.includes("ختم")) {
-        searchTerms.add("عدت ختم ہو جانے کے بعد");
-        searchTerms.add("عدت ختم");
-      }
-    }
-
-    if (cleanLowerQuery.includes("صلح")) {
-      searchTerms.add("آپسی صلح");
-      searchTerms.add("صلح");
-    }
-
-    if (cleanLowerQuery.includes("ولی") || cleanLowerQuery.includes("والد")) {
-      if (cleanLowerQuery.includes("انکار")) searchTerms.add("ولی انکار");
-      if (cleanLowerQuery.includes("صلح")) searchTerms.add("ولی صلح");
-    }
-
-    if (topicKeywords.includes("نکاح") || cleanLowerQuery.includes("نکاح")) {
-      if (cleanLowerQuery.includes("زبردستی") || cleanLowerQuery.includes("مجبور")) {
-        searchTerms.add("زبردستی نکاح");
-      }
-      if (cleanLowerQuery.includes("خفیہ") || cleanLowerQuery.includes("بغیر ولی")) {
-        searchTerms.add("خفیہ نکاح");
-      }
-      if (cleanLowerQuery.includes("دوسرا") || cleanLowerQuery.includes("دوسری")) {
-        searchTerms.add("دوسرا نکاح");
-      }
-    }
-
-    if (topicKeywords.includes("وضو") || cleanLowerQuery.includes("وضو")) {
-      if (cleanLowerQuery.includes("تولیہ")) searchTerms.add("وضو تولیہ");
-      if (cleanLowerQuery.includes("موزے") || cleanLowerQuery.includes("جرابیں")) searchTerms.add("موزوں مسح");
-    }
-
-    if (cleanLowerQuery.includes("شراب") || cleanLowerQuery.includes("نشہ")) {
-      if (cleanLowerQuery.includes("جنازہ")) {
-        searchTerms.add("شراب جنازہ");
-        searchTerms.add("شرابی جنازہ");
-        searchTerms.add("شرابی کی نماز جنازہ");
-      }
-      if (cleanLowerQuery.includes("فوت") || cleanLowerQuery.includes("موت")) {
-        searchTerms.add("نشے سے موت");
-        searchTerms.add("شراب موت");
-      }
-      searchTerms.add("شرابی");
-      searchTerms.add("شراب");
-    }
-
-    // 2. High-specificity pairs with religious core topics (prioritized before generic adjacent bigrams)
-    const religiousCoreList = [
-      "عمرہ", "حج", "نماز", "روزہ", "وضو", "غسل", "زکوۃ", "زکوٰۃ", "قربانی", "عقیقہ",
-      "نکاح", "طلاق", "عدت", "صلح", "رجوع", "ولی", "شراب", "نشہ", "سود", "حمل", "اسقاط", "تھیلیسیمیا", "خضاب", "تولیہ", "موزے", "مسح", "جنازہ", "تراویح"
-    ];
-    const religiousCore = topicKeywords.filter((w) => religiousCoreList.includes(w));
-    const otherKeywords = topicKeywords.filter((w) => !religiousCoreList.includes(w));
-
-    for (const core of religiousCore) {
-      for (const other of otherKeywords) {
-        if (!["بات", "چیز", "کام", "ہوے", "پیتے"].includes(other)) {
-          searchTerms.add(`${other} ${core}`);
-        }
-      }
-      searchTerms.add(core);
-    }
-
-    // 3. Cleaned primary topic phrase (top 3 and top 4 keywords)
+    // 2. Primary topic phrases (top 3 and top 4 keywords)
     if (topicKeywords.length >= 2) {
       searchTerms.add(topicKeywords.slice(0, 3).join(" "));
     }
@@ -1058,12 +966,63 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       searchTerms.add(topicKeywords.slice(0, 4).join(" "));
     }
 
-    // 4. Bigrams of adjacent keywords
+    // 3. UNIVERSAL COMBINATORIAL PAIRS:
+    // Generate all 2-combinations of core keywords automatically for ANY Islamic topic
+    const maxCore = Math.min(topicKeywords.length, 6);
+    for (let i = 0; i < maxCore; i++) {
+      for (let j = i + 1; j < maxCore; j++) {
+        searchTerms.add(`${topicKeywords[i]} ${topicKeywords[j]}`);
+      }
+    }
+
+    // 4. Morphological Variations & Synonyms:
+    // Automatically derive root stems and synonyms for extracted keywords
+    for (const kw of topicKeywords.slice(0, 5)) {
+      let stem = "";
+      if (kw.endsWith("ی") && kw.length > 3) {
+        stem = kw.slice(0, -1); // e.g. شرابی -> شراب, سودی -> سود, نمازی -> نماز
+      } else if (kw.endsWith("وں") && kw.length > 3) {
+        stem = kw.slice(0, -2); // e.g. قسطوں -> قسط, نمازوں -> نماز, پیسوں -> پیسہ
+      } else if (kw.endsWith("یں") && kw.length > 3) {
+        stem = kw.slice(0, -2); // e.g. طلاقیں -> طلاق, نمازیں -> نماز
+      } else if (kw.endsWith("ے") && kw.length > 3) {
+        stem = kw.slice(0, -1) + "ا"; // e.g. سوتیلے -> سوتیلا, روزے -> روزہ, کتے -> کتا
+      }
+
+      if (stem && stem.length >= 2) {
+        searchTerms.add(stem);
+        for (const other of topicKeywords.slice(0, 4)) {
+          if (other !== kw) {
+            searchTerms.add(`${stem} ${other}`);
+          }
+        }
+      }
+
+      // Dynamic synonym expansion
+      const synonyms = synonymDict[kw] || [];
+      for (const syn of synonyms.slice(0, 2)) {
+        if (syn !== kw) {
+          searchTerms.add(syn);
+          for (const other of topicKeywords.slice(0, 3)) {
+            if (other !== kw) {
+              searchTerms.add(`${syn} ${other}`);
+            }
+          }
+        }
+      }
+
+      // Individual distinctive words (length >= 4 or religious roots)
+      if (kw.length >= 4 || ["حج", "دم", "عید", "حمل", "سود", "بیع", "خلع", "وتر", "قصر"].includes(kw)) {
+        searchTerms.add(kw);
+      }
+    }
+
+    // Bigrams of adjacent keywords (fallback)
     for (let i = 0; i < topicKeywords.length - 1; i++) {
       searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
     }
 
-    const finalSearchTerms = Array.from(searchTerms).slice(0, 12);
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 15);
 
     // Fetch candidate terms in parallel with robust 4.0s timeout and per_page=15
     const fetchPromises = finalSearchTerms.map(async (term) => {
