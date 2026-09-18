@@ -4260,6 +4260,15 @@ function scoreCandidatePost(post, userQuery, topicKeywords) {
       return 0;
     }
   }
+  if (normTitle.includes("\u062A\u06CC\u0646 \u0637\u0644\u0627\u0642") || normTitle.includes("\u062A\u06CC\u0646 \u0637\u0644\u0627\u0642\u06CC\u06BA")) {
+    const isThreeTalaqQuery = normQuery.includes("\u062A\u06CC\u0646 \u0637\u0644\u0627\u0642") || normQuery.includes("3 \u0637\u0644\u0627\u0642") || normQuery.includes("\u062A\u06CC\u0646 \u0637\u0644\u0627\u0642\u06CC\u06BA") || normQuery.includes("\u062A\u06CC\u0646") && normQuery.includes("\u0637\u0644\u0627\u0642");
+    if (!isThreeTalaqQuery || normQuery.includes("\u0635\u0644\u062D") || normQuery.includes("\u0631\u062C\u0648\u0639")) {
+      return 0;
+    }
+  }
+  if ((normQuery.includes("\u0635\u0644\u062D") || normQuery.includes("\u0631\u062C\u0648\u0639")) && !normQuery.includes("\u062D\u0644\u0627\u0644\u06C1") && normTitle.includes("\u062D\u0644\u0627\u0644\u06C1")) {
+    return 0;
+  }
   if ((normQuery.includes("\u0632\u0646\u062F\u06C1") || normQuery.includes("\u062D\u06CC\u0627\u062A") || normQuery.includes("\u0632\u0646\u062F\u06AF\u06CC")) && (normTitle.includes("\u062A\u0631\u06A9\u06C1") || normTitle.includes("\u0648\u0631\u062B\u0627\u0621"))) {
     return 0;
   }
@@ -4573,7 +4582,7 @@ async function searchAlUlamaFatwa(userQuery) {
         bestPost = post;
       }
     }
-    if (bestScore < 35 || !bestPost) {
+    if (bestScore < 60 || !bestPost) {
       fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
@@ -5293,7 +5302,7 @@ app.get("/api/settings/status", (req, res) => {
   return res.json({
     success: true,
     hasGeminiKey,
-    model: "gemini-3.6-flash"
+    model: "gemini-3.5-flash-lite"
   });
 });
 app.post("/api/settings/key", async (req, res) => {
@@ -5305,7 +5314,7 @@ app.post("/api/settings/key", async (req, res) => {
     const testKey = apiKey.trim();
     const testAi = new GoogleGenAI({ apiKey: testKey });
     let testSuccess = false;
-    for (const m of ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]) {
+    for (const m of ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.6-flash", "gemini-3.1-flash-lite"]) {
       try {
         const testRes = await testAi.models.generateContent({
           model: m,
@@ -5508,15 +5517,12 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       contents.push({ role: "user", parts: userParts });
     }
     const candidateModels = [
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-3.6-flash",
       "gemini-3.5-flash-lite",
+      "gemini-flash-lite-latest",
+      "gemini-3.6-flash",
       "gemini-3.7-flash",
       "gemini-3.1-flash-lite",
-      "gemini-flash-latest",
-      "gemini-flash-lite-latest",
-      "gemini-1.5-flash"
+      "gemini-flash-latest"
     ];
     const getModelConfig = (modelName) => {
       const config = {
@@ -6506,10 +6512,12 @@ Category: ${category}`;
     }
     async function callGeminiWithResilience(aiInstance, parts, sysInstruction, schema, temp = 0.8) {
       const candidateModels = [
-        "gemini-3.1-flash-lite",
+        "gemini-3.5-flash-lite",
         "gemini-flash-lite-latest",
-        "gemini-flash-latest",
-        "gemini-3.7-flash"
+        "gemini-3.6-flash",
+        "gemini-3.7-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-flash-latest"
       ];
       const strictSystemInstruction = `CRITICAL MANDATE - DIRECT, PRECISE, TOPIC-FOCUSED OUTPUT WITH FULL SUPPORTING REFERENCES & SUGGESTIONS:
 - Provide ONLY the direct, precise, high-quality answer/content requested.

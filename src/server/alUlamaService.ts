@@ -787,6 +787,25 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
     }
   }
 
+  // Talaq sub-type conflicts:
+  // If candidate post is about "تین طلاق" (Three divorces), but query does not mention "تین طلاق" / "تین", or query is about "صلح" / "رجوع" (reconciliation)
+  if (normTitle.includes("تین طلاق") || normTitle.includes("تین طلاقیں")) {
+    const isThreeTalaqQuery =
+      normQuery.includes("تین طلاق") ||
+      normQuery.includes("3 طلاق") ||
+      normQuery.includes("تین طلاقیں") ||
+      (normQuery.includes("تین") && normQuery.includes("طلاق"));
+    if (!isThreeTalaqQuery || normQuery.includes("صلح") || normQuery.includes("رجوع")) {
+      return 0; // Three divorces directly conflicts with reconciliation / general queries
+    }
+  }
+
+  // Reconciliation conflict:
+  // If query is about "صلح" or "رجوع" without mentioning "حلالہ", but post title contains "حلالہ"
+  if ((normQuery.includes("صلح") || normQuery.includes("رجوع")) && !normQuery.includes("حلالہ") && normTitle.includes("حلالہ")) {
+    return 0;
+  }
+
   // Life vs Estate conflict: If user specifies living person / lifetime gift, but candidate is about deceased estate / heirs
   if ((normQuery.includes("زندہ") || normQuery.includes("حیات") || normQuery.includes("زندگی")) && (normTitle.includes("ترکہ") || normTitle.includes("ورثاء"))) {
     return 0;
@@ -1045,8 +1064,8 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       }
     }
 
-    // Require strict minimum threshold score of 50 (must match specific primary topic keywords in the title)
-    if (bestScore < 35 || !bestPost) {
+    // Require strict minimum threshold score of 60 (must match specific primary topic keywords in the title)
+    if (bestScore < 60 || !bestPost) {
       fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }

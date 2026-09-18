@@ -193,7 +193,7 @@ app.get("/api/settings/status", (req, res) => {
   return res.json({
     success: true,
     hasGeminiKey,
-    model: "gemini-3.6-flash",
+    model: "gemini-3.5-flash-lite",
   });
 });
 
@@ -209,7 +209,7 @@ app.post("/api/settings/key", async (req, res) => {
 
     // Validate key with real Gemini call across supported models
     let testSuccess = false;
-    for (const m of ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]) {
+    for (const m of ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.6-flash", "gemini-3.1-flash-lite"]) {
       try {
         const testRes = await testAi.models.generateContent({
           model: m,
@@ -443,15 +443,12 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
 
     // Resilient, high-speed prioritized Gemini models
     const candidateModels = [
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-3.6-flash",
       "gemini-3.5-flash-lite",
+      "gemini-flash-lite-latest",
+      "gemini-3.6-flash",
       "gemini-3.7-flash",
       "gemini-3.1-flash-lite",
       "gemini-flash-latest",
-      "gemini-flash-lite-latest",
-      "gemini-1.5-flash",
     ];
 
     const getModelConfig = (modelName: string) => {
@@ -1461,10 +1458,12 @@ Return valid JSON adhering strictly to the requested schema.`;
     ) {
       // Candidate models for reliable high-speed generation (valid SDK model names)
       const candidateModels = [
-        "gemini-3.1-flash-lite",
+        "gemini-3.5-flash-lite",
         "gemini-flash-lite-latest",
-        "gemini-flash-latest",
+        "gemini-3.6-flash",
         "gemini-3.7-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-flash-latest",
       ];
 
       // Universal Strict Output Directive enforcing clean, direct answers without introductory filler or pleasantries
