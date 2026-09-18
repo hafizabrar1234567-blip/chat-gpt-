@@ -3096,7 +3096,8 @@ function searchKnowledgeBase(query, topK = 4) {
 // src/server/alUlamaService.ts
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 var fatwaCache = /* @__PURE__ */ new Map();
-var CACHE_TTL_MS = 60 * 60 * 1e3;
+var CACHE_TTL_MS = 5 * 60 * 1e3;
+var CACHE_VERSION = "v4_strict_";
 var romanToUrduMap = {
   // Wudu / Taharat / Cleanliness
   wezo: "\u0648\u0636\u0648",
@@ -4578,13 +4579,14 @@ async function searchAlUlamaFatwa(userQuery) {
   try {
     if (!userQuery || !userQuery.trim()) return null;
     const normalizedQuery = userQuery.trim().toLowerCase();
-    const cached = fatwaCache.get(normalizedQuery);
+    const cacheKey = CACHE_VERSION + normalizedQuery;
+    const cached = fatwaCache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) {
       return cached.fatwa;
     }
     const topicKeywords = extractUrduTopicKeywords(userQuery);
     if (topicKeywords.length === 0) {
-      fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
+      fatwaCache.set(cacheKey, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
     const searchTerms = /* @__PURE__ */ new Set();
@@ -4689,7 +4691,7 @@ async function searchAlUlamaFatwa(userQuery) {
       }
     }
     if (bestScore < 60 || !bestPost) {
-      fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
+      fatwaCache.set(cacheKey, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
     const rawTitle = bestPost.title?.rendered || "";
@@ -4704,7 +4706,7 @@ async function searchAlUlamaFatwa(userQuery) {
     }
     let questionText = "";
     let answerText = "";
-    const jawabIndex = textContent.indexOf("\u062C\u0648\u0627\u0628");
+    const jawabIndex = textContent.indexOf("\u062C\u0648\u0627\u0628:");
     if (jawabIndex !== -1) {
       questionText = textContent.substring(0, jawabIndex).trim();
       answerText = textContent.substring(jawabIndex).trim();
@@ -4721,7 +4723,7 @@ async function searchAlUlamaFatwa(userQuery) {
       fullContent: textContent,
       searchKeywords: finalSearchTerms.join(" ")
     };
-    fatwaCache.set(normalizedQuery, { fatwa: verifiedFatwa, expiresAt: Date.now() + CACHE_TTL_MS });
+    fatwaCache.set(cacheKey, { fatwa: verifiedFatwa, expiresAt: Date.now() + CACHE_TTL_MS });
     return verifiedFatwa;
   } catch (error) {
     console.warn("AlUlama search error:", error?.message || error);

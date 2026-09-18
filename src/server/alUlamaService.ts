@@ -11,9 +11,10 @@ export interface AlUlamaFatwa {
   searchKeywords?: string;
 }
 
-// In-memory cache for fatwa queries (TTL: 1 hour)
+// In-memory cache for fatwa queries (TTL: 5 minutes, versioned)
 const fatwaCache = new Map<string, { fatwa: AlUlamaFatwa | null; expiresAt: number }>();
-const CACHE_TTL_MS = 60 * 60 * 1000;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_VERSION = "v4_strict_";
 
 // Comprehensive Roman Urdu / English to Urdu transliteration dictionary
 const romanToUrduMap: Record<string, string> = {
@@ -968,7 +969,8 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
     if (!userQuery || !userQuery.trim()) return null;
 
     const normalizedQuery = userQuery.trim().toLowerCase();
-    const cached = fatwaCache.get(normalizedQuery);
+    const cacheKey = CACHE_VERSION + normalizedQuery;
+    const cached = fatwaCache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) {
       return cached.fatwa;
     }
@@ -976,7 +978,7 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
     const topicKeywords = extractUrduTopicKeywords(userQuery);
 
     if (topicKeywords.length === 0) {
-      fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
+      fatwaCache.set(cacheKey, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
 
@@ -1114,7 +1116,7 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
 
     // Require strict minimum threshold score of 60 (must match specific primary topic keywords in the title)
     if (bestScore < 60 || !bestPost) {
-      fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
+      fatwaCache.set(cacheKey, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
 
@@ -1142,8 +1144,7 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
 
     let questionText = "";
     let answerText = "";
-
-    const jawabIndex = textContent.indexOf("جواب");
+    const jawabIndex = textContent.indexOf("جواب:");
     if (jawabIndex !== -1) {
       questionText = textContent.substring(0, jawabIndex).trim();
       answerText = textContent.substring(jawabIndex).trim();
@@ -1162,7 +1163,7 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       searchKeywords: finalSearchTerms.join(" "),
     };
 
-    fatwaCache.set(normalizedQuery, { fatwa: verifiedFatwa, expiresAt: Date.now() + CACHE_TTL_MS });
+    fatwaCache.set(cacheKey, { fatwa: verifiedFatwa, expiresAt: Date.now() + CACHE_TTL_MS });
     return verifiedFatwa;
   } catch (error: any) {
     console.warn("AlUlama search error:", error?.message || error);
