@@ -343,7 +343,12 @@ const genericWords = new Set([
   "ایسا", "ایسی", "ایسے", "آدمی", "شخص", "انسان", "لوگ", "بندہ", "بندے", "جسے", "جس", "جن", "جنہیں", "جسکو", "جنکو",
   "کروائے", "کروائی", "کروایا", "کروا", "کروایں", "کروانا", "کرکے", "کر", "طریقے", "طریقہ", "طریقوں", "ہوجائے", "ہوجائےگی", "ہوجائےگا", "ہوگی", "ہوگا",
   "جانے", "جانا", "جاؤ", "آنے", "آنا", "آتے", "آتی", "آتا", "آئے", "آئی", "آیا",
-  "پیتے", "پیتا", "پیتی", "کھاتے", "کھاتی", "کھاتا", "پڑھتے", "پڑھتی", "پڑھتا"
+  "پیتے", "پیتا", "پیتی", "کھاتے", "کھاتی", "کھاتا", "پڑھتے", "پڑھتی", "پڑھتا",
+  "یک", "دو", "تین", "چار", "پانچ", "چھ", "سات", "آٹھ", "نو", "دس",
+  "پہ", "نے", "جو", "خود", "اسی", "انہی", "وہی", "یہی", "پاس", "والے", "والی", "والا", "والوں",
+  "کہا", "کہی", "کہے", "کہتے", "کہتی", "کہتا", "کہنا", "پھر", "پڑے", "پڑا", "پڑی", "پڑیں", "پڑتا", "پڑتی", "پڑتے", "گا", "گی", "گے",
+  "ڈسکس", "دار", "حوالے", "حوالہ", "معاملات", "معاملہ", "پہلا", "دوسرا", "تیسرا", "جبکہ", "چونکہ", "حالانکہ", "البتہ", "لہذا", "لہٰذا",
+  "اسے", "انہیں", "اسکو", "انکو", "تھیں"
 ]);
 
 /**
@@ -830,32 +835,57 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
     "باپ", "والد", "والدہ", "ماں", "بیٹا", "بیٹے", "بیٹی", "بیٹیاں", "بھائی", "بہن", "بہنوں", "اولاد", "بچے", "بچہ", "بچوں", "خاندان",
     "نماز", "نمازیں", "نمازوں", "روزہ", "روزے", "روزوں", "وضو", "غسل", "اسلام", "دین", "مسئلہ", "حکم", "شرعی", "احکام", "بارے",
     "طلاق", "نکاح", "شادی", "سفر", "مسافر", "تعین", "رخ",
-    "وراثت", "ترکہ", "میراث", "جائیداد", "تقسیم", "زمین", "پلاٹ", "مال", "پیسہ", "پیسے",
+    "وراثت", "ترکہ", "میراث", "جائیداد", "تقسیم", "زمین", "پلاٹ", "مال", "پیسہ", "پیسے", "حصہ", "حصے", "حصوں",
+    "رقم", "رقمیں", "روپے", "روپیہ", "خرید", "خریدنا", "خریدا", "ادا", "نام", "ذاتی",
     "زندہ", "حیات", "زندگی",
     "جانور", "گوشت", "چیز", "بات", "کام", "طریقہ", "جلسے", "تبلیغی", "پروگرام",
     "وقت", "دن", "رات", "سال", "مہینہ", "فوت", "وفات", "انتقال", "مرنا", "مرنے",
     "ٹیسٹ", "سائٹ",
-    "حدیث", "احادیث", "روایت", "قرآن", "آیت", "سورت", "ترجمہ", "فضیلت", "بیان", "واقعہ", "قصہ", "کہانی", "سائنسدان"
+    "حدیث", "احادیث", "روایت", "قرآن", "آیت", "سورت", "ترجمہ", "فضیلت", "بیان", "واقعہ", "قصہ", "کہانی", "سائنسدان",
+    "اپنا", "اپنے", "اپنی"
   ]);
   const specificKeywords = topicKeywords.filter((w) => !broadWords.has(w));
   const primaryKeywords = specificKeywords.length > 0 ? specificKeywords : topicKeywords;
 
+  // Family role conflict: If candidate title specifies a family member the user never mentioned
+  const familyRoles = ["بہنوں", "بہن", "بیوی", "بیویاں", "ساس", "سسر", "داماد", "بہو", "سوتیلی ماں", "سوتیلا باپ", "چچا", "ماموں", "خالہ", "پھوپھی", "یتیم"];
+  for (const fr of familyRoles) {
+    if (!normQuery.includes(fr) && normTitle.includes(fr)) {
+      return 0; // Reject if user didn't ask about this specific family relation!
+    }
+  }
+
+  // Action / ruling conflict:
+  const actionConflicts = ["معاف", "ہبہ", "وصیت", "وقف", "عمرِ نکاح", "عمر نکاح", "کم عمری"];
+  for (const ac of actionConflicts) {
+    if (!normQuery.includes(ac) && normTitle.includes(ac)) {
+      return 0; // Reject if user didn't ask about this specific action!
+    }
+  }
+
   // Conflict detection: If user query did NOT mention a sensitive status keyword, but candidate title is centered on it
   const conflictingWords = [
     "منگنی", "طلاق", "خلع", "عدت", "سود", "قرض", "انتقال", "وفات", "جنازہ",
+    "نکاح", "رخصتی", "ولیمہ", "حیض", "نفاس", "عمر",
     "بچے", "بچہ", "اولاد", "حمل", "پیدا", // child / pregnancy conflicts when user only asked about marital intimacy
     "جلسے", "تبلیغی"
   ];
   let conflictPenalty = 0;
   for (const cw of conflictingWords) {
     if (!normQuery.includes(cw) && normTitle.includes(cw)) {
-      conflictPenalty += 60;
+      conflictPenalty += 100;
     }
   }
 
   // Pre-marital conflict: if user indicates nikah has happened, but candidate title says "نکاح سے قبل"
   if (normQuery.includes("نکاح") && !normQuery.includes("نکاح سے قبل") && normTitle.includes("نکاح سے قبل")) {
     conflictPenalty += 80;
+  }
+
+  // Inheritance vs Lifetime dispute conflict:
+  // If candidate title contains "ورثاء", "ترکہ", "میراث" but query does NOT mention inheritance/estate
+  if (!normQuery.includes("ورثاء") && !normQuery.includes("ترکہ") && !normQuery.includes("میراث") && !normQuery.includes("وارث") && (normTitle.includes("ورثاء") || normTitle.includes("ترکہ") || normTitle.includes("میراث"))) {
+    return 0;
   }
 
   let titleMatches = 0;
@@ -875,16 +905,18 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
   }
 
   const strongMatches = Math.max(titleMatches, questionMatches);
+  const specificTitleMatches = specificKeywords.filter((kw) => matchesWordOrSynonyms(normTitle, kw)).length;
 
-  // Specificity guard: Allow match if Title matches OR if Question section matches strongly
-  if (specificKeywords.length === 0) {
-    if (titleMatches < 2 && questionMatches < 2) {
-      return 0;
-    }
-  } else {
-    if (titleMatches === 0 && questionMatches < 2) {
-      return 0; // Reject false positives where neither title nor question section matches
-    }
+  // Strict Specificity Guard:
+  // 1. A verified fatwa MUST have at least 1 keyword match in the Title (titleMatches >= 1).
+  // 2. If specific keywords exist, title MUST match at least 1 SPECIFIC keyword (cannot just rely on broad words like "حصہ" or "بھائی").
+  // 3. For queries with 2 or more specific keywords, candidate title MUST match at least 2 keywords to prevent accidental 1-word matches!
+  if (titleMatches === 0 || (specificKeywords.length > 0 && specificTitleMatches === 0)) {
+    return 0; // Completely reject false positive candidate posts!
+  }
+
+  if (specificKeywords.length >= 2 && titleMatches < 2) {
+    return 0; // Reject accidental 1-word title coincidences!
   }
 
   // If multiple specific keywords exist, ensure post is not completely unrelated

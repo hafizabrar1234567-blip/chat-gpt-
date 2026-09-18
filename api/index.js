@@ -3730,7 +3730,68 @@ var genericWords = /* @__PURE__ */ new Set([
   "\u06A9\u06BE\u0627\u062A\u0627",
   "\u067E\u0691\u06BE\u062A\u06D2",
   "\u067E\u0691\u06BE\u062A\u06CC",
-  "\u067E\u0691\u06BE\u062A\u0627"
+  "\u067E\u0691\u06BE\u062A\u0627",
+  "\u06CC\u06A9",
+  "\u062F\u0648",
+  "\u062A\u06CC\u0646",
+  "\u0686\u0627\u0631",
+  "\u067E\u0627\u0646\u0686",
+  "\u0686\u06BE",
+  "\u0633\u0627\u062A",
+  "\u0622\u0679\u06BE",
+  "\u0646\u0648",
+  "\u062F\u0633",
+  "\u067E\u06C1",
+  "\u0646\u06D2",
+  "\u062C\u0648",
+  "\u062E\u0648\u062F",
+  "\u0627\u0633\u06CC",
+  "\u0627\u0646\u06C1\u06CC",
+  "\u0648\u06C1\u06CC",
+  "\u06CC\u06C1\u06CC",
+  "\u067E\u0627\u0633",
+  "\u0648\u0627\u0644\u06D2",
+  "\u0648\u0627\u0644\u06CC",
+  "\u0648\u0627\u0644\u0627",
+  "\u0648\u0627\u0644\u0648\u06BA",
+  "\u06A9\u06C1\u0627",
+  "\u06A9\u06C1\u06CC",
+  "\u06A9\u06C1\u06D2",
+  "\u06A9\u06C1\u062A\u06D2",
+  "\u06A9\u06C1\u062A\u06CC",
+  "\u06A9\u06C1\u062A\u0627",
+  "\u06A9\u06C1\u0646\u0627",
+  "\u067E\u06BE\u0631",
+  "\u067E\u0691\u06D2",
+  "\u067E\u0691\u0627",
+  "\u067E\u0691\u06CC",
+  "\u067E\u0691\u06CC\u06BA",
+  "\u067E\u0691\u062A\u0627",
+  "\u067E\u0691\u062A\u06CC",
+  "\u067E\u0691\u062A\u06D2",
+  "\u06AF\u0627",
+  "\u06AF\u06CC",
+  "\u06AF\u06D2",
+  "\u0688\u0633\u06A9\u0633",
+  "\u062F\u0627\u0631",
+  "\u062D\u0648\u0627\u0644\u06D2",
+  "\u062D\u0648\u0627\u0644\u06C1",
+  "\u0645\u0639\u0627\u0645\u0644\u0627\u062A",
+  "\u0645\u0639\u0627\u0645\u0644\u06C1",
+  "\u067E\u06C1\u0644\u0627",
+  "\u062F\u0648\u0633\u0631\u0627",
+  "\u062A\u06CC\u0633\u0631\u0627",
+  "\u062C\u0628\u06A9\u06C1",
+  "\u0686\u0648\u0646\u06A9\u06C1",
+  "\u062D\u0627\u0644\u0627\u0646\u06A9\u06C1",
+  "\u0627\u0644\u0628\u062A\u06C1",
+  "\u0644\u06C1\u0630\u0627",
+  "\u0644\u06C1\u0670\u0630\u0627",
+  "\u0627\u0633\u06D2",
+  "\u0627\u0646\u06C1\u06CC\u06BA",
+  "\u0627\u0633\u06A9\u0648",
+  "\u0627\u0646\u06A9\u0648",
+  "\u062A\u06BE\u06CC\u06BA"
 ]);
 function extractUrduTopicKeywords(query) {
   if (!query || !query.trim()) return [];
@@ -4362,6 +4423,19 @@ function scoreCandidatePost(post, userQuery, topicKeywords) {
     "\u0645\u0627\u0644",
     "\u067E\u06CC\u0633\u06C1",
     "\u067E\u06CC\u0633\u06D2",
+    "\u062D\u0635\u06C1",
+    "\u062D\u0635\u06D2",
+    "\u062D\u0635\u0648\u06BA",
+    "\u0631\u0642\u0645",
+    "\u0631\u0642\u0645\u06CC\u06BA",
+    "\u0631\u0648\u067E\u06D2",
+    "\u0631\u0648\u067E\u06CC\u06C1",
+    "\u062E\u0631\u06CC\u062F",
+    "\u062E\u0631\u06CC\u062F\u0646\u0627",
+    "\u062E\u0631\u06CC\u062F\u0627",
+    "\u0627\u062F\u0627",
+    "\u0646\u0627\u0645",
+    "\u0630\u0627\u062A\u06CC",
     "\u0632\u0646\u062F\u06C1",
     "\u062D\u06CC\u0627\u062A",
     "\u0632\u0646\u062F\u06AF\u06CC",
@@ -4398,10 +4472,25 @@ function scoreCandidatePost(post, userQuery, topicKeywords) {
     "\u0648\u0627\u0642\u0639\u06C1",
     "\u0642\u0635\u06C1",
     "\u06A9\u06C1\u0627\u0646\u06CC",
-    "\u0633\u0627\u0626\u0646\u0633\u062F\u0627\u0646"
+    "\u0633\u0627\u0626\u0646\u0633\u062F\u0627\u0646",
+    "\u0627\u067E\u0646\u0627",
+    "\u0627\u067E\u0646\u06D2",
+    "\u0627\u067E\u0646\u06CC"
   ]);
   const specificKeywords = topicKeywords.filter((w) => !broadWords.has(w));
   const primaryKeywords = specificKeywords.length > 0 ? specificKeywords : topicKeywords;
+  const familyRoles = ["\u0628\u06C1\u0646\u0648\u06BA", "\u0628\u06C1\u0646", "\u0628\u06CC\u0648\u06CC", "\u0628\u06CC\u0648\u06CC\u0627\u06BA", "\u0633\u0627\u0633", "\u0633\u0633\u0631", "\u062F\u0627\u0645\u0627\u062F", "\u0628\u06C1\u0648", "\u0633\u0648\u062A\u06CC\u0644\u06CC \u0645\u0627\u06BA", "\u0633\u0648\u062A\u06CC\u0644\u0627 \u0628\u0627\u067E", "\u0686\u0686\u0627", "\u0645\u0627\u0645\u0648\u06BA", "\u062E\u0627\u0644\u06C1", "\u067E\u06BE\u0648\u067E\u06BE\u06CC", "\u06CC\u062A\u06CC\u0645"];
+  for (const fr of familyRoles) {
+    if (!normQuery.includes(fr) && normTitle.includes(fr)) {
+      return 0;
+    }
+  }
+  const actionConflicts = ["\u0645\u0639\u0627\u0641", "\u06C1\u0628\u06C1", "\u0648\u0635\u06CC\u062A", "\u0648\u0642\u0641", "\u0639\u0645\u0631\u0650 \u0646\u06A9\u0627\u062D", "\u0639\u0645\u0631 \u0646\u06A9\u0627\u062D", "\u06A9\u0645 \u0639\u0645\u0631\u06CC"];
+  for (const ac of actionConflicts) {
+    if (!normQuery.includes(ac) && normTitle.includes(ac)) {
+      return 0;
+    }
+  }
   const conflictingWords = [
     "\u0645\u0646\u06AF\u0646\u06CC",
     "\u0637\u0644\u0627\u0642",
@@ -4412,6 +4501,12 @@ function scoreCandidatePost(post, userQuery, topicKeywords) {
     "\u0627\u0646\u062A\u0642\u0627\u0644",
     "\u0648\u0641\u0627\u062A",
     "\u062C\u0646\u0627\u0632\u06C1",
+    "\u0646\u06A9\u0627\u062D",
+    "\u0631\u062E\u0635\u062A\u06CC",
+    "\u0648\u0644\u06CC\u0645\u06C1",
+    "\u062D\u06CC\u0636",
+    "\u0646\u0641\u0627\u0633",
+    "\u0639\u0645\u0631",
     "\u0628\u0686\u06D2",
     "\u0628\u0686\u06C1",
     "\u0627\u0648\u0644\u0627\u062F",
@@ -4424,11 +4519,14 @@ function scoreCandidatePost(post, userQuery, topicKeywords) {
   let conflictPenalty = 0;
   for (const cw of conflictingWords) {
     if (!normQuery.includes(cw) && normTitle.includes(cw)) {
-      conflictPenalty += 60;
+      conflictPenalty += 100;
     }
   }
   if (normQuery.includes("\u0646\u06A9\u0627\u062D") && !normQuery.includes("\u0646\u06A9\u0627\u062D \u0633\u06D2 \u0642\u0628\u0644") && normTitle.includes("\u0646\u06A9\u0627\u062D \u0633\u06D2 \u0642\u0628\u0644")) {
     conflictPenalty += 80;
+  }
+  if (!normQuery.includes("\u0648\u0631\u062B\u0627\u0621") && !normQuery.includes("\u062A\u0631\u06A9\u06C1") && !normQuery.includes("\u0645\u06CC\u0631\u0627\u062B") && !normQuery.includes("\u0648\u0627\u0631\u062B") && (normTitle.includes("\u0648\u0631\u062B\u0627\u0621") || normTitle.includes("\u062A\u0631\u06A9\u06C1") || normTitle.includes("\u0645\u06CC\u0631\u0627\u062B"))) {
+    return 0;
   }
   let titleMatches = 0;
   let questionMatches = 0;
@@ -4445,14 +4543,12 @@ function scoreCandidatePost(post, userQuery, topicKeywords) {
     }
   }
   const strongMatches = Math.max(titleMatches, questionMatches);
-  if (specificKeywords.length === 0) {
-    if (titleMatches < 2 && questionMatches < 2) {
-      return 0;
-    }
-  } else {
-    if (titleMatches === 0 && questionMatches < 2) {
-      return 0;
-    }
+  const specificTitleMatches = specificKeywords.filter((kw) => matchesWordOrSynonyms(normTitle, kw)).length;
+  if (titleMatches === 0 || specificKeywords.length > 0 && specificTitleMatches === 0) {
+    return 0;
+  }
+  if (specificKeywords.length >= 2 && titleMatches < 2) {
+    return 0;
   }
   if (specificKeywords.length >= 2 && titleMatches < 2) {
     const missingKeywords = specificKeywords.filter(
