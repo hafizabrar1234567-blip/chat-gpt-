@@ -3097,7 +3097,7 @@ function searchKnowledgeBase(query, topK = 4) {
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 var fatwaCache = /* @__PURE__ */ new Map();
 var CACHE_TTL_MS = 5 * 60 * 1e3;
-var CACHE_VERSION = "v5_clean_";
+var CACHE_VERSION = "v6_madhi_";
 var romanToUrduMap = {
   // Wudu / Taharat / Cleanliness
   wezo: "\u0648\u0636\u0648",
@@ -3590,6 +3590,7 @@ var genericWords = /* @__PURE__ */ new Set([
   "\u0645\u0639\u0644\u0648\u0645\u0627\u062A",
   "\u06A9\u0645",
   "\u0632\u06CC\u0627\u062F\u06C1",
+  "\u0628\u06C1\u062A",
   "\u0628\u0686\u0646\u06D2",
   "\u0628\u0686\u0646\u0627",
   "\u0644\u06A9\u06BE\u0648\u0627\u0646\u0627",
@@ -4692,7 +4693,7 @@ async function searchAlUlamaFatwa(userQuery) {
           }
         }
       }
-      if (kw.length >= 4 || ["\u062D\u062C", "\u062F\u0645", "\u0639\u06CC\u062F", "\u062D\u0645\u0644", "\u0633\u0648\u062F", "\u0628\u06CC\u0639", "\u062E\u0644\u0639", "\u0648\u062A\u0631", "\u0642\u0635\u0631"].includes(kw)) {
+      if (kw.length >= 3 || ["\u062D\u062C", "\u062F\u0645", "\u0645\u062F"].includes(kw)) {
         searchTerms.add(kw);
       }
     }
@@ -5811,10 +5812,7 @@ ${cleanA}
 
 `);
       }
-      const isFatwaUsedInReply2 = Boolean(
-        alUlamaFatwa && sourceToSend && (fullReply.includes("\u0645\u0627\u062E\u0630:") || fullReply.includes("\u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621") || fullReply.includes("alulama.org"))
-      );
-      if (isFatwaUsedInReply2 && alUlamaFatwa?.link) {
+      if (alUlamaFatwa && alUlamaFatwa.link) {
         fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
         const extraLinks = `
 
@@ -5826,13 +5824,24 @@ ${cleanA}
         res.write(`data: ${JSON.stringify({ chunk: extraLinks })}
 
 `);
+      } else if (isFatwaOrFiqhQuery || isIslamicFatwaQuery(message)) {
+        fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
+        const extraLinks = `
+
+---
+* [\u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0648\u06CC\u0628 \u0633\u0627\u0626\u0679 \u06A9\u06BE\u0648\u0644\u06CC\u06BA](https://alulama.org/)
+* [\u0627\u0633\u0644\u0627\u0645\u06CC \u0686\u06CC\u0679 \u062C\u06CC \u067E\u06CC \u0679\u06CC \u0627\u06CC\u067E](${appUrl})`;
+        fullReply += extraLinks;
+        res.write(`data: ${JSON.stringify({ chunk: extraLinks })}
+
+`);
       }
       res.write(
         `data: ${JSON.stringify({
           done: true,
           reply: fullReply,
           isAI: true,
-          alUlamaSource: isFatwaUsedInReply2 ? sourceToSend : null
+          alUlamaSource: sourceToSend
         })}
 
 `
@@ -5867,10 +5876,7 @@ ${cleanA}
         replyText = fallback.reply;
       }
     }
-    const isFatwaUsedInReply = Boolean(
-      alUlamaFatwa && sourceToSend && (replyText.includes("\u0645\u0627\u062E\u0630:") || replyText.includes("\u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621") || replyText.includes("alulama.org"))
-    );
-    if (isFatwaUsedInReply && alUlamaFatwa?.link) {
+    if (alUlamaFatwa && alUlamaFatwa.link) {
       replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
       const extraLinks = `
 
@@ -5879,12 +5885,20 @@ ${cleanA}
 * [\u0627\u0635\u0644 \u0641\u062A\u0648\u06CC\u0670 \u062F\u06CC\u06A9\u06BE\u06CC\u06BA](${alUlamaFatwa.link})
 * [\u0627\u0633\u0644\u0627\u0645\u06CC \u0686\u06CC\u0679 \u062C\u06CC \u067E\u06CC \u0679\u06CC \u0627\u06CC\u067E](${appUrl})`;
       replyText += extraLinks;
+    } else if (isFatwaOrFiqhQuery || isIslamicFatwaQuery(message)) {
+      replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
+      const extraLinks = `
+
+---
+* [\u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0648\u06CC\u0628 \u0633\u0627\u0626\u0679 \u06A9\u06BE\u0648\u0644\u06CC\u06BA](https://alulama.org/)
+* [\u0627\u0633\u0644\u0627\u0645\u06CC \u0686\u06CC\u0679 \u062C\u06CC \u067E\u06CC \u0679\u06CC \u0627\u06CC\u067E](${appUrl})`;
+      replyText += extraLinks;
     }
     return res.json({
       success: true,
       reply: replyText,
       isAI: true,
-      alUlamaSource: isFatwaUsedInReply ? sourceToSend : null
+      alUlamaSource: sourceToSend
     });
   } catch (globalErr) {
     console.error("Chat route critical error:", globalErr);

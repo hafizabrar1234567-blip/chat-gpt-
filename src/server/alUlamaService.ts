@@ -14,7 +14,7 @@ export interface AlUlamaFatwa {
 // In-memory cache for fatwa queries (TTL: 5 minutes, versioned)
 const fatwaCache = new Map<string, { fatwa: AlUlamaFatwa | null; expiresAt: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const CACHE_VERSION = "v5_clean_";
+const CACHE_VERSION = "v6_madhi_";
 
 // Comprehensive Roman Urdu / English to Urdu transliteration dictionary
 const romanToUrduMap: Record<string, string> = {
@@ -331,7 +331,7 @@ const genericWords = new Set([
   "آپ", "آپکو", "آپکے", "آپکی", "تم", "تمہارا", "تمہاری", "تمہیں", "تجھ",
   "کیے", "کیئے",
   "پوچھنا", "چاہتا", "چاہتی", "چاہتے", "درکار", "ضرورت", "معلومات",
-  "کم", "زیادہ", "بچنے", "بچنا", "لکھوانا", "لکھنا", "لکھا", "بتانا", "بتایا", "پوچھا",
+  "کم", "زیادہ", "بہت", "بچنے", "بچنا", "لکھوانا", "لکھنا", "لکھا", "بتانا", "بتایا", "پوچھا",
   "کسی", "کوئی", "کچھ", "وغیرہ", "مثلا", "مثلاً", "دیں", "دے",
   "اسکا", "اسکی", "اسکے", "انکا", "انکی", "انکے",
   "kia", "kya", "he", "hai", "hain", "k", "ke", "ki", "ka", "ks", "kis", "kisi",
@@ -1070,8 +1070,8 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
         }
       }
 
-      // Individual distinctive words (length >= 4 or religious roots)
-      if (kw.length >= 4 || ["حج", "دم", "عید", "حمل", "سود", "بیع", "خلع", "وتر", "قصر"].includes(kw)) {
+      // Individual distinctive words (length >= 3 or 2-letter religious roots like حج، دم)
+      if (kw.length >= 3 || ["حج", "دم", "مد"].includes(kw)) {
         searchTerms.add(kw);
       }
     }

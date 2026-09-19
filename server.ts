@@ -569,15 +569,14 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
         res.write(`data: ${JSON.stringify({ chunk: fullReply })}\n\n`);
       }
 
-      const isFatwaUsedInReply = Boolean(
-        alUlamaFatwa &&
-        sourceToSend &&
-        (fullReply.includes("ماخذ:") || fullReply.includes("لجنۃ العلماء") || fullReply.includes("alulama.org"))
-      );
-
-      if (isFatwaUsedInReply && alUlamaFatwa?.link) {
+      if (alUlamaFatwa && alUlamaFatwa.link) {
         fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
         const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اصل فتویٰ دیکھیں](${alUlamaFatwa.link})\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
+        fullReply += extraLinks;
+        res.write(`data: ${JSON.stringify({ chunk: extraLinks })}\n\n`);
+      } else if (isFatwaOrFiqhQuery || isIslamicFatwaQuery(message)) {
+        fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
+        const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
         fullReply += extraLinks;
         res.write(`data: ${JSON.stringify({ chunk: extraLinks })}\n\n`);
       }
@@ -587,7 +586,7 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
           done: true,
           reply: fullReply,
           isAI: true,
-          alUlamaSource: isFatwaUsedInReply ? sourceToSend : null,
+          alUlamaSource: sourceToSend,
         })}\n\n`
       );
       return res.end();
@@ -627,15 +626,13 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       }
     }
 
-    const isFatwaUsedInReply = Boolean(
-      alUlamaFatwa &&
-      sourceToSend &&
-      (replyText.includes("ماخذ:") || replyText.includes("لجنۃ العلماء") || replyText.includes("alulama.org"))
-    );
-
-    if (isFatwaUsedInReply && alUlamaFatwa?.link) {
+    if (alUlamaFatwa && alUlamaFatwa.link) {
       replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
       const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اصل فتویٰ دیکھیں](${alUlamaFatwa.link})\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
+      replyText += extraLinks;
+    } else if (isFatwaOrFiqhQuery || isIslamicFatwaQuery(message)) {
+      replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
+      const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
       replyText += extraLinks;
     }
 
@@ -643,7 +640,7 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       success: true,
       reply: replyText,
       isAI: true,
-      alUlamaSource: isFatwaUsedInReply ? sourceToSend : null,
+      alUlamaSource: sourceToSend,
     });
   } catch (globalErr: any) {
     console.error("Chat route critical error:", globalErr);
