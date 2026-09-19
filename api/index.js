@@ -3097,7 +3097,7 @@ function searchKnowledgeBase(query, topK = 4) {
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 var fatwaCache = /* @__PURE__ */ new Map();
 var CACHE_TTL_MS = 5 * 60 * 1e3;
-var CACHE_VERSION = "v4_strict_";
+var CACHE_VERSION = "v5_clean_";
 var romanToUrduMap = {
   // Wudu / Taharat / Cleanliness
   wezo: "\u0648\u0636\u0648",
@@ -3792,7 +3792,20 @@ var genericWords = /* @__PURE__ */ new Set([
   "\u0627\u0646\u06C1\u06CC\u06BA",
   "\u0627\u0633\u06A9\u0648",
   "\u0627\u0646\u06A9\u0648",
-  "\u062A\u06BE\u06CC\u06BA"
+  "\u062A\u06BE\u06CC\u06BA",
+  "\u0628\u0639\u0636",
+  "\u0646\u0627",
+  "\u0634\u0631\u0639\u0627",
+  "\u0634\u0631\u0639\u0627\u064B",
+  "\u0628\u0646\u0627",
+  "\u0628\u0646\u0627\u0626\u06D2",
+  "\u0628\u0646\u0627\u0626\u06CC",
+  "\u0628\u0646\u0627\u0646\u06D2",
+  "\u0628\u06BE\u06CC\u062C\u062A\u06D2",
+  "\u0628\u06BE\u06CC\u062C\u062A\u0627",
+  "\u0628\u06BE\u06CC\u062C\u062A\u06CC",
+  "\u0628\u06BE\u06CC\u062C\u0646\u0627",
+  "\u0628\u06BE\u06CC\u062C\u06D2"
 ]);
 function extractUrduTopicKeywords(query) {
   if (!query || !query.trim()) return [];
@@ -4368,6 +4381,33 @@ function scoreCandidatePost(post, userQuery, topicKeywords) {
   if ((normQuery.includes("\u0632\u0646\u062F\u06C1") || normQuery.includes("\u062D\u06CC\u0627\u062A") || normQuery.includes("\u0632\u0646\u062F\u06AF\u06CC")) && (normTitle.includes("\u062A\u0631\u06A9\u06C1") || normTitle.includes("\u0648\u0631\u062B\u0627\u0621"))) {
     return 0;
   }
+  const nonFatwaIndicators = [
+    "\u0648\u0641\u0627\u062A \u067E\u0627 \u06AF\u0626\u06D2",
+    "\u0627\u0646\u062A\u0642\u0627\u0644 \u06A9\u0631 \u06AF\u0626\u06D2",
+    "\u0627\u0639\u0644\u0627\u0645\u06CC\u06C1",
+    "\u067E\u0631\u06CC\u0633 \u0631\u06CC\u0644\u06CC\u0632",
+    "\u0633\u0648\u0627\u0646\u062D \u062D\u06CC\u0627\u062A",
+    "\u062A\u0627\u062B\u0631\u0627\u062A",
+    "\u0628\u06CC\u0627\u0646 \u062A\u0639\u0632\u06CC\u062A",
+    "\u062A\u0639\u0632\u06CC\u062A\u06CC \u067E\u06CC\u063A\u0627\u0645",
+    "\u0631\u062D\u0644\u062A \u0641\u0631\u0645\u0627\u0626\u06CC",
+    "\u0631\u062D\u0644\u062A \u0641\u0631\u0645\u0627 \u06AF\u0626\u06D2",
+    "\u0648\u0641\u0627\u062A \u062D\u0633\u0631\u062A \u0622\u06CC\u0627\u062A"
+  ];
+  for (const nfi of nonFatwaIndicators) {
+    if (normTitle.includes(nfi) && !normQuery.includes(nfi)) {
+      return 0;
+    }
+  }
+  const deathTerms = ["\u0645\u06CC\u062A", "\u062C\u0646\u0627\u0632\u06C1", "\u0648\u0641\u0627\u062A", "\u0641\u0648\u062A\u06AF\u06CC", "\u0642\u0628\u0631\u0633\u062A\u0627\u0646", "\u0642\u0628\u0631", "\u062A\u062F\u0641\u06CC\u0646", "\u0633\u0648\u06AF", "\u062A\u0639\u0632\u06CC\u062A"];
+  const queryHasDeath = ["\u0645\u06CC\u062A", "\u062C\u0646\u0627\u0632\u06C1", "\u0648\u0641\u0627\u062A", "\u0641\u0648\u062A", "\u0641\u0648\u062A\u06AF\u06CC", "\u0645\u0631\u0646\u0627", "\u0645\u0631\u0646\u06D2", "\u0645\u0648\u062A", "\u0642\u0628\u0631", "\u062A\u062F\u0641\u06CC\u0646", "\u0633\u0648\u06AF", "\u062A\u0639\u0632\u06CC\u062A"].some((dt) => normQuery.includes(dt));
+  if (!queryHasDeath) {
+    for (const dt of deathTerms) {
+      if (normTitle.includes(dt)) {
+        return 0;
+      }
+    }
+  }
   const broadWords = /* @__PURE__ */ new Set([
     "\u0639\u0648\u0631\u062A",
     "\u0639\u0648\u0631\u062A\u0648\u06BA",
@@ -4440,6 +4480,21 @@ function scoreCandidatePost(post, userQuery, topicKeywords) {
     "\u0632\u0646\u062F\u06C1",
     "\u062D\u06CC\u0627\u062A",
     "\u0632\u0646\u062F\u06AF\u06CC",
+    "\u06AF\u06BE\u0631",
+    "\u06AF\u06BE\u0631\u0648\u06BA",
+    "\u06A9\u06BE\u0627\u0646\u0627",
+    "\u06A9\u06BE\u0627\u0646\u06D2",
+    "\u06A9\u06BE\u0627\u062A\u06D2",
+    "\u06A9\u06BE\u0627\u062A\u06CC",
+    "\u06A9\u06BE\u0627\u062A\u0627",
+    "\u0641\u0631\u0648\u0679",
+    "\u067E\u06BE\u0644",
+    "\u067E\u06BE\u0644\u0648\u06BA",
+    "\u0686\u06CC\u0632\u06CC\u06BA",
+    "\u0628\u06BE\u06CC\u062C\u0646\u0627",
+    "\u0628\u06BE\u06CC\u062C\u062A\u06D2",
+    "\u0628\u0646\u0627\u0646\u0627",
+    "\u0628\u0646\u0627",
     "\u062C\u0627\u0646\u0648\u0631",
     "\u06AF\u0648\u0634\u062A",
     "\u0686\u06CC\u0632",
@@ -5571,7 +5626,7 @@ CRITICAL MANDATES & CARDINAL RULES:
     if (alUlamaFatwa) {
       systemInstruction += `
 
-=== \u0645\u0633\u062A\u0646\u062F \u0645\u0648\u0627\u062F \u0648 \u0641\u062A\u0648\u06CC\u0670: \u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0644\u0644\u0625\u0641\u062A\u0627\u0621 (alulama.org) ===
+=== \u062D\u0648\u0627\u0644\u06C1 \u062C\u0627\u062A\u06CC \u0641\u062A\u0648\u06CC\u0670: \u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0644\u0644\u0625\u0641\u062A\u0627\u0621 (alulama.org) ===
 \u0639\u0646\u0648\u0627\u0646: ${alUlamaFatwa.title}
 ${alUlamaFatwa.questionNumber ? `\u0631\u06CC\u0641\u0631\u0646\u0633: ${alUlamaFatwa.questionNumber}` : ""}
 \u0627\u0635\u0644 \u0645\u0648\u0627\u062F:
@@ -5579,11 +5634,16 @@ ${alUlamaFatwa.fullContent}
 
 Verified Direct Fatwa URL: ${alUlamaFatwa.link}
 
-\u0644\u0627\u0632\u0645\u06CC \u06C1\u062F\u0627\u06CC\u0627\u062A \u0628\u0631\u0627\u0626\u06D2 \u0641\u062A\u0648\u06CC\u0670 \u062C\u0648\u0627\u0628:
-1. \u0635\u0627\u0631\u0641 \u06A9\u06D2 \u0633\u0648\u0627\u0644 \u06A9\u0627 \u0628\u0631\u0627\u06C1 \u0631\u0627\u0633\u062A\u060C \u0645\u062F\u0644\u0644\u060C \u0641\u0635\u06CC\u062D \u0627\u0648\u0631 \u0648\u0627\u0636\u062D \u0634\u0631\u0639\u06CC \u062C\u0648\u0627\u0628 \u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621 (alulama.org) \u06A9\u06D2 \u0645\u0648\u0627\u062F\u060C \u0645\u0646\u06C1\u062C \u0627\u0648\u0631 \u0642\u0631\u0622\u0646 \u0648 \u0633\u0646\u062A \u06A9\u06CC \u0631\u0648\u0634\u0646\u06CC \u0645\u06CC\u06BA \u062A\u06CC\u0627\u0631 \u06A9\u0631\u06CC\u06BA\u06D4
-2. \u0634\u0631\u0648\u0639 \u0645\u06CC\u06BA \u0645\u0627\u062E\u0630 \u062F\u0631\u062C \u06A9\u0631\u06CC\u06BA:
-   **\u0645\u0627\u062E\u0630:** \u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0644\u0644\u0625\u0641\u062A\u0627\u0621 (alulama.org) ${alUlamaFatwa.questionNumber ? `| **${alUlamaFatwa.questionNumber}**` : ""}
-3. \u062C\u0648\u0627\u0628 \u06A9\u06D2 \u0627\u062E\u062A\u062A\u0627\u0645 \u067E\u0631 \u0627\u067E\u0646\u06D2 \u0645\u062A\u0646 \u0645\u06CC\u06BA \u06A9\u0648\u0626\u06CC \u0644\u0646\u06A9\u0633 \u06CC\u0627 \u0648\u06CC\u0628 \u0633\u0627\u0626\u0679 URLs \u062E\u0648\u062F \u0633\u06D2 \u0646\u06C1 \u0644\u06A9\u06BE\u06CC\u06BA\u061B \u0633\u0631\u0648\u0631 \u062E\u0648\u062F\u06A9\u0627\u0631 \u0637\u0648\u0631 \u067E\u0631 \u0627\u0635\u0644 \u0641\u062A\u0648\u06CC\u0670 \u06A9\u0627 \u062A\u0635\u062F\u06CC\u0642 \u0634\u062F\u06C1 \u0644\u0646\u06A9 \u0622\u062E\u0631 \u0645\u06CC\u06BA \u0634\u0627\u0645\u0644 \u06A9\u0631\u06D2 \u06AF\u0627\u06D4
+\u0644\u0627\u0632\u0645\u06CC \u06C1\u062F\u0627\u06CC\u0627\u062A \u0628\u0631\u0627\u0626\u06D2 \u0627\u0633\u062A\u0639\u0645\u0627\u0644 (AI \u062A\u0648\u062B\u06CC\u0642):
+1. \u0622\u067E \u0628\u0637\u0648\u0631 \u0645\u0641\u062A\u06CC \u0648 \u0645\u062D\u0642\u0642 \u067E\u06C1\u0644\u06D2 \u06CC\u06C1 \u0641\u06CC\u0635\u0644\u06C1 \u06A9\u0631\u06CC\u06BA \u06A9\u06C1 \u06A9\u06CC\u0627 \u06CC\u06C1 \u062D\u0648\u0627\u0644\u06C1 \u062C\u0627\u062A\u06CC \u0641\u062A\u0648\u06CC\u0670 \u0648\u0627\u0642\u0639\u06CC \u0635\u0627\u0631\u0641 \u06A9\u06D2 \u067E\u0648\u0686\u06BE\u06D2 \u06AF\u0626\u06D2 \u0645\u0633\u0626\u0644\u06D2 \u06A9\u0627 \u0628\u0631\u0627\u06C1\u0650 \u0631\u0627\u0633\u062A \u0627\u0648\u0631 \u062F\u0631\u0633\u062A \u0634\u0631\u0639\u06CC \u062D\u0644 \u06C1\u06D2\u061F
+   - \u0627\u06AF\u0631 \u06CC\u06C1 \u0641\u062A\u0648\u06CC\u0670 \u0635\u0627\u0631\u0641 \u06A9\u06D2 \u0645\u062E\u0635\u0648\u0635 \u0633\u0648\u0627\u0644 \u0633\u06D2 \u0628\u0631\u0627\u06C1 \u0631\u0627\u0633\u062A \u0645\u062A\u0639\u0644\u0642 \u06C1\u06D2\u060C \u062A\u0648 \u0634\u0631\u0648\u0639 \u0645\u06CC\u06BA \u0645\u0627\u062E\u0630 \u062F\u0631\u062C \u06A9\u0631\u06CC\u06BA:
+     **\u0645\u0627\u062E\u0630:** \u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0644\u0644\u0625\u0641\u062A\u0627\u0621 (alulama.org) ${alUlamaFatwa.questionNumber ? `| **${alUlamaFatwa.questionNumber}**` : ""}
+     \u0627\u0648\u0631 \u0627\u0633 \u0641\u062A\u0648\u06D2 \u0627\u0648\u0631 \u0642\u0631\u0622\u0646 \u0648 \u0633\u0646\u062A \u06A9\u06CC \u0631\u0648\u0634\u0646\u06CC \u0645\u06CC\u06BA \u062C\u0648\u0627\u0628 \u062A\u06CC\u0627\u0631 \u06A9\u0631\u06CC\u06BA\u06D4
+   - \u0627\u06AF\u0631 \u06CC\u06C1 \u0641\u062A\u0648\u06CC\u0670 \u0635\u0627\u0631\u0641 \u06A9\u06D2 \u0633\u0648\u0627\u0644 \u0633\u06D2 \u063A\u06CC\u0631 \u0645\u062A\u0639\u0644\u0642 \u06C1\u06D2\u060C \u06A9\u0633\u06CC \u0634\u062E\u0635\u06CC\u062A \u06A9\u06CC \u0648\u0641\u0627\u062A \u06A9\u06CC \u062E\u0628\u0631 \u06C1\u06D2\u060C \u06CC\u0627 \u06A9\u0633\u06CC \u0645\u062E\u062A\u0644\u0641 \u0645\u0633\u0626\u0644\u06D2 \u067E\u0631 \u06C1\u06D2\u060C \u062A\u0648:
+     * \u0627\u0633 \u0641\u062A\u0648\u06D2 \u06CC\u0627 \u0627\u0633 \u06A9\u06D2 \u0639\u0646\u0648\u0627\u0646 \u06A9\u0627 \u062C\u0648\u0627\u0628 \u0645\u06CC\u06BA \u0642\u0637\u0639\u0627\u064B \u06A9\u0648\u0626\u06CC \u0630\u06A9\u0631 \u0646\u06C1 \u06A9\u0631\u06CC\u06BA\u06D4
+     * \u0645\u0627\u062E\u0630 \u0645\u06CC\u06BA "\u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0644\u0644\u0625\u0641\u062A\u0627\u0621" \u06C1\u0631\u06AF\u0632 \u0646\u06C1 \u0644\u06A9\u06BE\u06CC\u06BA\u06D4
+     * \u0635\u0627\u0631\u0641 \u06A9\u06D2 \u0633\u0648\u0627\u0644 \u06A9\u0627 \u062E\u0627\u0644\u0635 \u0642\u0631\u0622\u0646 \u0645\u062C\u06CC\u062F \u0627\u0648\u0631 \u0635\u062D\u06CC\u062D \u0627\u062D\u0627\u062F\u06CC\u062B \u06A9\u06CC \u0631\u0648\u0634\u0646\u06CC \u0645\u06CC\u06BA \u0622\u0632\u0627\u062F\u0627\u0646\u06C1 \u0627\u0648\u0631 \u0645\u06A9\u0645\u0644 \u0645\u062F\u0644\u0644 \u062C\u0648\u0627\u0628 \u062F\u06CC\u06BA\u06D4
+2. \u062C\u0648\u0627\u0628 \u06A9\u06D2 \u0627\u062E\u062A\u062A\u0627\u0645 \u067E\u0631 \u0627\u067E\u0646\u06D2 \u0645\u062A\u0646 \u0645\u06CC\u06BA \u06A9\u0648\u0626\u06CC \u0644\u0646\u06A9\u0633 \u06CC\u0627 \u0648\u06CC\u0628 \u0633\u0627\u0626\u0679 URLs \u062E\u0648\u062F \u0633\u06D2 \u0646\u06C1 \u0644\u06A9\u06BE\u06CC\u06BA\u061B \u0633\u0631\u0648\u0631 \u062E\u0648\u062F\u06A9\u0627\u0631 \u0637\u0648\u0631 \u067E\u0631 \u0627\u0635\u0644 \u0641\u062A\u0648\u06CC\u0670 \u06A9\u0627 \u062A\u0635\u062F\u06CC\u0642 \u0634\u062F\u06C1 \u0644\u0646\u06A9 \u0622\u062E\u0631 \u0645\u06CC\u06BA \u0634\u0627\u0645\u0644 \u06A9\u0631\u06D2 \u06AF\u0627\u06D4
 `;
     }
     let imagePart = null;
@@ -5655,12 +5715,6 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       homepageLink: "https://alulama.org/",
       appLink: appUrl,
       isVerifiedFatwa: true
-    } : isFatwaOrFiqhQuery ? {
-      title: "\u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0644\u0644\u0625\u0641\u062A\u0627\u0621 (alulama.org)",
-      directLink: null,
-      homepageLink: "https://alulama.org/",
-      appLink: appUrl,
-      isVerifiedFatwa: false
     } : null;
     const formatDirectFatwaReply = (fatwa) => {
       let reply = `### **\u0641\u062A\u0648\u06CC\u0670 \u06A9\u0627 \u0639\u0646\u0648\u0627\u0646:** ${fatwa.title}
@@ -5708,12 +5762,6 @@ ${cleanA}
       res.setHeader("Cache-Control", "no-cache, no-transform");
       res.setHeader("Connection", "keep-alive");
       res.flushHeaders?.();
-      if (sourceToSend) {
-        res.write(`data: ${JSON.stringify({ alUlamaSource: sourceToSend })}
-
-`);
-        if (res.flush) res.flush();
-      }
       let streamSuccess = false;
       let fullReply = "";
       let lastError2 = null;
@@ -5763,7 +5811,10 @@ ${cleanA}
 
 `);
       }
-      if (alUlamaFatwa && alUlamaFatwa.link) {
+      const isFatwaUsedInReply2 = Boolean(
+        alUlamaFatwa && sourceToSend && (fullReply.includes("\u0645\u0627\u062E\u0630:") || fullReply.includes("\u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621") || fullReply.includes("alulama.org"))
+      );
+      if (isFatwaUsedInReply2 && alUlamaFatwa?.link) {
         fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
         const extraLinks = `
 
@@ -5775,24 +5826,13 @@ ${cleanA}
         res.write(`data: ${JSON.stringify({ chunk: extraLinks })}
 
 `);
-      } else if (isFatwaOrFiqhQuery) {
-        fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
-        const extraLinks = `
-
----
-* [\u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0648\u06CC\u0628 \u0633\u0627\u0626\u0679 \u06A9\u06BE\u0648\u0644\u06CC\u06BA](https://alulama.org/)
-* [\u0627\u0633\u0644\u0627\u0645\u06CC \u0686\u06CC\u0679 \u062C\u06CC \u067E\u06CC \u0679\u06CC \u0627\u06CC\u067E](${appUrl})`;
-        fullReply += extraLinks;
-        res.write(`data: ${JSON.stringify({ chunk: extraLinks })}
-
-`);
       }
       res.write(
         `data: ${JSON.stringify({
           done: true,
           reply: fullReply,
           isAI: true,
-          alUlamaSource: sourceToSend
+          alUlamaSource: isFatwaUsedInReply2 ? sourceToSend : null
         })}
 
 `
@@ -5827,7 +5867,10 @@ ${cleanA}
         replyText = fallback.reply;
       }
     }
-    if (alUlamaFatwa && alUlamaFatwa.link) {
+    const isFatwaUsedInReply = Boolean(
+      alUlamaFatwa && sourceToSend && (replyText.includes("\u0645\u0627\u062E\u0630:") || replyText.includes("\u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621") || replyText.includes("alulama.org"))
+    );
+    if (isFatwaUsedInReply && alUlamaFatwa?.link) {
       replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
       const extraLinks = `
 
@@ -5836,20 +5879,12 @@ ${cleanA}
 * [\u0627\u0635\u0644 \u0641\u062A\u0648\u06CC\u0670 \u062F\u06CC\u06A9\u06BE\u06CC\u06BA](${alUlamaFatwa.link})
 * [\u0627\u0633\u0644\u0627\u0645\u06CC \u0686\u06CC\u0679 \u062C\u06CC \u067E\u06CC \u0679\u06CC \u0627\u06CC\u067E](${appUrl})`;
       replyText += extraLinks;
-    } else if (isFatwaOrFiqhQuery) {
-      replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
-      const extraLinks = `
-
----
-* [\u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0648\u06CC\u0628 \u0633\u0627\u0626\u0679 \u06A9\u06BE\u0648\u0644\u06CC\u06BA](https://alulama.org/)
-* [\u0627\u0633\u0644\u0627\u0645\u06CC \u0686\u06CC\u0679 \u062C\u06CC \u067E\u06CC \u0679\u06CC \u0627\u06CC\u067E](${appUrl})`;
-      replyText += extraLinks;
     }
     return res.json({
       success: true,
       reply: replyText,
       isAI: true,
-      alUlamaSource: sourceToSend
+      alUlamaSource: isFatwaUsedInReply ? sourceToSend : null
     });
   } catch (globalErr) {
     console.error("Chat route critical error:", globalErr);

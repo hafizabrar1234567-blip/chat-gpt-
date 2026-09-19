@@ -14,7 +14,7 @@ export interface AlUlamaFatwa {
 // In-memory cache for fatwa queries (TTL: 5 minutes, versioned)
 const fatwaCache = new Map<string, { fatwa: AlUlamaFatwa | null; expiresAt: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const CACHE_VERSION = "v4_strict_";
+const CACHE_VERSION = "v5_clean_";
 
 // Comprehensive Roman Urdu / English to Urdu transliteration dictionary
 const romanToUrduMap: Record<string, string> = {
@@ -349,7 +349,8 @@ const genericWords = new Set([
   "پہ", "نے", "جو", "خود", "اسی", "انہی", "وہی", "یہی", "پاس", "والے", "والی", "والا", "والوں",
   "کہا", "کہی", "کہے", "کہتے", "کہتی", "کہتا", "کہنا", "پھر", "پڑے", "پڑا", "پڑی", "پڑیں", "پڑتا", "پڑتی", "پڑتے", "گا", "گی", "گے",
   "ڈسکس", "دار", "حوالے", "حوالہ", "معاملات", "معاملہ", "پہلا", "دوسرا", "تیسرا", "جبکہ", "چونکہ", "حالانکہ", "البتہ", "لہذا", "لہٰذا",
-  "اسے", "انہیں", "اسکو", "انکو", "تھیں"
+  "اسے", "انہیں", "اسکو", "انکو", "تھیں",
+  "بعض", "نا", "شرعا", "شرعاً", "بنا", "بنائے", "بنائی", "بنانے", "بھیجتے", "بھیجتا", "بھیجتی", "بھیجنا", "بھیجے"
 ]);
 
 /**
@@ -831,6 +832,29 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
     return 0;
   }
 
+  // Non-fatwa post rejection (obituaries, press releases, articles, declarations)
+  const nonFatwaIndicators = [
+    "وفات پا گئے", "انتقال کر گئے", "اعلامیہ", "پریس ریلیز", "سوانح حیات",
+    "تاثرات", "بیان تعزیت", "تعزیتی پیغام", "رحلت فرمائی", "رحلت فرما گئے", "وفات حسرت آیات"
+  ];
+  for (const nfi of nonFatwaIndicators) {
+    if (normTitle.includes(nfi) && !normQuery.includes(nfi)) {
+      return 0; // Strictly reject news/obituary posts!
+    }
+  }
+
+  // Death / Funeral / Cemetery conflict:
+  // If candidate is about deceased person / funeral / cemetery / death food, but query does NOT mention death/funeral:
+  const deathTerms = ["میت", "جنازہ", "وفات", "فوتگی", "قبرستان", "قبر", "تدفین", "سوگ", "تعزیت"];
+  const queryHasDeath = ["میت", "جنازہ", "وفات", "فوت", "فوتگی", "مرنا", "مرنے", "موت", "قبر", "تدفین", "سوگ", "تعزیت"].some((dt) => normQuery.includes(dt));
+  if (!queryHasDeath) {
+    for (const dt of deathTerms) {
+      if (normTitle.includes(dt)) {
+        return 0; // Reject funeral/death post for non-death query!
+      }
+    }
+  }
+
   const broadWords = new Set([
     "عورت", "عورتوں", "مرد", "مردوں", "لوگ", "شخص", "انسان",
     "باپ", "والد", "والدہ", "ماں", "بیٹا", "بیٹے", "بیٹی", "بیٹیاں", "بھائی", "بہن", "بہنوں", "اولاد", "بچے", "بچہ", "بچوں", "خاندان",
@@ -839,6 +863,7 @@ function scoreCandidatePost(post: any, userQuery: string, topicKeywords: string[
     "وراثت", "ترکہ", "میراث", "جائیداد", "تقسیم", "زمین", "پلاٹ", "مال", "پیسہ", "پیسے", "حصہ", "حصے", "حصوں",
     "رقم", "رقمیں", "روپے", "روپیہ", "خرید", "خریدنا", "خریدا", "ادا", "نام", "ذاتی",
     "زندہ", "حیات", "زندگی",
+    "گھر", "گھروں", "کھانا", "کھانے", "کھاتے", "کھاتی", "کھاتا", "فروٹ", "پھل", "پھلوں", "چیزیں", "بھیجنا", "بھیجتے", "بنانا", "بنا",
     "جانور", "گوشت", "چیز", "بات", "کام", "طریقہ", "جلسے", "تبلیغی", "پروگرام",
     "وقت", "دن", "رات", "سال", "مہینہ", "فوت", "وفات", "انتقال", "مرنا", "مرنے",
     "ٹیسٹ", "سائٹ",

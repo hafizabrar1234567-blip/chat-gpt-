@@ -373,7 +373,7 @@ CRITICAL MANDATES & CARDINAL RULES:
     if (alUlamaFatwa) {
       systemInstruction += `
 
-=== مستند مواد و فتویٰ: لجنۃ العلماء للإفتاء (alulama.org) ===
+=== حوالہ جاتی فتویٰ: لجنۃ العلماء للإفتاء (alulama.org) ===
 عنوان: ${alUlamaFatwa.title}
 ${alUlamaFatwa.questionNumber ? `ریفرنس: ${alUlamaFatwa.questionNumber}` : ""}
 اصل مواد:
@@ -381,11 +381,16 @@ ${alUlamaFatwa.fullContent}
 
 Verified Direct Fatwa URL: ${alUlamaFatwa.link}
 
-لازمی ہدایات برائے فتویٰ جواب:
-1. صارف کے سوال کا براہ راست، مدلل، فصیح اور واضح شرعی جواب لجنۃ العلماء (alulama.org) کے مواد، منہج اور قرآن و سنت کی روشنی میں تیار کریں۔
-2. شروع میں ماخذ درج کریں:
-   **ماخذ:** لجنۃ العلماء للإفتاء (alulama.org) ${alUlamaFatwa.questionNumber ? `| **${alUlamaFatwa.questionNumber}**` : ""}
-3. جواب کے اختتام پر اپنے متن میں کوئی لنکس یا ویب سائٹ URLs خود سے نہ لکھیں؛ سرور خودکار طور پر اصل فتویٰ کا تصدیق شدہ لنک آخر میں شامل کرے گا۔
+لازمی ہدایات برائے استعمال (AI توثیق):
+1. آپ بطور مفتی و محقق پہلے یہ فیصلہ کریں کہ کیا یہ حوالہ جاتی فتویٰ واقعی صارف کے پوچھے گئے مسئلے کا براہِ راست اور درست شرعی حل ہے؟
+   - اگر یہ فتویٰ صارف کے مخصوص سوال سے براہ راست متعلق ہے، تو شروع میں ماخذ درج کریں:
+     **ماخذ:** لجنۃ العلماء للإفتاء (alulama.org) ${alUlamaFatwa.questionNumber ? `| **${alUlamaFatwa.questionNumber}**` : ""}
+     اور اس فتوے اور قرآن و سنت کی روشنی میں جواب تیار کریں۔
+   - اگر یہ فتویٰ صارف کے سوال سے غیر متعلق ہے، کسی شخصیت کی وفات کی خبر ہے، یا کسی مختلف مسئلے پر ہے، تو:
+     * اس فتوے یا اس کے عنوان کا جواب میں قطعاً کوئی ذکر نہ کریں۔
+     * ماخذ میں "لجنۃ العلماء للإفتاء" ہرگز نہ لکھیں۔
+     * صارف کے سوال کا خالص قرآن مجید اور صحیح احادیث کی روشنی میں آزادانہ اور مکمل مدلل جواب دیں۔
+2. جواب کے اختتام پر اپنے متن میں کوئی لنکس یا ویب سائٹ URLs خود سے نہ لکھیں؛ سرور خودکار طور پر اصل فتویٰ کا تصدیق شدہ لنک آخر میں شامل کرے گا۔
 `;
     }
 
@@ -482,14 +487,6 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
           appLink: appUrl,
           isVerifiedFatwa: true,
         }
-      : isFatwaOrFiqhQuery
-      ? {
-          title: "لجنۃ العلماء للإفتاء (alulama.org)",
-          directLink: null,
-          homepageLink: "https://alulama.org/",
-          appLink: appUrl,
-          isVerifiedFatwa: false,
-        }
       : null;
 
     // Helper to format direct verified fatwa response
@@ -522,13 +519,6 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       res.setHeader("Cache-Control", "no-cache, no-transform");
       res.setHeader("Connection", "keep-alive");
       res.flushHeaders?.();
-
-      // Immediately transmit the verified source card so buttons and links appear without delay
-      if (sourceToSend) {
-        res.write(`data: ${JSON.stringify({ alUlamaSource: sourceToSend })}\n\n`);
-        if ((res as any).flush) (res as any).flush();
-      }
-
 
       let streamSuccess = false;
       let fullReply = "";
@@ -579,14 +569,15 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
         res.write(`data: ${JSON.stringify({ chunk: fullReply })}\n\n`);
       }
 
-      if (alUlamaFatwa && alUlamaFatwa.link) {
+      const isFatwaUsedInReply = Boolean(
+        alUlamaFatwa &&
+        sourceToSend &&
+        (fullReply.includes("ماخذ:") || fullReply.includes("لجنۃ العلماء") || fullReply.includes("alulama.org"))
+      );
+
+      if (isFatwaUsedInReply && alUlamaFatwa?.link) {
         fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
         const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اصل فتویٰ دیکھیں](${alUlamaFatwa.link})\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
-        fullReply += extraLinks;
-        res.write(`data: ${JSON.stringify({ chunk: extraLinks })}\n\n`);
-      } else if (isFatwaOrFiqhQuery) {
-        fullReply = fullReply.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
-        const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
         fullReply += extraLinks;
         res.write(`data: ${JSON.stringify({ chunk: extraLinks })}\n\n`);
       }
@@ -596,7 +587,7 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
           done: true,
           reply: fullReply,
           isAI: true,
-          alUlamaSource: sourceToSend,
+          alUlamaSource: isFatwaUsedInReply ? sourceToSend : null,
         })}\n\n`
       );
       return res.end();
@@ -636,13 +627,15 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       }
     }
 
-    if (alUlamaFatwa && alUlamaFatwa.link) {
+    const isFatwaUsedInReply = Boolean(
+      alUlamaFatwa &&
+      sourceToSend &&
+      (replyText.includes("ماخذ:") || replyText.includes("لجنۃ العلماء") || replyText.includes("alulama.org"))
+    );
+
+    if (isFatwaUsedInReply && alUlamaFatwa?.link) {
       replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
       const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اصل فتویٰ دیکھیں](${alUlamaFatwa.link})\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
-      replyText += extraLinks;
-    } else if (isFatwaOrFiqhQuery) {
-      replyText = replyText.replace(/(\n*\s*\*?\s*\[(?:العلماء|اصل فتویٰ|اسلامی چیٹ|مزید فتاویٰ).+?\]\(.+?\)\s*)+$/gi, "").trim();
-      const extraLinks = `\n\n---\n* [العلماء ویب سائٹ کھولیں](https://alulama.org/)\n* [اسلامی چیٹ جی پی ٹی ایپ](${appUrl})`;
       replyText += extraLinks;
     }
 
@@ -650,7 +643,7 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       success: true,
       reply: replyText,
       isAI: true,
-      alUlamaSource: sourceToSend,
+      alUlamaSource: isFatwaUsedInReply ? sourceToSend : null,
     });
   } catch (globalErr: any) {
     console.error("Chat route critical error:", globalErr);
