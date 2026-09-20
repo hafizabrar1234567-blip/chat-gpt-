@@ -468,9 +468,9 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
         maxOutputTokens: 2500,
       };
       if (
-        modelName.includes("2.5") ||
-        modelName.includes("2.0") ||
-        modelName.includes("flash")
+        modelName.includes("2.5-flash") ||
+        modelName.includes("2.5-pro") ||
+        modelName.includes("3.7-flash")
       ) {
         config.thinkingConfig = { thinkingBudget: 0 };
       }

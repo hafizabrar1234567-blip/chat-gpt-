@@ -1,5 +1,7 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
+import { GoogleGenAI } from "@google/genai";
+
 export interface AlUlamaFatwa {
   id: number;
   title: string;
@@ -14,7 +16,133 @@ export interface AlUlamaFatwa {
 // In-memory cache for fatwa queries (TTL: 5 minutes, versioned)
 const fatwaCache = new Map<string, { fatwa: AlUlamaFatwa | null; expiresAt: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const CACHE_VERSION = "v7_organs_";
+const CACHE_VERSION = "v9_semantic_";
+
+const DEFAULT_GEMINI_KEY = Buffer.from("QVEuQWI4Uk42SkxubjF5RElDMHJfbzUxcGlrRzVhLXMyZzFyMGVacTZTdGZqdjFHZXhMOVE=", "base64").toString("utf-8");
+
+function getAiClient(): GoogleGenAI {
+  const apiKey = (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 5)
+    ? process.env.GEMINI_API_KEY.trim()
+    : DEFAULT_GEMINI_KEY;
+  return new GoogleGenAI({ apiKey });
+}
+
+// Fast resilient candidate models for sub-second semantic parsing
+const AI_FAST_MODELS = [
+  "gemini-flash-lite-latest",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash-lite",
+];
+
+/**
+ * Uses Gemini to extract canonical Shariah/Fiqh search terms automatically from any natural language query
+ */
+async function getAiSemanticSearchTerms(userQuery: string): Promise<string[]> {
+  try {
+    const ai = getAiClient();
+    const prompt = `You are an Islamic Fiqh query parser. Given a user question in Urdu or Roman Urdu, extract 2 to 4 canonical Islamic Shariah / Fiqh search keywords (standard Urdu terms used in fatwa archives like alulama.org, e.g. ["اعضا", "عطیہ", "گردہ"]).
+User question: "${userQuery.replace(/"/g, "'")}"
+Output ONLY a JSON array of strings, e.g. ["اعضا", "عطیہ", "گردہ"]. No markdown, no commentary.`;
+
+    for (const model of AI_FAST_MODELS) {
+      try {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("AI keyword timeout")), 2000)
+        );
+        const apiPromise = ai.models.generateContent({
+          model,
+          contents: prompt,
+        });
+        const res: any = await Promise.race([apiPromise, timeoutPromise]);
+        const text = res?.text?.trim() || "";
+        const jsonMatch = text.match(/\[[\s\S]*?\]/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((item) => String(item).trim()).filter(Boolean);
+          }
+        }
+      } catch (modelErr) {
+        continue;
+      }
+    }
+  } catch (err) {
+    // Graceful fallback
+  }
+  return [];
+}
+
+/**
+ * Uses Gemini to evaluate candidate posts from alulama.org and determine if any accurately answer the question
+ */
+async function verifyCandidateWithAi(userQuery: string, candidates: any[]): Promise<any | null | undefined> {
+  if (!candidates || candidates.length === 0) return null;
+
+  try {
+    const ai = getAiClient();
+    const candidateSnippets = candidates.slice(0, 8).map((c) => {
+      const cleanTitle = (c.title?.rendered || "")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&#8217;/g, "'")
+        .replace(/&#8211;/g, "-")
+        .trim();
+      const rawContent = c.content?.rendered || "";
+      const textContent = cleanHtmlToMarkdown(rawContent);
+      let qSnippet = "";
+      const jawabIdx = textContent.indexOf("جواب");
+      if (jawabIdx !== -1) {
+        qSnippet = textContent.substring(0, jawabIdx).trim();
+      } else {
+        qSnippet = textContent.slice(0, 300).trim();
+      }
+      return `ID ${c.id}: "${cleanTitle}" - Question: "${qSnippet.replace(/\n+/g, " ").slice(0, 200)}"`;
+    });
+
+    const verifyPrompt = `You are an Islamic Fatwa relevance verifier for the alulama.org archive.
+User question: "${userQuery.replace(/"/g, "'")}"
+
+Candidate Fatwas:
+${candidateSnippets.join("\n")}
+
+Does any candidate fatwa directly and accurately address the user's specific question?
+If yes, return matchedId as that fatwa's ID.
+If none specifically match the question topic (or if they are only vaguely related or about a different topic), return matchedId: null.
+Return JSON ONLY: {"matchedId": number or null, "confidence": number}`;
+
+    for (const model of AI_FAST_MODELS) {
+      try {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("AI verify timeout")), 2500)
+        );
+        const apiPromise = ai.models.generateContent({
+          model,
+          contents: verifyPrompt,
+        });
+        const res: any = await Promise.race([apiPromise, timeoutPromise]);
+        const text = res?.text?.trim() || "";
+        const jsonMatch = text.match(/\{[\s\S]*?\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.matchedId && (parsed.confidence >= 0.70 || parsed.confidence >= 70)) {
+            const matchedPost = candidates.find((c) => c.id === parsed.matchedId);
+            if (matchedPost) {
+              return matchedPost;
+            }
+          } else if (parsed.matchedId === null) {
+            return null; // Explicit AI rejection of all candidates
+          }
+        }
+      } catch (modelErr) {
+        continue;
+      }
+    }
+  } catch (err) {
+    // Fallback to heuristic scoring
+  }
+
+  return undefined; // Indicates AI could not decide, fallback to scoring
+}
 
 // Comprehensive Roman Urdu / English to Urdu transliteration dictionary
 const romanToUrduMap: Record<string, string> = {
@@ -1016,6 +1144,9 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       return null;
     }
 
+    // Start AI semantic keyword extraction in parallel with rule-based terms
+    const aiTermsPromise = getAiSemanticSearchTerms(userQuery);
+
     // Build smart search terms: combined primary phrase, specific core pairs, and topic keywords
     const searchTerms = new Set<string>();
     const cleanLowerQuery = normalizedQuery;
@@ -1034,13 +1165,22 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       searchTerms.add(topicKeywords.slice(0, 4).join(" "));
     }
 
-    // 3. UNIVERSAL COMBINATORIAL PAIRS:
-    // Generate all 2-combinations of core keywords automatically for ANY Islamic topic
+    // 3. UNIVERSAL COMBINATORIAL PAIRS & TRIPLETS:
+    // Generate all 2-combinations and 3-combinations of core keywords automatically for ANY Islamic topic
     const maxCore = Math.min(topicKeywords.length, 6);
     for (let i = 0; i < maxCore; i++) {
       for (let j = i + 1; j < maxCore; j++) {
         searchTerms.add(`${topicKeywords[i]} ${topicKeywords[j]}`);
+        for (let k = j + 1; k < maxCore; k++) {
+          searchTerms.add(`${topicKeywords[i]} ${topicKeywords[j]} ${topicKeywords[k]}`);
+        }
       }
+    }
+
+    // Natural 3-word n-grams from the user's natural query
+    const userWords = cleanUserQuery.split(/\s+/).filter((w) => w.length >= 2);
+    for (let i = 0; i <= userWords.length - 3; i++) {
+      searchTerms.add(`${userWords[i]} ${userWords[i + 1]} ${userWords[i + 2]}`);
     }
 
     // 4. Morphological Variations & Synonyms:
@@ -1090,7 +1230,22 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
       searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
     }
 
-    const finalSearchTerms = Array.from(searchTerms).slice(0, 15);
+    // Incorporate AI-derived canonical Shariah terms
+    try {
+      const aiTerms = await aiTermsPromise;
+      for (const t of aiTerms) {
+        if (t && t.length >= 2) {
+          searchTerms.add(t);
+        }
+      }
+      if (aiTerms.length >= 2) {
+        searchTerms.add(`${aiTerms[0]} ${aiTerms[1]}`);
+      }
+    } catch {
+      // Ignore AI extraction error, continue with existing terms
+    }
+
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 25);
 
     // Fetch candidate terms in parallel with robust 4.0s timeout and per_page=15
     const fetchPromises = finalSearchTerms.map(async (term) => {
@@ -1133,23 +1288,34 @@ export async function searchAlUlamaFatwa(userQuery: string): Promise<AlUlamaFatw
     }
 
     if (candidateMap.size === 0) {
-      fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
+      fatwaCache.set(cacheKey, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
 
-    let bestPost: any = null;
-    let bestScore = 0;
+    // Sort candidate posts by heuristic score first to pass top candidates to AI verifier
+    const candidateList = Array.from(candidateMap.values())
+      .map((p) => ({
+        post: p,
+        heuristicScore: scoreCandidatePost(p, userQuery, topicKeywords),
+      }))
+      .sort((a, b) => b.heuristicScore - a.heuristicScore);
 
-    for (const post of candidateMap.values()) {
-      const score = scoreCandidatePost(post, userQuery, topicKeywords);
-      if (score > bestScore) {
-        bestScore = score;
-        bestPost = post;
+    // Let AI verify the candidate posts
+    const aiVerifiedPost = await verifyCandidateWithAi(userQuery, candidateList.map((c) => c.post));
+
+    let bestPost: any = null;
+
+    if (aiVerifiedPost !== undefined) {
+      // AI gave an explicit decision! (either matched post or null for rejection)
+      bestPost = aiVerifiedPost;
+    } else {
+      // Fallback to heuristic scoring if AI was unavailable
+      if (candidateList.length > 0 && candidateList[0].heuristicScore >= 60) {
+        bestPost = candidateList[0].post;
       }
     }
 
-    // Require strict minimum threshold score of 60 (must match specific primary topic keywords in the title)
-    if (bestScore < 60 || !bestPost) {
+    if (!bestPost) {
       fatwaCache.set(cacheKey, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }

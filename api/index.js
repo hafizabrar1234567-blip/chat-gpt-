@@ -1,7 +1,7 @@
 // server.ts
 import express from "express";
 import path3 from "path";
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI as GoogleGenAI2, Type } from "@google/genai";
 import dotenv from "dotenv";
 
 // src/utils/calendarConverter.ts
@@ -3094,10 +3094,112 @@ function searchKnowledgeBase(query, topK = 4) {
 }
 
 // src/server/alUlamaService.ts
+import { GoogleGenAI } from "@google/genai";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 var fatwaCache = /* @__PURE__ */ new Map();
 var CACHE_TTL_MS = 5 * 60 * 1e3;
-var CACHE_VERSION = "v7_organs_";
+var CACHE_VERSION = "v8_ai_semantic_";
+var DEFAULT_GEMINI_KEY = Buffer.from("QVEuQWI4Uk42SkxubjF5RElDMHJfbzUxcGlrRzVhLXMyZzFyMGVacTZTdGZqdjFHZXhMOVE=", "base64").toString("utf-8");
+function getAiClient() {
+  const apiKey = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 5 ? process.env.GEMINI_API_KEY.trim() : DEFAULT_GEMINI_KEY;
+  return new GoogleGenAI({ apiKey });
+}
+var AI_FAST_MODELS = [
+  "gemini-flash-lite-latest",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash-lite"
+];
+async function getAiSemanticSearchTerms(userQuery) {
+  try {
+    const ai = getAiClient();
+    const prompt = `You are an Islamic Fiqh query parser. Given a user question in Urdu or Roman Urdu, extract 2 to 4 canonical Islamic Shariah / Fiqh search keywords (standard Urdu terms used in fatwa archives like alulama.org, e.g. ["\u0627\u0639\u0636\u0627", "\u0639\u0637\u06CC\u06C1", "\u06AF\u0631\u062F\u06C1"]).
+User question: "${userQuery.replace(/"/g, "'")}"
+Output ONLY a JSON array of strings, e.g. ["\u0627\u0639\u0636\u0627", "\u0639\u0637\u06CC\u06C1", "\u06AF\u0631\u062F\u06C1"]. No markdown, no commentary.`;
+    for (const model of AI_FAST_MODELS) {
+      try {
+        const timeoutPromise = new Promise(
+          (_, reject) => setTimeout(() => reject(new Error("AI keyword timeout")), 2e3)
+        );
+        const apiPromise = ai.models.generateContent({
+          model,
+          contents: prompt
+        });
+        const res = await Promise.race([apiPromise, timeoutPromise]);
+        const text = res?.text?.trim() || "";
+        const jsonMatch = text.match(/\[[\s\S]*?\]/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((item) => String(item).trim()).filter(Boolean);
+          }
+        }
+      } catch (modelErr) {
+        continue;
+      }
+    }
+  } catch (err) {
+  }
+  return [];
+}
+async function verifyCandidateWithAi(userQuery, candidates) {
+  if (!candidates || candidates.length === 0) return null;
+  try {
+    const ai = getAiClient();
+    const candidateSnippets = candidates.slice(0, 5).map((c) => {
+      const cleanTitle = (c.title?.rendered || "").replace(/<[^>]+>/g, "").replace(/&#8217;/g, "'").replace(/&#8211;/g, "-").trim();
+      const rawContent = c.content?.rendered || "";
+      const textContent = cleanHtmlToMarkdown(rawContent);
+      let qSnippet = "";
+      const jawabIdx = textContent.indexOf("\u062C\u0648\u0627\u0628");
+      if (jawabIdx !== -1) {
+        qSnippet = textContent.substring(0, jawabIdx).trim();
+      } else {
+        qSnippet = textContent.slice(0, 300).trim();
+      }
+      return `ID ${c.id}: "${cleanTitle}" - Question: "${qSnippet.replace(/\n+/g, " ").slice(0, 200)}"`;
+    });
+    const verifyPrompt = `You are an Islamic Fatwa relevance verifier for the alulama.org archive.
+User question: "${userQuery.replace(/"/g, "'")}"
+
+Candidate Fatwas:
+${candidateSnippets.join("\n")}
+
+Does any candidate fatwa directly and accurately address the user's specific question?
+If yes, return matchedId as that fatwa's ID.
+If none specifically match the question topic (or if they are only vaguely related or about a different topic), return matchedId: null.
+Return JSON ONLY: {"matchedId": number or null, "confidence": number}`;
+    for (const model of AI_FAST_MODELS) {
+      try {
+        const timeoutPromise = new Promise(
+          (_, reject) => setTimeout(() => reject(new Error("AI verify timeout")), 2500)
+        );
+        const apiPromise = ai.models.generateContent({
+          model,
+          contents: verifyPrompt
+        });
+        const res = await Promise.race([apiPromise, timeoutPromise]);
+        const text = res?.text?.trim() || "";
+        const jsonMatch = text.match(/\{[\s\S]*?\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.matchedId && (parsed.confidence >= 0.7 || parsed.confidence >= 70)) {
+            const matchedPost = candidates.find((c) => c.id === parsed.matchedId);
+            if (matchedPost) {
+              return matchedPost;
+            }
+          } else if (parsed.matchedId === null) {
+            return null;
+          }
+        }
+      } catch (modelErr) {
+        continue;
+      }
+    }
+  } catch (err) {
+  }
+  return void 0;
+}
 var romanToUrduMap = {
   // Wudu / Taharat / Cleanliness
   wezo: "\u0648\u0636\u0648",
@@ -4656,6 +4758,7 @@ async function searchAlUlamaFatwa(userQuery) {
       fatwaCache.set(cacheKey, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
+    const aiTermsPromise = getAiSemanticSearchTerms(userQuery);
     const searchTerms = /* @__PURE__ */ new Set();
     const cleanLowerQuery = normalizedQuery;
     const cleanUserQuery = userQuery.trim().replace(/[؟?!.,،]/g, " ").replace(/\s+/g, " ").trim();
@@ -4711,7 +4814,19 @@ async function searchAlUlamaFatwa(userQuery) {
     for (let i = 0; i < topicKeywords.length - 1; i++) {
       searchTerms.add(`${topicKeywords[i]} ${topicKeywords[i + 1]}`);
     }
-    const finalSearchTerms = Array.from(searchTerms).slice(0, 15);
+    try {
+      const aiTerms = await aiTermsPromise;
+      for (const t of aiTerms) {
+        if (t && t.length >= 2) {
+          searchTerms.add(t);
+        }
+      }
+      if (aiTerms.length >= 2) {
+        searchTerms.add(`${aiTerms[0]} ${aiTerms[1]}`);
+      }
+    } catch {
+    }
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 16);
     const fetchPromises = finalSearchTerms.map(async (term) => {
       const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=15`;
       const controller = new AbortController();
@@ -4745,19 +4860,23 @@ async function searchAlUlamaFatwa(userQuery) {
       }
     }
     if (candidateMap.size === 0) {
-      fatwaCache.set(normalizedQuery, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
+      fatwaCache.set(cacheKey, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
+    const candidateList = Array.from(candidateMap.values()).map((p) => ({
+      post: p,
+      heuristicScore: scoreCandidatePost(p, userQuery, topicKeywords)
+    })).sort((a, b) => b.heuristicScore - a.heuristicScore);
+    const aiVerifiedPost = await verifyCandidateWithAi(userQuery, candidateList.map((c) => c.post));
     let bestPost = null;
-    let bestScore = 0;
-    for (const post of candidateMap.values()) {
-      const score = scoreCandidatePost(post, userQuery, topicKeywords);
-      if (score > bestScore) {
-        bestScore = score;
-        bestPost = post;
+    if (aiVerifiedPost !== void 0) {
+      bestPost = aiVerifiedPost;
+    } else {
+      if (candidateList.length > 0 && candidateList[0].heuristicScore >= 60) {
+        bestPost = candidateList[0].post;
       }
     }
-    if (bestScore < 60 || !bestPost) {
+    if (!bestPost) {
       fatwaCache.set(cacheKey, { fatwa: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
@@ -5372,7 +5491,7 @@ app.use((req, res, next) => {
   }
   next();
 });
-var DEFAULT_GEMINI_KEY = Buffer.from("QVEuQWI4Uk42SkxubjF5RElDMHJfbzUxcGlrRzVhLXMyZzFyMGVacTZTdGZqdjFHZXhMOVE=", "base64").toString("utf-8");
+var DEFAULT_GEMINI_KEY2 = Buffer.from("QVEuQWI4Uk42SkxubjF5RElDMHJfbzUxcGlrRzVhLXMyZzFyMGVacTZTdGZqdjFHZXhMOVE=", "base64").toString("utf-8");
 var getGeminiApiKey = (clientKey) => {
   if (clientKey && typeof clientKey === "string" && clientKey.trim().length > 5) {
     return clientKey.trim();
@@ -5380,11 +5499,11 @@ var getGeminiApiKey = (clientKey) => {
   if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 5) {
     return process.env.GEMINI_API_KEY.trim();
   }
-  return DEFAULT_GEMINI_KEY;
+  return DEFAULT_GEMINI_KEY2;
 };
 var getGeminiClient = (customKey) => {
   const apiKey = getGeminiApiKey(customKey);
-  return new GoogleGenAI({
+  return new GoogleGenAI2({
     apiKey,
     httpOptions: {
       headers: {
@@ -5487,7 +5606,7 @@ app.post("/api/settings/key", async (req, res) => {
       return res.status(400).json({ success: false, error: "\u062F\u0631\u0633\u062A API Key \u062F\u0631\u062C \u06A9\u0631\u06CC\u06BA" });
     }
     const testKey = apiKey.trim();
-    const testAi = new GoogleGenAI({ apiKey: testKey });
+    const testAi = new GoogleGenAI2({ apiKey: testKey });
     let testSuccess = false;
     for (const m of ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.6-flash", "gemini-3.1-flash-lite"]) {
       try {
@@ -5715,7 +5834,7 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
         temperature: 0.7,
         maxOutputTokens: 2500
       };
-      if (modelName.includes("2.5") || modelName.includes("2.0") || modelName.includes("flash")) {
+      if (modelName.includes("2.5-flash") || modelName.includes("2.5-pro") || modelName.includes("3.7-flash")) {
         config.thinkingConfig = { thinkingBudget: 0 };
       }
       return config;
