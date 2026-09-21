@@ -1,4 +1,4 @@
-﻿// Quran Audio & Speech Service
+// Quran Audio & Speech Service
 // Authentic EveryAyah recitations for Sheikh Mishary Rashid Alafasy and Sheikh Saud Al-Shuraim
 
 export type QariId = "alafasy" | "shuraim";
@@ -153,6 +153,42 @@ export interface DetectedAyah {
   matchedText: string;
 }
 
+const HADITH_BOOK_KEYWORDS = [
+  "بخاری", "مسلم", "ترمذی", "داؤد", "داود", "نسائی", "ماجہ", "ماجه",
+  "احمد", "مشکاۃ", "مشکوۃ", "موطأ", "موطا", "دارمی", "طبرانی", "بیہقی",
+  "حدیث", "صفحہ", "جلد", "باب", "رقم", "فتوی", "فتاوی",
+];
+
+function normalizeSurahKey(str: string): string {
+  return str
+    .replace(/^سور[ۃةہ]\s*/i, "")
+    .replace(/^ال/, "")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/[ةۃ]/g, "ہ")
+    .replace(/[يى]/g, "ی")
+    .trim();
+}
+
+function matchSurahInMap(rawSurah: string): { surahNumber: number; surahName: string } | null {
+  if (HADITH_BOOK_KEYWORDS.some((kw) => rawSurah.includes(kw))) {
+    return null;
+  }
+
+  const normTarget = normalizeSurahKey(rawSurah);
+  if (!normTarget) return null;
+
+  for (const [key, num] of Object.entries(SURAH_NAME_MAP)) {
+    const normKey = normalizeSurahKey(key);
+    if (normTarget === normKey) {
+      return {
+        surahNumber: num,
+        surahName: rawSurah,
+      };
+    }
+  }
+  return null;
+}
+
 export function detectQuranAyah(text: string): DetectedAyah | null {
   if (!text) return null;
 
@@ -173,22 +209,14 @@ export function detectQuranAyah(text: string): DetectedAyah | null {
       }
     }
 
-    const cleaned = rawSurah
-      .replace(/^سورة\s*/i, "")
-      .replace(/^سورۃ\s*/i, "")
-      .replace(/^ال/, "")
-      .trim();
-
-    for (const [key, num] of Object.entries(SURAH_NAME_MAP)) {
-      const cleanKey = key.replace(/^ال/, "");
-      if (rawSurah.includes(key) || cleaned === cleanKey || key.includes(cleaned)) {
-        return {
-          surahNumber: num,
-          ayahNumber: ayahNum,
-          surahName: rawSurah,
-          matchedText: bracketMatch[0],
-        };
-      }
+    const matched = matchSurahInMap(rawSurah);
+    if (matched) {
+      return {
+        surahNumber: matched.surahNumber,
+        ayahNumber: ayahNum,
+        surahName: matched.surahName,
+        matchedText: bracketMatch[0],
+      };
     }
   }
 
@@ -196,22 +224,155 @@ export function detectQuranAyah(text: string): DetectedAyah | null {
   if (surahTextMatch) {
     const sName = surahTextMatch[1].trim();
     const aNum = parseInt(surahTextMatch[2], 10);
-    const cleaned = sName.replace(/^ال/, "");
 
-    for (const [key, num] of Object.entries(SURAH_NAME_MAP)) {
-      const cleanKey = key.replace(/^ال/, "");
-      if (sName.includes(key) || cleaned === cleanKey || key.includes(cleaned)) {
-        return {
-          surahNumber: num,
-          ayahNumber: aNum,
-          surahName: sName,
-          matchedText: surahTextMatch[0],
-        };
-      }
+    const matched = matchSurahInMap(sName);
+    if (matched) {
+      return {
+        surahNumber: matched.surahNumber,
+        ayahNumber: aNum,
+        surahName: matched.surahName,
+        matchedText: surahTextMatch[0],
+      };
     }
   }
 
   return null;
+}
+
+export interface DetectedHadith {
+  isHadith: boolean;
+  hadithText: string;
+  sourceLabel?: string;
+}
+
+export function prepareHadithSpeechText(text: string): string {
+  if (!text) return "";
+
+  // 1. Extract citation if present (e.g. "[صحیح بخاری: 1، صحیح مسلم: 1907]")
+  let citation = "";
+  const citeMatch = text.match(/\[\s*([^\]]+?)\s*\]/);
+  if (citeMatch) {
+    citation = citeMatch[1]
+      .replace(/[:：]/g, " حدیث نمبر ")
+      .replace(/[\[\]]/g, "")
+      .trim();
+  }
+
+  // 2. Extract Urdu translation if present
+  let translation = "";
+  const transMatch = text.match(/ترجمہ\s*[:：]\s*["']?([\s\S]+?)(?:["']?\s*(?:\[|$))/);
+  if (transMatch) {
+    translation = transMatch[1]
+      .replace(/[*_#>`~"'“”«»﴿﴾]/g, " ")
+      .replace(/\[\s*[^\]]+?\s*\]/g, " ")
+      .trim();
+  }
+
+  // 3. Extract Arabic matn if present
+  let arabicMatn = "";
+  const arabicMatch = text.match(/[﴿«]([\s\S]+?)[﴾»]/);
+  if (arabicMatch) {
+    arabicMatn = arabicMatch[1]
+      .replace(/[\u064B-\u065F\u0670]/g, "") // Strip tashkeel for clean TTS
+      .replace(/[*_#>`~"'“”]/g, " ")
+      .trim();
+  }
+
+  let result = "";
+  if (translation && arabicMatn) {
+    result = `حدیث شریف کا ترجمہ: ${translation}۔ عربی الفاظ: ${arabicMatn}۔`;
+  } else if (translation) {
+    result = `حدیث شریف کا ترجمہ: ${translation}۔`;
+  } else {
+    let clean = text.replace(/\[\s*[^\]]+?\s*\]/g, " ");
+    clean = clean.replace(/[*_#>`~"'“”«»﴿﴾]/g, " ");
+    clean = clean.replace(/[\u064B-\u065F\u0670]/g, "");
+    clean = clean.replace(/ترجمہ\s*[:：]/g, "۔ ترجمہ: ");
+    result = clean.trim();
+  }
+
+  if (citation) {
+    result += ` (ماخذ: ${citation})۔`;
+  }
+
+  return result.replace(/\s+/g, " ").trim();
+}
+
+export function detectHadith(text: string, isBlockquote: boolean = false): DetectedHadith | null {
+  if (!text) return null;
+
+  const trimmed = text.trim();
+
+  // If text is just an introductory clause ending with a colon, skip
+  if (trimmed.endsWith(":") || trimmed.endsWith("：")) {
+    return null;
+  }
+
+  // If text is ONLY a citation/reference without actual narration text (e.g. "[صحیح بخاری: 8]"), skip!
+  const isOnlyCitation = /^\[?\s*(?:صحیح\s*(?:بخاری|مسلم)|جامع\s*ترمذی|سنن\s*[^:\]]+|مسند\s*احمد|مشکاۃ)[^:\]]*[:：]?\s*[\d،,\s]*\]?$/.test(trimmed);
+  if (isOnlyCitation) {
+    return null;
+  }
+
+  // Exclude Quran Ayah quotes (ensure it's not actually an Ayah)
+  const isAyah = detectQuranAyah(text);
+  if (isAyah) return null;
+
+  // Check for Hadith references or book names
+  const hadithBookMatch = text.match(/(صحیح\s*بخاری|صحیح\s*مسلم|جامع\s*ترمذی|سنن\s*ترمذی|سنن\s*ابی\s*داؤد|سنن\s*ابوداؤد|سنن\s*نسائی|سنن\s*ابن\s*ماجہ|مسند\s*احمد|مشکاۃ\s*المصابیح|مشکاۃ|موطأ|موطا|سنن\s*دارمی|طبرانی|بیہقی)/i);
+  const hadithNarratorMatch = /(?:عَنْ|عَنِ)\s+([^\n،,]+)|(?:قَالَ\s*رَسُولُ\s*اللَّهِ|نبی\s*کریم\s*ﷺ\s*نے\s*فرمایا|رسول\s*اللہ\s*ﷺ\s*نے\s*فرمایا|فرمانِ\s*رسول|فرمانِ\s*نبوی)/i.test(text);
+  const hasTranslation = /ترجمہ\s*[:：]/.test(text);
+  const hasIslamicMatn = /[\u0600-\u06FF\s]{15,}/.test(text);
+
+  // If it's a blockquote (the designated container for Hadith/Ayah quotes):
+  if (isBlockquote && hasIslamicMatn) {
+    const clean = text
+      .replace(/^[>\s*#_`"]+/gm, "")
+      .replace(/\[\s*(?:سندہ|درجہ)?\s*(?:صحیح|حسن|ضعیف)\s*\]/gi, "")
+      .trim();
+
+    let sourceLabel = "حدیث مبارکہ";
+    if (hadithBookMatch) {
+      sourceLabel = hadithBookMatch[1].trim();
+    }
+
+    return {
+      isHadith: true,
+      hadithText: clean,
+      sourceLabel,
+    };
+  }
+
+  // If it's a normal paragraph (<p>), it MUST have actual quoted Hadith text with translation or narrator, not just casual prose:
+  const hasQuoteMarks = /["'“”«»﴿]/.test(text);
+  if ((hasTranslation || (hadithNarratorMatch && hasQuoteMarks)) && hasIslamicMatn && text.length >= 40) {
+    const clean = text
+      .replace(/^[>\s*#_`"]+/gm, "")
+      .replace(/\[\s*(?:سندہ|درجہ)?\s*(?:صحیح|حسن|ضعیف)\s*\]/gi, "")
+      .trim();
+
+    let sourceLabel = "حدیث مبارکہ";
+    if (hadithBookMatch) {
+      sourceLabel = hadithBookMatch[1].trim();
+    }
+
+    return {
+      isHadith: true,
+      hadithText: clean,
+      sourceLabel,
+    };
+  }
+
+  return null;
+}
+
+export function getNodeText(node: any): string {
+  if (!node) return "";
+  if (typeof node.value === "string") return node.value;
+  if (Array.isArray(node.children)) {
+    return node.children.map(getNodeText).join(" ");
+  }
+  return "";
 }
 
 export function getQuranAudioUrl(surahNumber: number, ayahNumber: number, qari: QariId = "alafasy"): string {

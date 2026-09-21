@@ -491,7 +491,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen h-[100dvh] w-screen max-w-[100vw] bg-[#050c0a] text-slate-100 font-sans overflow-hidden">
+    <div className="flex h-screen h-[100dvh] w-screen max-w-[100vw] bg-[#f8faf9] text-slate-800 font-sans overflow-hidden">
       {/* 1. Left/Right Sidebar (ChatGPT History & Tools) */}
       <ChatSidebar
         isOpen={isSidebarOpen}

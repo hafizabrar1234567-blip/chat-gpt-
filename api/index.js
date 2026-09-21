@@ -3098,7 +3098,7 @@ import { GoogleGenAI } from "@google/genai";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 var fatwaCache = /* @__PURE__ */ new Map();
 var CACHE_TTL_MS = 5 * 60 * 1e3;
-var CACHE_VERSION = "v8_ai_semantic_";
+var CACHE_VERSION = "v9_semantic_";
 var DEFAULT_GEMINI_KEY = Buffer.from("QVEuQWI4Uk42SkxubjF5RElDMHJfbzUxcGlrRzVhLXMyZzFyMGVacTZTdGZqdjFHZXhMOVE=", "base64").toString("utf-8");
 function getAiClient() {
   const apiKey = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 5 ? process.env.GEMINI_API_KEY.trim() : DEFAULT_GEMINI_KEY;
@@ -3146,7 +3146,7 @@ async function verifyCandidateWithAi(userQuery, candidates) {
   if (!candidates || candidates.length === 0) return null;
   try {
     const ai = getAiClient();
-    const candidateSnippets = candidates.slice(0, 5).map((c) => {
+    const candidateSnippets = candidates.slice(0, 8).map((c) => {
       const cleanTitle = (c.title?.rendered || "").replace(/<[^>]+>/g, "").replace(/&#8217;/g, "'").replace(/&#8211;/g, "-").trim();
       const rawContent = c.content?.rendered || "";
       const textContent = cleanHtmlToMarkdown(rawContent);
@@ -4775,7 +4775,14 @@ async function searchAlUlamaFatwa(userQuery) {
     for (let i = 0; i < maxCore; i++) {
       for (let j = i + 1; j < maxCore; j++) {
         searchTerms.add(`${topicKeywords[i]} ${topicKeywords[j]}`);
+        for (let k = j + 1; k < maxCore; k++) {
+          searchTerms.add(`${topicKeywords[i]} ${topicKeywords[j]} ${topicKeywords[k]}`);
+        }
       }
+    }
+    const userWords = cleanUserQuery.split(/\s+/).filter((w) => w.length >= 2);
+    for (let i = 0; i <= userWords.length - 3; i++) {
+      searchTerms.add(`${userWords[i]} ${userWords[i + 1]} ${userWords[i + 2]}`);
     }
     for (const kw of topicKeywords.slice(0, 5)) {
       let stem = "";
@@ -4826,7 +4833,7 @@ async function searchAlUlamaFatwa(userQuery) {
       }
     } catch {
     }
-    const finalSearchTerms = Array.from(searchTerms).slice(0, 16);
+    const finalSearchTerms = Array.from(searchTerms).slice(0, 25);
     const fetchPromises = finalSearchTerms.map(async (term) => {
       const url = `https://alulama.org/wp-json/wp/v2/posts?search=${encodeURIComponent(term)}&per_page=15`;
       const controller = new AbortController();

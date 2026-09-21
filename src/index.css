@@ -1,5 +1,17 @@
+@import url('https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css');
 @import url('https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Scheherazade+New:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700;800&family=Noto+Nastaliq+Urdu:wght@400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
+
+@font-face {
+  font-family: 'Jameel Noori Nastaleeq';
+  src: url('https://cdn.jsdelivr.net/npm/jameel-noori/fonts/jameel-noori-nastaleeq4.woff2') format('woff2'),
+       local('Jameel Noori Nastaleeq'),
+       local('JameelNooriNastaliq'),
+       local('Jameel Noori Nastaleeq Kasheeda');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 @font-face {
   font-family: 'KFGQPC Uthman Taha Naskh';
@@ -32,8 +44,8 @@
 
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    background-color: #050c0a;
-    color: #f1f5f9;
+    background-color: #f8faf9;
+    color: #1e293b;
     -webkit-text-size-adjust: 100%;
     overscroll-behavior-y: none;
   }
@@ -45,14 +57,14 @@
 }
 
 .font-urdu {
-  font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', 'Scheherazade New', 'Amiri', 'Urdu Typesetting', 'Jameel Noori Nastaleeq', 'Segoe UI', system-ui, sans-serif;
-  line-height: 2.1;
+  font-family: 'Jameel Noori Nastaleeq', 'JameelNooriNastaliq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', 'Scheherazade New', 'Amiri', 'Urdu Typesetting', 'Segoe UI', system-ui, sans-serif;
+  line-height: 2.3;
   direction: rtl;
 }
 
 .font-urdu-ui {
-  font-family: 'Noto Naskh Arabic', 'Noto Nastaliq Urdu', 'Scheherazade New', 'Amiri', 'Segoe UI', system-ui, sans-serif;
-  line-height: 1.7;
+  font-family: 'Jameel Noori Nastaleeq', 'JameelNooriNastaliq', 'Noto Naskh Arabic', 'Noto Nastaliq Urdu', 'Scheherazade New', 'Amiri', 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.8;
   direction: rtl;
 }
 
@@ -127,10 +139,11 @@ p.font-urdu {
 
 /* Rich Markdown styling for Urdu & Arabic Islamic and Tech content */
 .markdown-urdu-content {
-  line-height: 2.1;
-  font-family: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', system-ui, sans-serif;
+  line-height: 2.3;
+  font-family: 'Jameel Noori Nastaleeq', 'JameelNooriNastaliq', 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', system-ui, sans-serif;
   direction: rtl;
   text-align: right;
+  color: #1e293b;
 }
 
 .markdown-urdu-content h1,
