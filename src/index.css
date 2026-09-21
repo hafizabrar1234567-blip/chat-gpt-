@@ -1,4 +1,3 @@
-@import url('https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css');
 @import url('https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Scheherazade+New:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700;800&family=Noto+Nastaliq+Urdu:wght@400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
@@ -60,21 +59,32 @@
   font-family: 'Jameel Noori Nastaleeq', 'JameelNooriNastaliq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', 'Scheherazade New', 'Amiri', 'Urdu Typesetting', 'Segoe UI', system-ui, sans-serif;
   line-height: 2.3;
   direction: rtl;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .font-urdu-ui {
   font-family: 'Jameel Noori Nastaleeq', 'JameelNooriNastaliq', 'Noto Naskh Arabic', 'Noto Nastaliq Urdu', 'Scheherazade New', 'Amiri', 'Segoe UI', system-ui, sans-serif;
   line-height: 1.8;
   direction: rtl;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .font-quran,
 .font-arabic,
-blockquote.font-arabic {
-  font-family: 'UthmanicHafs', 'KFGQPC Uthman Taha Naskh', 'Amiri Quran', 'Scheherazade New', 'Noto Naskh Arabic', 'Amiri', serif !important;
+.font-uthmani,
+blockquote.font-arabic,
+span.font-arabic,
+div.font-arabic,
+p.font-arabic,
+.arabic-text {
+  font-family: 'KFGQPC Uthman Taha Naskh', 'UthmanicHafs', 'Amiri Quran', 'Scheherazade New', 'Noto Naskh Arabic', 'Amiri', serif !important;
   direction: rtl;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.015em;
   font-feature-settings: "cv01" on, "cv02" on;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Mobile Sidebar Drawer Styling: Slide DOWN from Top */
@@ -114,18 +124,6 @@ button.font-urdu,
 span.font-urdu,
 p.font-urdu {
   overflow: visible;
-}
-
-/* Authentic Uthmani Quranic Typography (رسمِ عثمانی قرآنی خطاطی) */
-.font-arabic,
-.font-quran,
-.font-uthmani {
-  font-family: 'KFGQPC Uthman Taha Naskh', 'UthmanicHafs', 'Amiri Quran', 'Scheherazade New', 'Amiri', 'Noto Naskh Arabic', 'Traditional Arabic', serif;
-  direction: rtl;
-  text-align: center;
-  font-feature-settings: "cv01" on, "cv02" on;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Quran Ayat display container */

@@ -46,6 +46,84 @@ import {
   prepareHadithSpeechText,
 } from "../utils/quranAudioService";
 
+// Urdu vs Arabic separation logic
+const URDU_SPECIFIC_CHARS = /[\u0679\u0688\u0691\u06BA\u06D2\u06C1\u06BE\u0686\u067E\u06AF\u0698]/;
+const URDU_COMMON_WORDS = /(?:^|\s)(کا|کی|کے|کو|میں|سے|پر|ہے|ہیں|تھا|تھی|تھے|نے|اور|کہ|یہ|وہ|کر|ہو|گیا|فرمایا|مروی|انہوں|سنا)(?:$|\s)/;
+const ARABIC_OPENING_PHRASES = /^(الحمد\s*لله|والصلاة\s*والسلام|الصلاة\s*والسلام|بسم\s*الله|أشهد\s*أن|لا\s*إله\s*إلا\s*الله|سبحان\s*الله|أستغفر\s*الله|اللهم|ربنا|قال\s*رسول\s*الله|عن\s*أبي|عن\s*ابن|عن\s*عمر)/;
+const TASHKEEL_REGEX = /[\u064B-\u065F\u0670]/;
+
+export function renderFormattedIslamicText(node: React.ReactNode): React.ReactNode {
+  if (typeof node === "string") {
+    const trimmed = node.trim();
+    if (!trimmed) return node;
+
+    // Check if the whole string is an Arabic sentence or doxology
+    const isPureArabic =
+      !URDU_SPECIFIC_CHARS.test(trimmed) &&
+      !URDU_COMMON_WORDS.test(trimmed) &&
+      (ARABIC_OPENING_PHRASES.test(trimmed) || (TASHKEEL_REGEX.test(trimmed) && trimmed.length > 5));
+
+    if (isPureArabic) {
+      return (
+        <span
+          className="font-arabic font-quran text-emerald-950 font-normal inline-block text-[1.14em] leading-[2.4] tracking-wide"
+          dir="rtl"
+        >
+          {node}
+        </span>
+      );
+    }
+
+    // If it's a mixed string, extract bracketed Arabic («...» or ﴿...﴾)
+    // or sequences with Tashkeel or classic Arabic phrases
+    const ARABIC_SEGMENT_REGEX = /([«﴿][^»﴾\r\n]+[»﴾]|(?:الحمد\s+لله|والصلاة\s+والسلام|بسم\s+الله\s+الرحمن\s+الرحيم)[^\r\n.!؟]*[!؟.]?)/g;
+
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = ARABIC_SEGMENT_REGEX.exec(node)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(node.substring(lastIndex, match.index));
+      }
+      parts.push(
+        <span
+          key={`ar-${match.index}`}
+          className="font-arabic font-quran text-emerald-950 font-normal inline text-[1.12em] leading-[2.4] tracking-wide mx-0.5"
+          dir="rtl"
+        >
+          {match[0]}
+        </span>
+      );
+      lastIndex = ARABIC_SEGMENT_REGEX.lastIndex;
+    }
+
+    if (lastIndex === 0) {
+      return node;
+    }
+
+    if (lastIndex < node.length) {
+      parts.push(node.substring(lastIndex));
+    }
+
+    return parts;
+  }
+
+  if (Array.isArray(node)) {
+    return React.Children.map(node, (child) => renderFormattedIslamicText(child));
+  }
+
+  if (React.isValidElement(node) && (node.props as any)?.children) {
+    return React.cloneElement(
+      node,
+      undefined,
+      renderFormattedIslamicText((node.props as any).children)
+    );
+  }
+
+  return node;
+}
+
 // Context to prevent double-rendering inside nested blockquotes and paragraphs
 const InBlockquoteContext = React.createContext(false);
 
@@ -695,7 +773,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                   {/* Message Bubble */}
                   <div
                     dir="auto"
-                    className={`flex-1 rounded-3xl p-4 sm:p-5 transition-all text-sm leading-relaxed font-urdu select-text selection:bg-emerald-600 selection:text-white ${
+                    className={`flex-1 rounded-3xl p-4 sm:p-5 transition-all text-[17px] sm:text-[18.5px] leading-[2.2] sm:leading-[2.3] font-urdu select-text selection:bg-emerald-600 selection:text-white ${
                       isUser
                         ? "bg-[#eef7f2] border border-emerald-200/90 text-slate-800 shadow-xs"
                         : "bg-white border border-slate-200 text-slate-800 shadow-sm"
@@ -713,7 +791,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                     )}
 
                     {/* Markdown Body */}
-                    <div className="prose prose-emerald max-w-none font-urdu leading-loose text-slate-800 select-text">
+                    <div className="prose prose-emerald max-w-none font-urdu leading-[2.2] sm:leading-[2.3] text-[17px] sm:text-[18.5px] text-slate-800 select-text">
                       {msg.text ? (
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
@@ -725,8 +803,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                               return (
                                 <InBlockquoteContext.Provider value={true}>
                                   <div className="my-3.5 space-y-2">
-                                    <blockquote className="border border-emerald-200 border-r-4 border-r-emerald-600 pr-4 pl-4 py-3.5 text-emerald-950 bg-[#f0fdf4] rounded-2xl shadow-xs font-quran font-arabic text-base sm:text-xl leading-[2.6] select-text text-right tracking-wide">
-                                      {children}
+                                    <blockquote className="border border-emerald-200 border-r-4 border-r-emerald-600 pr-5 pl-4 py-4 text-emerald-950 bg-[#f0fdf4] rounded-2xl shadow-xs text-base sm:text-xl leading-[2.6] select-text text-right tracking-wide">
+                                      {renderFormattedIslamicText(children)}
                                     </blockquote>
 
                                     {/* Inline Ayah Audio Bar directly below the Ayah */}
@@ -750,13 +828,19 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                               );
                             },
                             h1: ({ children }) => (
-                              <h1 className="text-lg font-bold text-emerald-900 my-2 select-text">{children}</h1>
+                              <h1 className="text-[21px] sm:text-[23px] font-bold text-emerald-950 my-3 leading-[2] select-text">
+                                {renderFormattedIslamicText(children)}
+                              </h1>
                             ),
                             h2: ({ children }) => (
-                              <h2 className="text-base font-bold text-emerald-800 my-2 select-text">{children}</h2>
+                              <h2 className="text-[19px] sm:text-[21px] font-bold text-emerald-900 my-2.5 leading-[2.1] select-text">
+                                {renderFormattedIslamicText(children)}
+                              </h2>
                             ),
                             h3: ({ children }) => (
-                              <h3 className="text-sm font-bold text-emerald-800 my-1.5 select-text">{children}</h3>
+                              <h3 className="text-[17.5px] sm:text-[19px] font-bold text-emerald-850 my-2 leading-[2.2] select-text">
+                                {renderFormattedIslamicText(children)}
+                              </h3>
                             ),
                             p: ({ node, children }) => {
                               const inBlockquote = React.useContext(InBlockquoteContext);
@@ -765,7 +849,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
                               return (
                                 <div className="mb-2.5">
-                                  <p className="leading-loose select-text text-slate-800">{children}</p>
+                                  <p className="text-[17px] sm:text-[18.5px] leading-[2.2] sm:leading-[2.3] select-text text-slate-800 font-normal">
+                                    {renderFormattedIslamicText(children)}
+                                  </p>
                                   {ayah && (
                                     <InlineAyahAudio
                                       msgId={msg.id}
@@ -785,10 +871,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                               );
                             },
                             li: ({ children }) => (
-                              <li className="mb-1 select-text">{children}</li>
+                              <li className="mb-1.5 text-[17px] sm:text-[18.5px] leading-[2.2] sm:leading-[2.3] text-slate-800 select-text">
+                                {renderFormattedIslamicText(children)}
+                              </li>
                             ),
                             strong: ({ children }) => (
-                              <strong className="font-bold text-emerald-800 select-text">{children}</strong>
+                              <strong className="font-bold text-emerald-900 select-text">
+                                {renderFormattedIslamicText(children)}
+                              </strong>
                             ),
                             a: ({ href, children }) => {
                               const isAlUlama = href && (href.includes("alulama.org") || href.includes("al-ulama"));
