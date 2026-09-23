@@ -74,28 +74,45 @@ export function renderFormattedIslamicText(node: React.ReactNode): React.ReactNo
       );
     }
 
-    // If it's a mixed string, extract bracketed Arabic («...» or ﴿...﴾)
-    // or sequences with Tashkeel or classic Arabic phrases
-    const ARABIC_SEGMENT_REGEX = /([«﴿][^»﴾\r\n]+[»﴾]|(?:الحمد\s+لله|والصلاة\s+والسلام|بسم\s+الله\s+الرحمن\s+الرحيم)[^\r\n.!؟]*[!؟.]?)/g;
+    // Segment mixed text:
+    // 1. Bracketed Arabic («...» or ﴿...﴾)
+    // 2. Arabic doxologies (الحمد لله..., والصلاة والسلام..., بسم الله...)
+    // 3. English words & alphanumeric tokens (isolated so they never break in half)
+    const SEGMENT_REGEX = /([«﴿][^»﴾\r\n]+[»﴾]|(?:الحمد\s+لله|والصلاة\s+والسلام|بسم\s+الله\s+الرحمن\s+الرحيم)[^\r\n.!؟]*[!؟.]?|[A-Za-z0-9_.-]+(?:[ \t]+[A-Za-z0-9_.-]+)*)/g;
 
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
 
-    while ((match = ARABIC_SEGMENT_REGEX.exec(node)) !== null) {
+    while ((match = SEGMENT_REGEX.exec(node)) !== null) {
       if (match.index > lastIndex) {
         parts.push(node.substring(lastIndex, match.index));
       }
-      parts.push(
-        <span
-          key={`ar-${match.index}`}
-          className="font-arabic font-quran text-emerald-950 font-normal inline text-[1.12em] leading-[2.4] tracking-wide mx-0.5"
-          dir="rtl"
-        >
-          {match[0]}
-        </span>
-      );
-      lastIndex = ARABIC_SEGMENT_REGEX.lastIndex;
+      const token = match[0];
+      const isEnglish = /^[A-Za-z0-9_.\s-]+$/.test(token);
+
+      if (isEnglish) {
+        parts.push(
+          <bdi
+            key={`en-${match.index}`}
+            className="inline-block font-sans font-medium px-1 text-[0.92em] text-slate-900 whitespace-nowrap align-baseline"
+            dir="ltr"
+          >
+            {token}
+          </bdi>
+        );
+      } else {
+        parts.push(
+          <span
+            key={`ar-${match.index}`}
+            className="font-arabic font-quran text-emerald-950 font-normal inline text-[1.12em] leading-[2.4] tracking-wide mx-0.5"
+            dir="rtl"
+          >
+            {token}
+          </span>
+        );
+      }
+      lastIndex = SEGMENT_REGEX.lastIndex;
     }
 
     if (lastIndex === 0) {
@@ -713,7 +730,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       </header>
 
       {/* Main Conversation Stream */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-2.5 py-4 sm:px-6 sm:py-6 space-y-4 sm:space-y-6">
         {session.messages.length === 0 ? (
           /* EMPTY CHAT STATE */
           <div className="max-w-2xl mx-auto py-8 sm:py-12 text-center space-y-6">
@@ -751,57 +768,72 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           </div>
         ) : (
           /* MESSAGE THREAD */
-          <div className="max-w-3xl mx-auto space-y-6 pb-4">
+          <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6 pb-6">
             {session.messages.map((msg) => {
               const isUser = msg.sender === "user";
               const sections = !isUser && msg.text ? extractMessageSections(msg.text) : {};
 
               return (
-                <div
-                  key={msg.id}
-                  className={`flex gap-3.5 ${isUser ? "justify-start flex-row" : "justify-start flex-row"}`}
-                >
-                  {/* Avatar */}
-                  {!isUser ? (
-                    <IslamicLogo className="w-9 h-9 rounded-2xl shrink-0 mt-0.5 shadow-xs" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-700 border border-emerald-400/40 flex items-center justify-center text-white font-bold text-xs shrink-0 mt-0.5 shadow-xs">
-                      آپ
-                    </div>
-                  )}
-
-                  {/* Message Bubble */}
-                  <div
-                    dir="auto"
-                    className={`flex-1 rounded-3xl p-4 sm:p-5 transition-all text-[17px] sm:text-[18.5px] leading-[2.2] sm:leading-[2.3] font-urdu select-text selection:bg-emerald-600 selection:text-white ${
-                      isUser
-                        ? "bg-[#eef7f2] border border-emerald-200/90 text-slate-800 shadow-xs"
-                        : "bg-white border border-slate-200 text-slate-800 shadow-sm"
-                    }`}
-                  >
-                    {/* Attached Picture */}
-                    {msg.imageUrl && (
-                      <div className="mb-3 max-w-sm rounded-2xl overflow-hidden border border-emerald-500/50 shadow-xs">
-                        <img
-                          src={msg.imageUrl}
-                          alt="منسلک تصویر"
-                          className="w-full max-h-72 object-contain bg-slate-100 rounded-xl"
-                        />
+                <div key={msg.id} className="w-full">
+                  {isUser ? (
+                    /* User Question Bubble - Right-aligned, neat and distinct */
+                    <div className="flex items-start gap-2.5 max-w-[94%] sm:max-w-[85%] mr-auto my-1">
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-700 border border-emerald-400/40 flex items-center justify-center text-white font-bold text-xs shrink-0 mt-0.5 shadow-xs">
+                        آپ
                       </div>
-                    )}
+                      <div
+                        dir="auto"
+                        className="rounded-2xl px-4 py-2.5 sm:px-5 sm:py-3.5 bg-[#eef7f2] border border-emerald-200/90 text-slate-800 shadow-xs text-[16.5px] sm:text-[18px] leading-[2.1] font-urdu select-text"
+                      >
+                        {msg.imageUrl && (
+                          <div className="mb-2 max-w-xs rounded-xl overflow-hidden border border-emerald-500/50 shadow-xs">
+                            <img
+                              src={msg.imageUrl}
+                              alt="منسلک تصویر"
+                              className="w-full max-h-64 object-contain bg-slate-100 rounded-lg"
+                            />
+                          </div>
+                        )}
+                        <p className="select-text whitespace-pre-wrap">{msg.text}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Assistant Answer - FULL WIDTH across mobile screen, matching ChatGPT in Image 2 */
+                    <div className="w-full py-2 border-b border-slate-200/60 sm:border-0 pb-4 sm:pb-2 mb-2 sm:mb-0">
+                      {/* Assistant Identity Header */}
+                      <div className="flex items-center gap-2 mb-2.5 px-0.5">
+                        <IslamicLogo className="w-6 h-6 rounded-lg shrink-0 shadow-xs" />
+                        <span className="text-xs sm:text-sm font-bold text-emerald-950 font-urdu">
+                          اسلامی چیٹ جی پی ٹی
+                        </span>
+                      </div>
 
-                    {/* Markdown Body */}
-                    <div className="prose prose-emerald max-w-none font-urdu leading-[2.2] sm:leading-[2.3] text-[17px] sm:text-[18.5px] text-slate-800 select-text">
-                      {msg.text ? (
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            blockquote: ({ node, children }) => {
-                              const blockText = getNodeText(node);
-                              const ayah = detectQuranAyah(blockText);
+                      {/* Attached Picture */}
+                      {msg.imageUrl && (
+                        <div className="mb-3 max-w-sm rounded-2xl overflow-hidden border border-emerald-500/50 shadow-xs">
+                          <img
+                            src={msg.imageUrl}
+                            alt="منسلک تصویر"
+                            className="w-full max-h-72 object-contain bg-slate-100 rounded-xl"
+                          />
+                        </div>
+                      )}
 
-                              return (
-                                <InBlockquoteContext.Provider value={true}>
+                      {/* Markdown Body - Full width across screen */}
+                      <div
+                        dir="auto"
+                        className="w-full font-urdu leading-[2.2] sm:leading-[2.3] text-[16.5px] sm:text-[18px] text-slate-800 select-text px-0.5"
+                      >
+                        {msg.text ? (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              blockquote: ({ node, children }) => {
+                                const blockText = getNodeText(node);
+                                const ayah = detectQuranAyah(blockText);
+
+                                return (
+                                  <InBlockquoteContext.Provider value={true}>
                                   <div className="my-3.5 space-y-2">
                                     <blockquote className="border border-emerald-200 border-r-4 border-r-emerald-600 pr-5 pl-4 py-4 text-emerald-950 bg-[#f0fdf4] rounded-2xl shadow-xs text-base sm:text-xl leading-[2.6] select-text text-right tracking-wide">
                                       {renderFormattedIslamicText(children)}
@@ -1171,9 +1203,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
-              );
-            })}
+                )}
+              </div>
+            );
+          })}
 
             <div ref={messagesEndRef} />
           </div>
