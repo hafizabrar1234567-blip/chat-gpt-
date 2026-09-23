@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { UserAccount } from "../types";
+import { IslamicLogo } from "./IslamicLogo";
 import {
   localGoogleLogin,
   localRegister,
@@ -386,11 +387,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onClose,
       <div className="w-full max-w-md relative z-10 animate-fade-in my-auto space-y-3.5">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-emerald-400 p-0.5 mx-auto shadow-xl shadow-emerald-600/30 flex items-center justify-center">
-            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-2xl text-emerald-300 font-black">
-              🕌
-            </div>
-          </div>
+          <IslamicLogo className="w-14 h-14 mx-auto rounded-2xl shadow-xl shadow-emerald-600/30" />
           <div>
             <div className="flex items-center justify-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight font-sans">
