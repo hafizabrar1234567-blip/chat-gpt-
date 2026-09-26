@@ -553,10 +553,11 @@ export default function App() {
         onAskChat={handleSendMessage}
       />
 
-      {/* 5. Gemini AI Settings Modal */}
+      {/* 5. Settings Modal (Admin controls Gemini API Key, users control Qari) */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        currentUser={currentUser}
       />
 
       {/* 6. Favorites Modal */}

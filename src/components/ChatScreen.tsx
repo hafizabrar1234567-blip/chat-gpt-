@@ -706,12 +706,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             <Calendar className="w-4 h-4" />
           </button>
 
-          {/* AI Settings */}
+          {/* App Settings */}
           {onOpenSettings && (
             <button
               onClick={onOpenSettings}
               className="p-2 rounded-xl text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-200/80 bg-white active:scale-95 transition-all cursor-pointer shadow-xs"
-              title="Gemini AI سیٹنگز"
+              title="سیٹنگز"
             >
               <Settings2 className="w-4 h-4" />
             </button>

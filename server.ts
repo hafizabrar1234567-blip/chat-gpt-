@@ -276,7 +276,7 @@ app.post("/api/chat", async (req, res) => {
     const isStreamRequest = stream === true || req.headers.accept === "text/event-stream";
 
     if (!apiKey) {
-      const noKeyReply = "⚠️ **Gemini API Key درکار ہے:** اصلی لائیو AI ماڈل سے متحرک اور خودکار جواب حاصل کرنے کے لیے برائے مہربانی `.env` فائل میں اپنی `GEMINI_API_KEY` سیٹ کریں، یا سائیڈبار میں **'Gemini AI سیٹنگز'** بٹن پر کلک کر کے اپنی مفت Google AI Key درج فرمائیں۔";
+      const noKeyReply = "⚠️ **معذرت:** AI سروس سے رابطہ عارضی طور پر تعطل کا شکار ہے۔ براہ کرم کچھ دیر بعد دوبارہ کوشش فرمائیں۔";
       if (isStreamRequest) {
         res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
         res.setHeader("Cache-Control", "no-cache, no-transform");
