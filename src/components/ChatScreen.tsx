@@ -45,6 +45,7 @@ import {
   DetectedAyah,
   prepareHadithSpeechText,
 } from "../utils/quranAudioService";
+import { sanitizeUrduIslamicContent } from "../utils/textSanitizer";
 
 // Urdu vs Arabic separation logic
 const URDU_SPECIFIC_CHARS = /[\u0679\u0688\u0691\u06BA\u06D2\u06C1\u06BE\u0686\u067E\u06AF\u0698]/;
@@ -77,8 +78,8 @@ export function renderFormattedIslamicText(node: React.ReactNode): React.ReactNo
     // Segment mixed text:
     // 1. Bracketed Arabic («...» or ﴿...﴾)
     // 2. Arabic doxologies (الحمد لله..., والصلاة والسلام..., بسم الله...)
-    // 3. English words & alphanumeric tokens (isolated so they never break in half)
-    const SEGMENT_REGEX = /([«﴿][^»﴾\r\n]+[»﴾]|(?:الحمد\s+لله|والصلاة\s+والسلام|بسم\s+الله\s+الرحمن\s+الرحيم)[^\r\n.!؟]*[!؟.]?|[A-Za-z0-9_.-]+(?:[ \t]+[A-Za-z0-9_.-]+)*)/g;
+    // 3. English words & tokens (starting with English letter, isolated so they never break in half)
+    const SEGMENT_REGEX = /([«﴿][^»﴾\r\n]+[»﴾]|(?:الحمد\s+لله|والصلاة\s+والسلام|بسم\s+الله\s+الرحمن\s+الرحيم)[^\r\n.!؟]*[!؟.]?|[A-Za-z][A-Za-z0-9_.-]*(?:[ \t]+[A-Za-z0-9_.-]+)*)/g;
 
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
@@ -89,7 +90,7 @@ export function renderFormattedIslamicText(node: React.ReactNode): React.ReactNo
         parts.push(node.substring(lastIndex, match.index));
       }
       const token = match[0];
-      const isEnglish = /^[A-Za-z0-9_.\s-]+$/.test(token);
+      const isEnglish = /[A-Za-z]/.test(token);
 
       if (isEnglish) {
         parts.push(
@@ -794,7 +795,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                             />
                           </div>
                         )}
-                        <p className="select-text whitespace-pre-wrap">{msg.text}</p>
+                        <p className="select-text whitespace-pre-wrap">{sanitizeUrduIslamicContent(msg.text)}</p>
                       </div>
                     </div>
                   ) : (
@@ -941,7 +942,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                             },
                           }}
                         >
-                          {msg.text}
+                          {sanitizeUrduIslamicContent(msg.text)}
                         </ReactMarkdown>
                       ) : (
                         <div className="flex items-center gap-2 py-1 text-emerald-600 text-xs">

@@ -29,6 +29,7 @@ import {
   type AlUlamaFatwa,
 } from "./src/server/alUlamaService";
 import { generateSmartChatFallback } from "./src/server/smartChatEngine";
+import { sanitizeUrduIslamicContent } from "./src/utils/textSanitizer";
 import fs from "fs";
 
 // Ensure Node TLS handles local Windows certificate proxies cleanly
@@ -333,7 +334,11 @@ CRITICAL MANDATES & CARDINAL RULES:
        > **ترجمہ:** "[حافظ عبدالسلام بن محمد بھٹوی کا اردو ترجمہ]"
      * NEVER merge translation, source or citation text into the Arabic Ayah line!
      * Translation must always be on its own separate line preceded by **ترجمہ:**.
-     * Use EXCLUSIVELY the translation of **حافظ عبدالسلام بن محمد بھٹوی صاحب** (Hafiz Abdul Salam bin Muhammad Bhuttawi).
+      * Use EXCLUSIVELY the translation of **حافظ عبدالسلام بن محمد بھٹوی صاحب** (Hafiz Abdul Salam bin Muhammad Bhuttawi).
+      * STRICT NO-ENGLISH RULE FOR QURANIC VERSES:
+        - NEVER use English words, English letters, or transliterations in or beside Quranic verses!
+        - NEVER write "Surah", "Ayah", "Ayat", "Verse", "Quran", or English surah names (like "Al-Baqarah", "An-Nisa") anywhere!
+        - All Surah names and references MUST be written strictly in Arabic or Urdu, for example: [الفرقان: 74] or [سورۃ البقرۃ: 255].
 
 3. HADITH WITH QURAN EVIDENCE (قرآن اور حدیث دونوں کو ترجیح):
    - VERY IMPORTANT: If the user asks for guidance, advice, parenting, morals or rulings:
@@ -367,7 +372,13 @@ CRITICAL MANDATES & CARDINAL RULES:
      > **ترجمہ:** "[اردو ترجمہ]"
    - DO NOT output "**ماخذ: لجنۃ العلماء للإفتاء**" in general queries unless answering an official verified fatwa from alulama.org.
 
-6. NO GREETINGS WHEN QUESTIONS ARE ASKED:
+6. STANDARD PURE URDU DICTION & PROPER SPELLING (خالص شستہ اردو اور ہندی و ٹوٹے ہوئے الفاظ سے مکمل پرہیز):
+   - تمام گفتگو شستہ، فصیح، باوقار اور خالص ادبی اردو (معیاری پاکستانی و دہلوی روزمرہ) میں تحریر کریں۔
+   - ہندی کے مخصوص الفاظ (جیسے سمسیا، کوشٹ، پریوار، سمے، سفلتا، سنبندھ وغیرہ) ہرگز استعمال نہ کریں۔
+   - اردو مصادر اور افعال کے الفاظ کو توڑ کر نہ لکھیں (جیسے 'چھوڑ نا'، 'کر نا'، 'ہو نا'، 'دیکھ نا'، 'چھوڑ نے'، 'کر نے' وغیرہ شدید غلط املا ہیں)۔ ہمیشہ پیوست اور درست املا لکھیں جیسے: 'چھوڑنا'، 'کرنا'، 'ہونا'، 'دیکھنا'، 'چھوڑنے'، 'کرنے'، 'چھوڑنی'، 'کرنی'۔
+   - گفتگو میں انگریزی کے بے جا الفاظ نہ ملائیں، خالص اردو الفاظ استعمال کریں۔
+
+7. NO GREETINGS WHEN QUESTIONS ARE ASKED:
    - If the user asks ANY question, Shariah issue, or guidance, DO NOT output introductory greetings (like وعلیکم السلام). Go straight to the title and answer directly.`;
 
     if (alUlamaFatwa) {
@@ -534,8 +545,9 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
           });
 
           for await (const chunk of streamResult) {
-            const chunkText = chunk.text || "";
-            if (chunkText) {
+            const rawChunk = chunk.text || "";
+            if (rawChunk) {
+              const chunkText = sanitizeUrduIslamicContent(rawChunk);
               fullReply += chunkText;
               res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
               if ((res as any).flush) (res as any).flush();
@@ -566,6 +578,7 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
           const fallback = generateSmartChatFallback(message, searchResults);
           fullReply = fallback.reply;
         }
+        fullReply = sanitizeUrduIslamicContent(fullReply);
         res.write(`data: ${JSON.stringify({ chunk: fullReply })}\n\n`);
       }
 
@@ -581,6 +594,7 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
         res.write(`data: ${JSON.stringify({ chunk: extraLinks })}\n\n`);
       }
 
+      fullReply = sanitizeUrduIslamicContent(fullReply);
       res.write(
         `data: ${JSON.stringify({
           done: true,
@@ -636,6 +650,7 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       replyText += extraLinks;
     }
 
+    replyText = sanitizeUrduIslamicContent(replyText);
     return res.json({
       success: true,
       reply: replyText,

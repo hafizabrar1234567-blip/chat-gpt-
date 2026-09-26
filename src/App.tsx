@@ -9,6 +9,7 @@ import { FavoritesModal } from "./components/FavoritesModal";
 import { AuthScreen } from "./components/AuthScreen";
 import { LandingPage } from "./components/LandingPage";
 import { getLocalUserFromSession, clearLocalSession, saveLocalSession } from "./utils/localAuth";
+import { sanitizeUrduIslamicContent } from "./utils/textSanitizer";
 
 const SESSIONS_STORAGE_KEY = "islami_chat_sessions_v2";
 const LANG_STORAGE_KEY = "islami_chat_lang_v2";
@@ -366,9 +367,10 @@ export default function App() {
         }
 
         // Final sync of assistant message
-        const finalText =
+        const finalText = sanitizeUrduIslamicContent(
           accumulatedText.trim() ||
-          "معذرت، جواب تیار کرنے میں مسئلہ آیا۔ براہ کرم دوبارہ کوشش فرمائیں۔";
+          "معذرت، جواب تیار کرنے میں مسئلہ آیا۔ براہ کرم دوبارہ کوشش فرمائیں۔"
+        );
 
         setSessions((prev) =>
           prev.map((s) => {
@@ -389,9 +391,10 @@ export default function App() {
       } else {
         // Fallback for non-streaming response
         const data = await res.json();
-        const finalText =
+        const finalText = sanitizeUrduIslamicContent(
           data.reply ||
-          "معذرت، جواب تیار کرنے میں مسئلہ آیا۔ براہ کرم دوبارہ کوشش فرمائیں۔";
+          "معذرت، جواب تیار کرنے میں مسئلہ آیا۔ براہ کرم دوبارہ کوشش فرمائیں۔"
+        );
         const fetchedSource = data.alUlamaSource || null;
 
         setSessions((prev) =>

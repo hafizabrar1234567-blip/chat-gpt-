@@ -5475,6 +5475,529 @@ function generateSmartChatFallback(message, searchResults) {
   };
 }
 
+// src/utils/textSanitizer.ts
+var SURAH_NUMBER_TO_URDU = {
+  1: "\u0627\u0644\u0641\u0627\u062A\u062D\u06C1",
+  2: "\u0627\u0644\u0628\u0642\u0631\u06C3",
+  3: "\u0622\u0644 \u0639\u0645\u0631\u0627\u0646",
+  4: "\u0627\u0644\u0646\u0633\u0627\u0621",
+  5: "\u0627\u0644\u0645\u0627\u0626\u062F\u06C3",
+  6: "\u0627\u0644\u0627\u0646\u0639\u0627\u0645",
+  7: "\u0627\u0644\u0627\u0639\u0631\u0627\u0641",
+  8: "\u0627\u0644\u0627\u0646\u0641\u0627\u0644",
+  9: "\u0627\u0644\u062A\u0648\u0628\u06C3",
+  10: "\u06CC\u0648\u0646\u0633",
+  11: "\u06C1\u0648\u062F",
+  12: "\u06CC\u0648\u0633\u0641",
+  13: "\u0627\u0644\u0631\u0639\u062F",
+  14: "\u0627\u0628\u0631\u0627\u06C1\u06CC\u0645",
+  15: "\u0627\u0644\u062D\u062C\u0631",
+  16: "\u0627\u0644\u0646\u062D\u0644",
+  17: "\u0627\u0644\u0627\u0633\u0631\u0627\u0621",
+  18: "\u0627\u0644\u06A9\u06C1\u0641",
+  19: "\u0645\u0631\u06CC\u0645",
+  20: "\u0637\u0670\u06C1\u0670",
+  21: "\u0627\u0644\u0627\u0646\u0628\u06CC\u0627\u0621",
+  22: "\u0627\u0644\u062D\u062C",
+  23: "\u0627\u0644\u0645\u0624\u0645\u0646\u0648\u0646",
+  24: "\u0627\u0644\u0646\u0648\u0631",
+  25: "\u0627\u0644\u0641\u0631\u0642\u0627\u0646",
+  26: "\u0627\u0644\u0634\u0639\u0631\u0627\u0621",
+  27: "\u0627\u0644\u0646\u0645\u0644",
+  28: "\u0627\u0644\u0642\u0635\u0635",
+  29: "\u0627\u0644\u0639\u0646\u06A9\u0628\u0648\u062A",
+  30: "\u0627\u0644\u0631\u0648\u0645",
+  31: "\u0644\u0642\u0645\u0627\u0646",
+  32: "\u0627\u0644\u0633\u062C\u062F\u06C3",
+  33: "\u0627\u0644\u0627\u062D\u0632\u0627\u0628",
+  34: "\u0633\u0628\u0627",
+  35: "\u0641\u0627\u0637\u0631",
+  36: "\u06CC\u0670\u0633",
+  37: "\u0627\u0644\u0635\u0627\u0641\u0627\u062A",
+  38: "\u0635",
+  39: "\u0627\u0644\u0632\u0645\u0631",
+  40: "\u063A\u0627\u0641\u0631",
+  41: "\u0641\u0635\u0644\u062A",
+  42: "\u0627\u0644\u0634\u0648\u0631\u06CC\u0670",
+  43: "\u0627\u0644\u0632\u062E\u0631\u0641",
+  44: "\u0627\u0644\u062F\u062E\u0627\u0646",
+  45: "\u0627\u0644\u062C\u0627\u062B\u06CC\u06C1",
+  46: "\u0627\u0644\u0627\u062D\u0642\u0627\u0641",
+  47: "\u0645\u062D\u0645\u062F",
+  48: "\u0627\u0644\u0641\u062A\u062D",
+  49: "\u0627\u0644\u062D\u062C\u0631\u0627\u062A",
+  50: "\u0642",
+  51: "\u0627\u0644\u0630\u0627\u0631\u06CC\u0627\u062A",
+  52: "\u0627\u0644\u0637\u0648\u0631",
+  53: "\u0627\u0644\u0646\u062C\u0645",
+  54: "\u0627\u0644\u0642\u0645\u0631",
+  55: "\u0627\u0644\u0631\u062D\u0645\u0646",
+  56: "\u0627\u0644\u0648\u0627\u0642\u0639\u06C3",
+  57: "\u0627\u0644\u062D\u062F\u06CC\u062F",
+  58: "\u0627\u0644\u0645\u062C\u0627\u062F\u0644\u06C1",
+  59: "\u0627\u0644\u062D\u0634\u0631",
+  60: "\u0627\u0644\u0645\u0645\u062A\u062D\u0646\u06C1",
+  61: "\u0627\u0644\u0635\u0641",
+  62: "\u0627\u0644\u062C\u0645\u0639\u06C3",
+  63: "\u0627\u0644\u0645\u0646\u0627\u0641\u0642\u0648\u0646",
+  64: "\u0627\u0644\u062A\u063A\u0627\u0628\u0646",
+  65: "\u0627\u0644\u0637\u0644\u0627\u0642",
+  66: "\u0627\u0644\u062A\u062D\u0631\u06CC\u0645",
+  67: "\u0627\u0644\u0645\u0644\u06A9",
+  68: "\u0627\u0644\u0642\u0644\u0645",
+  69: "\u0627\u0644\u062D\u0627\u0642\u06C3",
+  70: "\u0627\u0644\u0645\u0639\u0627\u0631\u062C",
+  71: "\u0646\u0648\u062D",
+  72: "\u0627\u0644\u062C\u0646",
+  73: "\u0627\u0644\u0645\u0632\u0645\u0644",
+  74: "\u0627\u0644\u0645\u062F\u062B\u0631",
+  75: "\u0627\u0644\u0642\u06CC\u0627\u0645\u06C3",
+  76: "\u0627\u0644\u0627\u0646\u0633\u0627\u0646",
+  77: "\u0627\u0644\u0645\u0631\u0633\u0644\u0627\u062A",
+  78: "\u0627\u0644\u0646\u0628\u0623",
+  79: "\u0627\u0644\u0646\u0627\u0632\u0639\u0627\u062A",
+  80: "\u0639\u0628\u0633",
+  81: "\u0627\u0644\u062A\u06A9\u0648\u06CC\u0631",
+  82: "\u0627\u0644\u0627\u0646\u0641\u0637\u0627\u0631",
+  83: "\u0627\u0644\u0645\u0637\u0641\u0641\u06CC\u0646",
+  84: "\u0627\u0644\u0627\u0646\u0634\u0642\u0627\u0642",
+  85: "\u0627\u0644\u0628\u0631\u0648\u062C",
+  86: "\u0627\u0644\u0637\u0627\u0631\u0642",
+  87: "\u0627\u0644\u0627\u0639\u0644\u06CC\u0670",
+  88: "\u0627\u0644\u063A\u0627\u0634\u06CC\u06C3",
+  89: "\u0627\u0644\u0641\u062C\u0631",
+  90: "\u0627\u0644\u0628\u0644\u062F",
+  91: "\u0627\u0644\u0634\u0645\u0633",
+  92: "\u0627\u0644\u0644\u06CC\u0644",
+  93: "\u0627\u0644\u0636\u062D\u06CC\u0670",
+  94: "\u0627\u0644\u0627\u0646\u0634\u0631\u0627\u062D",
+  95: "\u0627\u0644\u062A\u06CC\u0646",
+  96: "\u0627\u0644\u0639\u0644\u0642",
+  97: "\u0627\u0644\u0642\u062F\u0631",
+  98: "\u0627\u0644\u0628\u06CC\u0646\u06C3",
+  99: "\u0627\u0644\u0632\u0644\u0632\u0644\u06C3",
+  100: "\u0627\u0644\u0639\u0627\u062F\u06CC\u0627\u062A",
+  101: "\u0627\u0644\u0642\u0627\u0631\u0639\u06C3",
+  102: "\u0627\u0644\u062A\u06A9\u0627\u062B\u0631",
+  103: "\u0627\u0644\u0639\u0635\u0631",
+  104: "\u0627\u0644\u06C1\u0645\u0632\u06C3",
+  105: "\u0627\u0644\u0641\u06CC\u0644",
+  106: "\u0642\u0631\u06CC\u0634",
+  107: "\u0627\u0644\u0645\u0627\u0639\u0648\u0646",
+  108: "\u0627\u0644\u06A9\u0648\u062B\u0631",
+  109: "\u0627\u0644\u06A9\u0627\u0641\u0631\u0648\u0646",
+  110: "\u0627\u0644\u0646\u0635\u0631",
+  111: "\u0627\u0644\u0645\u0633\u062F",
+  112: "\u0627\u0644\u0627\u062E\u0644\u0627\u0635",
+  113: "\u0627\u0644\u0641\u0644\u0642",
+  114: "\u0627\u0644\u0646\u0627\u0633"
+};
+var ENGLISH_SURAH_MAP = {
+  "fatiha": 1,
+  "fatihah": 1,
+  "al-fatiha": 1,
+  "al-fatihah": 1,
+  "baqarah": 2,
+  "baqara": 2,
+  "al-baqarah": 2,
+  "al-baqara": 2,
+  "imran": 3,
+  "ali-imran": 3,
+  "al-imran": 3,
+  "aal-imran": 3,
+  "nisa": 4,
+  "an-nisa": 4,
+  "an-nisaa": 4,
+  "nisaa": 4,
+  "maidah": 5,
+  "maida": 5,
+  "al-maidah": 5,
+  "al-maida": 5,
+  "anam": 6,
+  "al-anam": 6,
+  "araf": 7,
+  "al-araf": 7,
+  "al-a'raf": 7,
+  "anfal": 8,
+  "al-anfal": 8,
+  "tawbah": 9,
+  "taubah": 9,
+  "at-tawbah": 9,
+  "at-taubah": 9,
+  "yunus": 10,
+  "hud": 11,
+  "yusuf": 12,
+  "rad": 13,
+  "ar-rad": 13,
+  "ar-ra'd": 13,
+  "ibrahim": 14,
+  "hijr": 15,
+  "al-hijr": 15,
+  "nahl": 16,
+  "an-nahl": 16,
+  "isra": 17,
+  "al-isra": 17,
+  "bani-israel": 17,
+  "kahf": 18,
+  "al-kahf": 18,
+  "maryam": 19,
+  "taha": 20,
+  "ta-ha": 20,
+  "anbiya": 21,
+  "al-anbiya": 21,
+  "al-anbiyaa": 21,
+  "hajj": 22,
+  "al-hajj": 22,
+  "muminun": 23,
+  "al-muminun": 23,
+  "al-mu'minun": 23,
+  "noor": 24,
+  "an-noor": 24,
+  "an-nur": 24,
+  "nur": 24,
+  "furqan": 25,
+  "al-furqan": 25,
+  "shuara": 26,
+  "ash-shuara": 26,
+  "ash-shu'ara": 26,
+  "naml": 27,
+  "an-naml": 27,
+  "qasas": 28,
+  "al-qasas": 28,
+  "ankabut": 29,
+  "al-ankabut": 29,
+  "rum": 30,
+  "ar-rum": 30,
+  "luqman": 31,
+  "sajdah": 32,
+  "as-sajdah": 32,
+  "as-sajda": 32,
+  "ahzab": 33,
+  "al-ahzab": 33,
+  "saba": 34,
+  "fatir": 35,
+  "yasin": 36,
+  "yaseen": 36,
+  "ya-sin": 36,
+  "saffat": 37,
+  "as-saffat": 37,
+  "sad": 38,
+  "zumar": 39,
+  "az-zumar": 39,
+  "ghafir": 40,
+  "mumin": 40,
+  "fussilat": 41,
+  "shura": 42,
+  "ash-shura": 42,
+  "zukhruf": 43,
+  "az-zukhruf": 43,
+  "dukhan": 44,
+  "ad-dukhan": 44,
+  "jathiyah": 45,
+  "al-jathiyah": 45,
+  "ahqaf": 46,
+  "al-ahqaf": 46,
+  "muhammad": 47,
+  "fath": 48,
+  "al-fath": 48,
+  "hujurat": 49,
+  "al-hujurat: 49": 49,
+  "qaf": 50,
+  "dhariyat": 51,
+  "adh-dhariyat": 51,
+  "tur": 52,
+  "at-tur": 52,
+  "najm": 53,
+  "an-najm": 53,
+  "qamar": 54,
+  "al-qamar": 54,
+  "rahman": 55,
+  "ar-rahman": 55,
+  "waqiah": 56,
+  "al-waqiah": 56,
+  "al-waqi'ah": 56,
+  "hadid": 57,
+  "al-hadid": 57,
+  "mujadilah": 58,
+  "al-mujadilah": 58,
+  "al-mujadila": 58,
+  "hashr": 59,
+  "al-hashr": 59,
+  "mumtahanah": 60,
+  "al-mumtahanah": 60,
+  "saff": 61,
+  "as-saff": 61,
+  "jumah": 62,
+  "al-jumah": 62,
+  "al-jumu'ah": 62,
+  "munafiqun": 63,
+  "al-munafiqun": 63,
+  "taghabun": 64,
+  "at-taghabun": 64,
+  "talaq": 65,
+  "at-talaq": 65,
+  "tahrim": 66,
+  "at-tahrim": 66,
+  "mulk": 67,
+  "al-mulk": 67,
+  "qalam": 68,
+  "al-qalam": 68,
+  "haqqah": 69,
+  "al-haqqah": 69,
+  "maarij": 70,
+  "al-maarij": 70,
+  "al-ma'arij": 70,
+  "nuh": 71,
+  "jinn": 72,
+  "al-jinn": 72,
+  "muzzammil": 73,
+  "al-muzzammil": 73,
+  "muddathir": 74,
+  "al-muddathir": 74,
+  "qiyamah": 75,
+  "al-qiyamah": 75,
+  "insan": 76,
+  "al-insan": 76,
+  "dahr": 76,
+  "mursalat": 77,
+  "al-mursalat": 77,
+  "naba": 78,
+  "an-naba": 78,
+  "naziat": 79,
+  "an-naziat": 79,
+  "an-nazi'at": 79,
+  "abasa": 80,
+  "takwir": 81,
+  "at-takwir": 81,
+  "infitar": 82,
+  "al-infitar": 82,
+  "mutaffifin": 83,
+  "al-mutaffifin": 83,
+  "inshiqaq": 84,
+  "al-inshiqaq": 84,
+  "buruj": 85,
+  "al-buruj": 85,
+  "tariq": 86,
+  "at-tariq": 86,
+  "ala": 87,
+  "al-ala": 87,
+  "al-a'la": 87,
+  "ghashiyah": 88,
+  "al-ghashiyah": 88,
+  "fajr": 89,
+  "al-fajr": 89,
+  "balad": 90,
+  "al-balad": 90,
+  "shams": 91,
+  "ash-shams": 91,
+  "layl": 92,
+  "al-layl": 92,
+  "duha": 93,
+  "ad-duha": 93,
+  "sharh": 94,
+  "inshirah": 94,
+  "ash-sharh": 94,
+  "al-inshirah": 94,
+  "tin": 95,
+  "at-tin": 95,
+  "alaq": 96,
+  "al-alaq": 96,
+  "qadr": 97,
+  "al-qadr": 97,
+  "bayyinah": 98,
+  "al-bayyinah": 98,
+  "zalzalah": 99,
+  "az-zalzalah": 99,
+  "adiyat": 100,
+  "al-adiyat": 100,
+  "qariah": 101,
+  "al-qariah": 101,
+  "al-qari'ah": 101,
+  "takathur": 102,
+  "at-takathur": 102,
+  "asr": 103,
+  "al-asr": 103,
+  "humazah": 104,
+  "al-humazah": 104,
+  "fil": 105,
+  "feel": 105,
+  "al-fil": 105,
+  "al-feel": 105,
+  "quraysh": 106,
+  "maun": 107,
+  "al-maun": 107,
+  "al-ma'un": 107,
+  "kawthar": 108,
+  "al-kawthar": 108,
+  "kafirun": 109,
+  "al-kafirun": 109,
+  "nasr": 110,
+  "an-nasr": 110,
+  "masad": 111,
+  "al-masad": 111,
+  "lahab": 111,
+  "ikhlas": 112,
+  "al-ikhlas": 112,
+  "falaq": 113,
+  "al-falaq": 113,
+  "nas": 114,
+  "an-nas": 114
+};
+var VERB_STEMS = [
+  "\u0686\u06BE\u0648\u0691",
+  "\u06A9\u0631",
+  "\u06C1\u0648",
+  "\u062F\u06CC\u06A9\u06BE",
+  "\u06A9\u06C1",
+  "\u0633\u0646",
+  "\u0644\u06A9\u06BE",
+  "\u067E\u0691\u06BE",
+  "\u0628\u06CC\u0679\u06BE",
+  "\u0627\u0679\u06BE",
+  "\u0631\u0648\u06A9",
+  "\u0679\u0648\u06A9",
+  "\u0645\u0627\u0646",
+  "\u062C\u0627\u0646",
+  "\u0633\u0645\u062C\u06BE",
+  "\u0633\u06CC\u06A9\u06BE",
+  "\u0633\u06A9\u06BE\u0627",
+  "\u0628\u062A\u0627",
+  "\u067E\u0648\u0686\u06BE",
+  "\u0688\u06BE\u0648\u0646\u0688",
+  "\u0645\u0627\u0646\u06AF",
+  "\u0628\u0686",
+  "\u0646\u0628\u06BE\u0627",
+  "\u0686\u0627\u06C1",
+  "\u0645\u0644",
+  "\u06A9\u06BE\u0648",
+  "\u067E\u0627",
+  "\u0686\u0644",
+  "\u0628\u0648\u0644",
+  "\u0628\u0691\u06BE",
+  "\u0644\u0691",
+  "\u062C\u0648\u0691",
+  "\u062A\u0648\u0691",
+  "\u0631\u06A9\u06BE",
+  "\u067E\u06C1\u0646\u0686",
+  "\u0633\u062F\u06BE\u0627\u0631",
+  "\u0633\u0646\u0648\u0627\u0631",
+  "\u0688\u0627\u0644",
+  "\u0646\u06A9\u0627\u0644",
+  "\u0633\u0646\u0628\u06BE\u0627\u0644",
+  "\u067E\u06BE\u06CC\u0644\u0627",
+  "\u062F\u06BE\u0648",
+  "\u0628\u0646\u0627",
+  "\u062F\u06A9\u06BE\u0627",
+  "\u0645\u0679\u0627",
+  "\u0628\u062C\u06BE\u0627",
+  "\u062C\u0644\u0627",
+  "\u062A\u06BE\u0627\u0645",
+  "\u062C\u0627\u06AF",
+  "\u0628\u06BE\u0627\u06AF",
+  "\u0628\u0627\u0646\u0679",
+  "\u06A9\u0627\u0679",
+  "\u0644\u0648\u0679",
+  "\u0686\u06BE\u067E",
+  "\u062C\u06BE\u06A9",
+  "\u0686\u067E\u06A9",
+  "\u0686\u0645\u0679",
+  "\u0644\u067E\u0679",
+  "\u0633\u0645\u0679",
+  "\u0633\u0648",
+  "\u0631\u0648",
+  "\u067E\u06CC",
+  "\u06A9\u06BE\u0627",
+  "\u0631\u06C1",
+  "\u0633\u06C1",
+  "\u0633\u06C1\u06C1",
+  "\u0628\u06C1",
+  "\u0628\u06C1\u06C1"
+];
+var UB_L = "(?<=^|[^\\p{L}\\p{M}])";
+var UB_R = "(?=[^\\p{L}\\p{M}]|$)";
+var VERB_STEMS_REGEX = new RegExp(
+  `${UB_L}(${VERB_STEMS.join("|")})\\s+(\u0646\u0627|\u0646\u06D2|\u0646\u06CC)${UB_R}`,
+  "gu"
+);
+function sanitizeUrduIslamicContent(rawText) {
+  if (!rawText || typeof rawText !== "string") return rawText;
+  let text = rawText;
+  text = text.replace(new RegExp(`${UB_L}\u06A9\u06C1\u06C1\\s+\u0646\u0627${UB_R}`, "gu"), "\u06A9\u06C1\u0646\u0627");
+  text = text.replace(new RegExp(`${UB_L}\u06A9\u06C1\u06C1\\s+\u0646\u06D2${UB_R}`, "gu"), "\u06A9\u06C1\u0646\u06D2");
+  text = text.replace(new RegExp(`${UB_L}\u06A9\u06C1\u06C1\\s+\u0646\u06CC${UB_R}`, "gu"), "\u06A9\u06C1\u0646\u06CC");
+  text = text.replace(VERB_STEMS_REGEX, "$1$2");
+  text = text.replace(
+    new RegExp(
+      `${UB_L}([\\p{L}\\p{M}]{2,})\\s+\u0646\u0627\\s+(\u0686\u0627\u06C1\u06CC\u06D2|\u0686\u0627\u06C1\u0626\u06CC\u06BA|\u067E\u0691\u06D2|\u067E\u0691\u0627|\u067E\u0691\u06CC|\u06C1\u0648\u06AF\u0627|\u06C1\u0648\u06AF\u06CC|\u062A\u06BE\u0627|\u062A\u06BE\u06CC|\u062A\u06BE\u06D2)${UB_R}`,
+      "gu"
+    ),
+    "$1\u0646\u0627 $2"
+  );
+  text = text.replace(
+    new RegExp(
+      `${UB_L}([\\p{L}\\p{M}]{2,})\\s+\u0646\u06D2\\s+(\u06A9\u06D2\\s+\u0644\u06CC\u06D2|\u06A9\u06CC\\s+\u062E\u0627\u0637\u0631|\u0633\u06D2\\s+\u067E\u06C1\u0644\u06D2|\u06A9\u06D2\\s+\u0628\u0639\u062F|\u06A9\u0627\\s+\u0627\u0631\u0627\u062F\u06C1|\u06A9\u06CC\\s+\u06A9\u0648\u0634\u0634|\u06A9\u06CC\\s+\u0636\u0631\u0648\u0631\u062A|\u0648\u0627\u0644\u0627|\u0648\u0627\u0644\u06CC|\u0648\u0627\u0644\u06D2)${UB_R}`,
+      "gu"
+    ),
+    "$1\u0646\u06D2 $2"
+  );
+  text = text.replace(new RegExp(`${UB_L}\u0633\u0645\u0633\u06CC\u0627${UB_R}`, "gu"), "\u0645\u0633\u0626\u0644\u06C1");
+  text = text.replace(new RegExp(`${UB_L}\u0633\u0645\u0633\u06CC\u0627\u0624\u06BA${UB_R}`, "gu"), "\u0645\u0633\u0627\u0626\u0644");
+  text = text.replace(new RegExp(`${UB_L}\u0633\u0645\u0633\u06CC\u0627\u0626\u06CC\u06BA${UB_R}`, "gu"), "\u0645\u0633\u0627\u0626\u0644");
+  text = text.replace(new RegExp(`${UB_L}(?:\u06A9\u0648\u0634\u0679|\u06A9\u0634\u062A)${UB_R}`, "gu"), "\u062A\u06A9\u0644\u06CC\u0641");
+  text = text.replace(new RegExp(`${UB_L}\u0633\u0641\u0644\u062A\u0627${UB_R}`, "gu"), "\u06A9\u0627\u0645\u06CC\u0627\u0628\u06CC");
+  text = text.replace(new RegExp(`${UB_L}\u0633\u0641\u0644${UB_R}`, "gu"), "\u06A9\u0627\u0645\u06CC\u0627\u0628");
+  text = text.replace(new RegExp(`${UB_L}\u067E\u0631\u06CC\u0648\u0627\u0631${UB_R}`, "gu"), "\u062E\u0627\u0646\u062F\u0627\u0646");
+  text = text.replace(new RegExp(`${UB_L}\u067E\u0631\u06CC\u0648\u0627\u0631\u0648\u06BA${UB_R}`, "gu"), "\u062E\u0627\u0646\u062F\u0627\u0646\u0648\u06BA");
+  text = text.replace(new RegExp(`${UB_L}(?:\u0633\u0645\u0628\u0646\u062F\u06BE|\u0633\u0646\u0628\u0646\u062F\u06BE)${UB_R}`, "gu"), "\u062A\u0639\u0644\u0642");
+  text = text.replace(new RegExp(`${UB_L}(?:\u0633\u0645\u0628\u0646\u062F\u06BE\u0648\u06BA|\u0633\u0646\u0628\u0646\u062F\u06BE\u0648\u06BA)${UB_R}`, "gu"), "\u062A\u0639\u0644\u0642\u0627\u062A");
+  text = text.replace(new RegExp(`${UB_L}\u0634\u062A\u0631\u0648${UB_R}`, "gu"), "\u062F\u0634\u0645\u0646");
+  text = text.replace(new RegExp(`${UB_L}\u0634\u062A\u0631\u0648\u0624\u06BA${UB_R}`, "gu"), "\u062F\u0634\u0645\u0646\u0648\u06BA");
+  text = text.replace(new RegExp(`${UB_L}\u0645\u062A\u0631${UB_R}`, "gu"), "\u062F\u0648\u0633\u062A");
+  text = text.replace(new RegExp(`${UB_L}\u0645\u062A\u0631\u0648\u06BA${UB_R}`, "gu"), "\u062F\u0648\u0633\u062A\u0648\u06BA");
+  text = text.replace(new RegExp(`${UB_L}\u06CC\u0648\u06AF\u062F\u0627\u0646${UB_R}`, "gu"), "\u06A9\u0631\u062F\u0627\u0631");
+  text = text.replace(new RegExp(`${UB_L}\u0633\u0631\u0648\u067E\u0631\u062A\u06BE\u0645${UB_R}`, "gu"), "\u0633\u0628 \u0633\u06D2 \u067E\u06C1\u0644\u06D2");
+  text = text.replace(new RegExp(`${UB_L}\u0627\u0648\u0634\u06CC\u06A9${UB_R}`, "gu"), "\u0636\u0631\u0648\u0631\u06CC");
+  text = text.replace(new RegExp(`${UB_L}\u0627\u0646\u0648\u06A9\u0644${UB_R}`, "gu"), "\u0645\u0646\u0627\u0633\u0628");
+  text = text.replace(
+    /[\[\(](?:Surah|Surat|Sura)?\s*([A-Za-z'-]+(?:\s+[A-Za-z'-]+)?)\s*[,:\s]+\s*(?:Ayah|Ayat|Verse)?\s*(\d+)[\]\)]/gi,
+    (match, englishSurah, ayahNum) => {
+      const cleanKey = englishSurah.toLowerCase().replace(/['\s-]/g, "");
+      for (const [key, num] of Object.entries(ENGLISH_SURAH_MAP)) {
+        if (cleanKey === key.replace(/['\s-]/g, "")) {
+          const urduName = SURAH_NUMBER_TO_URDU[num] || englishSurah;
+          return `[\u0633\u0648\u0631\u06C3 ${urduName}: ${ayahNum}]`;
+        }
+      }
+      return match;
+    }
+  );
+  text = text.replace(
+    /[\[\(](?:Surah|Surat|Quran|Qur'an)?\s*(\d+)\s*[:：]\s*(\d+)[\]\)]/gi,
+    (match, surahNumStr, ayahNum) => {
+      const sNum = parseInt(surahNumStr, 10);
+      if (sNum >= 1 && sNum <= 114) {
+        const urduName = SURAH_NUMBER_TO_URDU[sNum];
+        return `[\u0633\u0648\u0631\u06C3 ${urduName}: ${ayahNum}]`;
+      }
+      return match;
+    }
+  );
+  text = text.replace(
+    /(>\s*﴿[^﴾]+﴾)\s*(?:Surah|Surat)?\s*([A-Za-z'-]+(?:\s+[A-Za-z'-]+)?)\s*[:：]\s*(\d+)/gi,
+    (match, ayahPart, englishSurah, ayahNum) => {
+      const cleanKey = englishSurah.toLowerCase().replace(/['\s-]/g, "");
+      for (const [key, num] of Object.entries(ENGLISH_SURAH_MAP)) {
+        if (cleanKey === key.replace(/['\s-]/g, "")) {
+          const urduName = SURAH_NUMBER_TO_URDU[num] || englishSurah;
+          return `${ayahPart} [\u0633\u0648\u0631\u06C3 ${urduName}: ${ayahNum}]`;
+        }
+      }
+      return match;
+    }
+  );
+  return text;
+}
+
 // server.ts
 import fs3 from "fs";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -5725,7 +6248,11 @@ CRITICAL MANDATES & CARDINAL RULES:
        > **\u062A\u0631\u062C\u0645\u06C1:** "[\u062D\u0627\u0641\u0638 \u0639\u0628\u062F\u0627\u0644\u0633\u0644\u0627\u0645 \u0628\u0646 \u0645\u062D\u0645\u062F \u0628\u06BE\u0679\u0648\u06CC \u06A9\u0627 \u0627\u0631\u062F\u0648 \u062A\u0631\u062C\u0645\u06C1]"
      * NEVER merge translation, source or citation text into the Arabic Ayah line!
      * Translation must always be on its own separate line preceded by **\u062A\u0631\u062C\u0645\u06C1:**.
-     * Use EXCLUSIVELY the translation of **\u062D\u0627\u0641\u0638 \u0639\u0628\u062F\u0627\u0644\u0633\u0644\u0627\u0645 \u0628\u0646 \u0645\u062D\u0645\u062F \u0628\u06BE\u0679\u0648\u06CC \u0635\u0627\u062D\u0628** (Hafiz Abdul Salam bin Muhammad Bhuttawi).
+      * Use EXCLUSIVELY the translation of **\u062D\u0627\u0641\u0638 \u0639\u0628\u062F\u0627\u0644\u0633\u0644\u0627\u0645 \u0628\u0646 \u0645\u062D\u0645\u062F \u0628\u06BE\u0679\u0648\u06CC \u0635\u0627\u062D\u0628** (Hafiz Abdul Salam bin Muhammad Bhuttawi).
+      * STRICT NO-ENGLISH RULE FOR QURANIC VERSES:
+        - NEVER use English words, English letters, or transliterations in or beside Quranic verses!
+        - NEVER write "Surah", "Ayah", "Ayat", "Verse", "Quran", or English surah names (like "Al-Baqarah", "An-Nisa") anywhere!
+        - All Surah names and references MUST be written strictly in Arabic or Urdu, for example: [\u0627\u0644\u0641\u0631\u0642\u0627\u0646: 74] or [\u0633\u0648\u0631\u06C3 \u0627\u0644\u0628\u0642\u0631\u06C3: 255].
 
 3. HADITH WITH QURAN EVIDENCE (\u0642\u0631\u0622\u0646 \u0627\u0648\u0631 \u062D\u062F\u06CC\u062B \u062F\u0648\u0646\u0648\u06BA \u06A9\u0648 \u062A\u0631\u062C\u06CC\u062D):
    - VERY IMPORTANT: If the user asks for guidance, advice, parenting, morals or rulings:
@@ -5759,7 +6286,13 @@ CRITICAL MANDATES & CARDINAL RULES:
      > **\u062A\u0631\u062C\u0645\u06C1:** "[\u0627\u0631\u062F\u0648 \u062A\u0631\u062C\u0645\u06C1]"
    - DO NOT output "**\u0645\u0627\u062E\u0630: \u0644\u062C\u0646\u06C3 \u0627\u0644\u0639\u0644\u0645\u0627\u0621 \u0644\u0644\u0625\u0641\u062A\u0627\u0621**" in general queries unless answering an official verified fatwa from alulama.org.
 
-6. NO GREETINGS WHEN QUESTIONS ARE ASKED:
+6. STANDARD PURE URDU DICTION & PROPER SPELLING (\u062E\u0627\u0644\u0635 \u0634\u0633\u062A\u06C1 \u0627\u0631\u062F\u0648 \u0627\u0648\u0631 \u06C1\u0646\u062F\u06CC \u0648 \u0679\u0648\u0679\u06D2 \u06C1\u0648\u0626\u06D2 \u0627\u0644\u0641\u0627\u0638 \u0633\u06D2 \u0645\u06A9\u0645\u0644 \u067E\u0631\u06C1\u06CC\u0632):
+   - \u062A\u0645\u0627\u0645 \u06AF\u0641\u062A\u06AF\u0648 \u0634\u0633\u062A\u06C1\u060C \u0641\u0635\u06CC\u062D\u060C \u0628\u0627\u0648\u0642\u0627\u0631 \u0627\u0648\u0631 \u062E\u0627\u0644\u0635 \u0627\u062F\u0628\u06CC \u0627\u0631\u062F\u0648 (\u0645\u0639\u06CC\u0627\u0631\u06CC \u067E\u0627\u06A9\u0633\u062A\u0627\u0646\u06CC \u0648 \u062F\u06C1\u0644\u0648\u06CC \u0631\u0648\u0632\u0645\u0631\u06C1) \u0645\u06CC\u06BA \u062A\u062D\u0631\u06CC\u0631 \u06A9\u0631\u06CC\u06BA\u06D4
+   - \u06C1\u0646\u062F\u06CC \u06A9\u06D2 \u0645\u062E\u0635\u0648\u0635 \u0627\u0644\u0641\u0627\u0638 (\u062C\u06CC\u0633\u06D2 \u0633\u0645\u0633\u06CC\u0627\u060C \u06A9\u0648\u0634\u0679\u060C \u067E\u0631\u06CC\u0648\u0627\u0631\u060C \u0633\u0645\u06D2\u060C \u0633\u0641\u0644\u062A\u0627\u060C \u0633\u0646\u0628\u0646\u062F\u06BE \u0648\u063A\u06CC\u0631\u06C1) \u06C1\u0631\u06AF\u0632 \u0627\u0633\u062A\u0639\u0645\u0627\u0644 \u0646\u06C1 \u06A9\u0631\u06CC\u06BA\u06D4
+   - \u0627\u0631\u062F\u0648 \u0645\u0635\u0627\u062F\u0631 \u0627\u0648\u0631 \u0627\u0641\u0639\u0627\u0644 \u06A9\u06D2 \u0627\u0644\u0641\u0627\u0638 \u06A9\u0648 \u062A\u0648\u0691 \u06A9\u0631 \u0646\u06C1 \u0644\u06A9\u06BE\u06CC\u06BA (\u062C\u06CC\u0633\u06D2 '\u0686\u06BE\u0648\u0691 \u0646\u0627'\u060C '\u06A9\u0631 \u0646\u0627'\u060C '\u06C1\u0648 \u0646\u0627'\u060C '\u062F\u06CC\u06A9\u06BE \u0646\u0627'\u060C '\u0686\u06BE\u0648\u0691 \u0646\u06D2'\u060C '\u06A9\u0631 \u0646\u06D2' \u0648\u063A\u06CC\u0631\u06C1 \u0634\u062F\u06CC\u062F \u063A\u0644\u0637 \u0627\u0645\u0644\u0627 \u06C1\u06CC\u06BA)\u06D4 \u06C1\u0645\u06CC\u0634\u06C1 \u067E\u06CC\u0648\u0633\u062A \u0627\u0648\u0631 \u062F\u0631\u0633\u062A \u0627\u0645\u0644\u0627 \u0644\u06A9\u06BE\u06CC\u06BA \u062C\u06CC\u0633\u06D2: '\u0686\u06BE\u0648\u0691\u0646\u0627'\u060C '\u06A9\u0631\u0646\u0627'\u060C '\u06C1\u0648\u0646\u0627'\u060C '\u062F\u06CC\u06A9\u06BE\u0646\u0627'\u060C '\u0686\u06BE\u0648\u0691\u0646\u06D2'\u060C '\u06A9\u0631\u0646\u06D2'\u060C '\u0686\u06BE\u0648\u0691\u0646\u06CC'\u060C '\u06A9\u0631\u0646\u06CC'\u06D4
+   - \u06AF\u0641\u062A\u06AF\u0648 \u0645\u06CC\u06BA \u0627\u0646\u06AF\u0631\u06CC\u0632\u06CC \u06A9\u06D2 \u0628\u06D2 \u062C\u0627 \u0627\u0644\u0641\u0627\u0638 \u0646\u06C1 \u0645\u0644\u0627\u0626\u06CC\u06BA\u060C \u062E\u0627\u0644\u0635 \u0627\u0631\u062F\u0648 \u0627\u0644\u0641\u0627\u0638 \u0627\u0633\u062A\u0639\u0645\u0627\u0644 \u06A9\u0631\u06CC\u06BA\u06D4
+
+7. NO GREETINGS WHEN QUESTIONS ARE ASKED:
    - If the user asks ANY question, Shariah issue, or guidance, DO NOT output introductory greetings (like \u0648\u0639\u0644\u06CC\u06A9\u0645 \u0627\u0644\u0633\u0644\u0627\u0645). Go straight to the title and answer directly.`;
     if (alUlamaFatwa) {
       systemInstruction += `
@@ -5912,8 +6445,9 @@ ${cleanA}
             config
           });
           for await (const chunk of streamResult) {
-            const chunkText2 = chunk.text || "";
-            if (chunkText2) {
+            const rawChunk = chunk.text || "";
+            if (rawChunk) {
+              const chunkText2 = sanitizeUrduIslamicContent(rawChunk);
               fullReply += chunkText2;
               res.write(`data: ${JSON.stringify({ chunk: chunkText2 })}
 
@@ -5945,6 +6479,7 @@ ${cleanA}
           const fallback = generateSmartChatFallback(message, searchResults);
           fullReply = fallback.reply;
         }
+        fullReply = sanitizeUrduIslamicContent(fullReply);
         res.write(`data: ${JSON.stringify({ chunk: fullReply })}
 
 `);
@@ -5973,6 +6508,7 @@ ${cleanA}
 
 `);
       }
+      fullReply = sanitizeUrduIslamicContent(fullReply);
       res.write(
         `data: ${JSON.stringify({
           done: true,
@@ -6031,6 +6567,7 @@ ${cleanA}
 * [\u0627\u0633\u0644\u0627\u0645\u06CC \u0686\u06CC\u0679 \u062C\u06CC \u067E\u06CC \u0679\u06CC \u0627\u06CC\u067E](${appUrl})`;
       replyText += extraLinks;
     }
+    replyText = sanitizeUrduIslamicContent(replyText);
     return res.json({
       success: true,
       reply: replyText,
