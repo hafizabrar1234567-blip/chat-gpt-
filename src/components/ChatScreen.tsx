@@ -258,6 +258,9 @@ interface ChatScreenProps {
   onOpenSettings?: () => void;
   isSidebarOpen?: boolean;
   onOpenHome?: () => void;
+  currentUser?: UserAccount | null;
+  guestQuestionsRemaining?: number;
+  onOpenAuth?: () => void;
 }
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({
@@ -276,6 +279,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   onOpenSettings,
   isSidebarOpen = false,
   onOpenHome,
+  currentUser,
+  guestQuestionsRemaining,
+  onOpenAuth,
 }) => {
   const [inputText, setInputText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -391,6 +397,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!inputText.trim() && !selectedImage) || isLoading) return;
+
+    // If user is guest and has asked 3 questions, prompt login
+    if (!currentUser && guestQuestionsRemaining !== undefined && guestQuestionsRemaining <= 0) {
+      onOpenAuth?.();
+      return;
+    }
+
     const text = inputText.trim();
     const image = selectedImage;
     setInputText("");
@@ -1301,9 +1314,28 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             </button>
           </div>
 
-          <p className="text-center text-[10px] sm:text-[11px] text-slate-500 font-urdu mt-1.5 leading-tight">
-            اسلامی چیٹ جی پی ٹی مستند اسلامی کتب اور AI ماڈل پر مبنی ہے۔
-          </p>
+          <div className="flex items-center justify-between gap-2 mt-1.5 px-1 text-[10px] sm:text-[11px] font-urdu text-slate-500">
+            {!currentUser && guestQuestionsRemaining !== undefined && (
+              <button
+                type="button"
+                onClick={onOpenAuth}
+                className={`px-2.5 py-0.5 rounded-full font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  guestQuestionsRemaining > 0
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100"
+                    : "bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 animate-pulse"
+                }`}
+              >
+                <span>
+                  {guestQuestionsRemaining > 0
+                    ? `مفت سوالات: 3 میں سے ${guestQuestionsRemaining} باقی`
+                    : "3 مفت سوالات کی حد مکمل — جاری رکھنے کے لیے لاگ ان کریں"}
+                </span>
+              </button>
+            )}
+            <p className="mr-auto text-left text-[10px] text-slate-400">
+              اسلامی چیٹ جی پی ٹی مستند اسلامی کتب اور AI ماڈل پر مبنی ہے۔
+            </p>
+          </div>
         </form>
       </div>
     </div>

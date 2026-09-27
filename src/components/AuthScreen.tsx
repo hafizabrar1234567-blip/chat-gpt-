@@ -27,9 +27,15 @@ interface AuthScreenProps {
   onLoginSuccess: (token: string, user: UserAccount) => void;
   onClose?: () => void;
   isModal?: boolean;
+  initialNotice?: string | null;
 }
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onClose, isModal = false }) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({
+  onLoginSuccess,
+  onClose,
+  isModal = false,
+  initialNotice = null,
+}) => {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -410,6 +416,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onClose,
             authLang === "english" ? "text-left font-sans" : "text-right font-urdu"
           }`}
         >
+          {/* Guest Limit Reached Notice Banner */}
+          {initialNotice && (
+            <div className="p-3.5 bg-amber-500/15 border border-amber-500/40 rounded-2xl flex items-start gap-2.5 text-xs text-amber-200 font-urdu leading-relaxed shadow-lg">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <span>{initialNotice}</span>
+            </div>
+          )}
+
           {/* Language Switcher Selector Bar */}
           <div dir="ltr" className="flex items-center justify-between gap-2 bg-slate-950/80 p-2 rounded-2xl border border-slate-800">
               <span className="text-[11px] font-extrabold text-slate-400 flex items-center gap-1">

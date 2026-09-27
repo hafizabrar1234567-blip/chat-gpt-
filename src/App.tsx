@@ -13,6 +13,17 @@ import { sanitizeUrduIslamicContent } from "./utils/textSanitizer";
 
 const SESSIONS_STORAGE_KEY = "islami_chat_sessions_v2";
 const LANG_STORAGE_KEY = "islami_chat_lang_v2";
+const GUEST_USAGE_KEY = "islami_guest_questions_count";
+const GUEST_MAX_QUESTIONS = 3;
+
+function getGuestQuestionsCount(): number {
+  try {
+    const val = localStorage.getItem(GUEST_USAGE_KEY);
+    return val ? parseInt(val, 10) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
 
 export default function App() {
   // 1. Language state
@@ -84,6 +95,8 @@ export default function App() {
   // View State: "landing" (Home Page with top login) or "chat" (Chat Workspace)
   const [currentView, setCurrentView] = useState<"landing" | "chat">("landing");
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalNotice, setAuthModalNotice] = useState<string | null>(null);
+  const [guestCount, setGuestCount] = useState<number>(getGuestQuestionsCount);
 
   const handleOpenChat = (initialPrompt?: string) => {
     setCurrentView("chat");
@@ -97,6 +110,7 @@ export default function App() {
   const handleLoginSuccess = (token: string, user: UserAccount) => {
     saveLocalSession(token, user);
     setCurrentUser(user);
+    setAuthModalNotice(null);
     setIsAuthModalOpen(false);
     setCurrentView("chat");
   };
@@ -207,6 +221,18 @@ export default function App() {
     if ((!text || !text.trim()) && !image) return;
     if (isLoading) return;
 
+    // Check if user is not logged in and has reached the 3-question limit
+    if (!currentUser) {
+      const currentGuestCount = getGuestQuestionsCount();
+      if (currentGuestCount >= GUEST_MAX_QUESTIONS) {
+        setAuthModalNotice(
+          "آپ نے لاگ ان کے بغیر 3 سوالات کی مفت حد مکمل کر لی ہے۔ مزید سوالات اور رہنمائی جاری رکھنے کے لیے برائے مہربانی لاگ ان یا اکاؤنٹ بنائیں۔"
+        );
+        setIsAuthModalOpen(true);
+        return;
+      }
+    }
+
     const trimmedText = text ? text.trim() : "";
     const targetSessionId = currentSessionId;
     const userMsgId = "msg-" + Date.now();
@@ -228,6 +254,15 @@ export default function App() {
       citations: [],
       isAI: true,
     };
+
+    // Increment guest question count
+    if (!currentUser) {
+      const nextCount = getGuestQuestionsCount() + 1;
+      try {
+        localStorage.setItem(GUEST_USAGE_KEY, nextCount.toString());
+      } catch {}
+      setGuestCount(nextCount);
+    }
 
     // Determine auto-title if first message
     const isFirstMessage = currentSession.messages.length === 0;
@@ -535,6 +570,16 @@ export default function App() {
           favoritesCount={favoritesCount}
           onOpenSettings={() => setIsSettingsOpen(true)}
           isSidebarOpen={isSidebarOpen}
+          currentUser={currentUser}
+          guestQuestionsRemaining={!currentUser ? Math.max(0, GUEST_MAX_QUESTIONS - guestCount) : undefined}
+          onOpenAuth={() => {
+            setAuthModalNotice(
+              guestCount >= GUEST_MAX_QUESTIONS
+                ? "آپ نے لاگ ان کے بغیر 3 سوالات کی مفت حد مکمل کر لی ہے۔ مزید سوالات اور رہنمائی جاری رکھنے کے لیے برائے مہربانی لاگ ان یا اکاؤنٹ بنائیں۔"
+                : null
+            );
+            setIsAuthModalOpen(true);
+          }}
         />
       </main>
 
@@ -576,8 +621,12 @@ export default function App() {
       {isAuthModalOpen && (
         <AuthScreen
           onLoginSuccess={handleLoginSuccess}
-          onClose={() => setIsAuthModalOpen(false)}
+          onClose={() => {
+            setIsAuthModalOpen(false);
+            setAuthModalNotice(null);
+          }}
           isModal={true}
+          initialNotice={authModalNotice}
         />
       )}
     </div>
