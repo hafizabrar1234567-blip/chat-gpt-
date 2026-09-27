@@ -2880,7 +2880,7 @@ function getTodayDateString() {
 function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString("hex");
 }
-function findUserByEmail(email) {
+function findUserByEmail2(email) {
   const cleanEmail = email.trim().toLowerCase();
   for (const user of usersStore.values()) {
     if (user.email.toLowerCase() === cleanEmail) {
@@ -2891,7 +2891,7 @@ function findUserByEmail(email) {
 }
 async function registerUser(email, password, name) {
   const cleanEmail = email.trim().toLowerCase();
-  let existing = findUserByEmail(cleanEmail);
+  let existing = findUserByEmail2(cleanEmail);
   if (!existing) {
     if (!isDatabaseConnected()) {
       try {
@@ -2953,7 +2953,7 @@ async function registerUser(email, password, name) {
 }
 async function loginUser(email, password) {
   const cleanEmail = email.trim().toLowerCase();
-  let user = findUserByEmail(cleanEmail);
+  let user = findUserByEmail2(cleanEmail);
   if (!user) {
     if (!isDatabaseConnected()) {
       try {
@@ -3071,7 +3071,7 @@ function logoutUser(token) {
 }
 async function requestForgotPassword(email) {
   const cleanEmail = email.trim().toLowerCase();
-  let user = findUserByEmail(cleanEmail);
+  let user = findUserByEmail2(cleanEmail);
   if (!user && isDatabaseConnected()) {
     const dbU = await dbFindUserByEmail(cleanEmail);
     if (dbU) {
@@ -3093,7 +3093,7 @@ async function requestForgotPassword(email) {
 }
 async function resetPasswordWithCode(email, code, newPassword) {
   const cleanEmail = email.trim().toLowerCase();
-  let user = findUserByEmail(cleanEmail);
+  let user = findUserByEmail2(cleanEmail);
   if (!user && isDatabaseConnected()) {
     const dbU = await dbFindUserByEmail(cleanEmail);
     if (dbU) {
@@ -3126,7 +3126,7 @@ async function resetPasswordWithCode(email, code, newPassword) {
 }
 async function loginOrRegisterGoogle(email, name) {
   const cleanEmail = email.trim().toLowerCase();
-  let user = findUserByEmail(cleanEmail);
+  let user = findUserByEmail2(cleanEmail);
   if (!user) {
     if (!isDatabaseConnected()) {
       try {
@@ -3210,7 +3210,7 @@ async function syncExternalUser(user) {
   if (!cleanEmail) {
     throw new Error("Email is required");
   }
-  let existing = findUserByEmail(cleanEmail);
+  let existing = findUserByEmail2(cleanEmail);
   if (!existing) {
     if (!isDatabaseConnected()) {
       try {
@@ -7023,7 +7023,7 @@ function isLogoOrImageRequest(query) {
     return { isRequest: false, subject: "", originalQuery: raw };
   }
   let cleanSubject = raw;
-  cleanSubject = cleanSubject.replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "").replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "").replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:لگژری\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "").replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "").replace(/^(?:نام|title|name)\s*[:：\-]\s*/i, "").replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "").trim();
+  cleanSubject = cleanSubject.replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "").replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "").replace(/^(?:میرے\s*نام\s*کا|میرے\s*نام\s*پر|میرے\s*نام|ہمارے\s*نام\s*کا|ہمارے\s*نام|اپنے\s*نام\s*کا)\s*/i, "").replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:لگژری\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "").replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "").replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "").replace(/^(?:نام|title|name)\s*[:：\-]\s*/i, "").replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "").trim();
   const quoteMatch = raw.match(/["'«]([^"'»]+)["'»]/);
   if (quoteMatch && quoteMatch[1]?.trim()) {
     cleanSubject = quoteMatch[1].trim();
@@ -7045,17 +7045,24 @@ app.get("/api/image-proxy", async (req, res) => {
     if (req.query.download === "true") {
       res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadName)}.jpg"`);
     }
-    const response = await fetch(targetUrl);
-    if (!response.ok) {
-      return res.status(response.status).send("Failed to fetch image");
+    try {
+      const response = await fetch(targetUrl);
+      if (response.ok) {
+        const contentType = response.headers.get("content-type") || "image/jpeg";
+        res.setHeader("Content-Type", contentType);
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        return res.send(buffer);
+      }
+    } catch (fetchErr) {
+      console.warn("Proxy fetch error, falling back to direct redirect:", fetchErr);
     }
-    const contentType = response.headers.get("content-type") || "image/jpeg";
-    res.setHeader("Content-Type", contentType);
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    return res.send(buffer);
+    return res.redirect(targetUrl);
   } catch (err) {
     console.error("Image proxy error:", err);
+    if (req.query.url && typeof req.query.url === "string") {
+      return res.redirect(req.query.url);
+    }
     return res.status(500).send("Error proxying image");
   }
 });
@@ -7067,7 +7074,8 @@ app.post("/api/chat", async (req, res) => {
       history = [],
       language = "urdu",
       stream = true,
-      apiKey: clientApiKey
+      apiKey: clientApiKey,
+      userName: clientUserName
     } = req.body || {};
     if ((!message || typeof message !== "string" || !message.trim()) && !image) {
       return res.status(400).json({ success: false, error: "\u0633\u0648\u0627\u0644 \u06CC\u0627 \u062A\u0635\u0648\u06CC\u0631 \u062F\u0631\u062C \u06A9\u0631\u0646\u0627 \u0644\u0627\u0632\u0645\u06CC \u06C1\u06D2" });
@@ -7075,10 +7083,33 @@ app.post("/api/chat", async (req, res) => {
     const apiKey = getGeminiApiKey(clientApiKey);
     const isStreamRequest = stream === true || req.headers.accept === "text/event-stream";
     const userToken = req.body?.userToken || getBearerToken(req);
-    const logoCheck = isLogoOrImageRequest(message);
+    const userEmail = req.body?.userEmail || req.headers["x-user-email"];
+    let logoCheck = isLogoOrImageRequest(message);
+    const lowerMsg = (message || "").toLowerCase();
+    const isLoginConfirmation = lowerMsg.includes("\u0644\u0627\u06AF \u0627\u0646") || lowerMsg.includes("login") || lowerMsg.includes("\u0627\u0628 \u0628\u0646\u0627") || lowerMsg.includes("\u0644\u0648\u06AF\u0648 \u062F\u06CC\u06BA") || lowerMsg.includes("\u062A\u06CC\u0627\u0631 \u06A9\u0631\u06CC\u06BA") || lowerMsg.includes("\u0628\u0646\u0627 \u062F\u06CC\u06BA") || lowerMsg.includes("\u0644\u0648\u06AF\u0648 \u0628\u0646\u0627") || lowerMsg.includes("\u0645\u06CC\u0631\u0627 \u0644\u0648\u06AF\u0648");
+    if (!logoCheck.isRequest && Array.isArray(history) && history.length > 0 && isLoginConfirmation) {
+      for (let i = history.length - 1; i >= 0; i--) {
+        const hMsg = history[i];
+        if (hMsg.text && (hMsg.text.includes("\u0644\u06AF\u0698\u0631\u06CC AI \u0644\u0648\u06AF\u0648 \u0627\u0648\u0631 \u062E\u0637\u0627\u0637\u06CC \u0633\u0631\u0648\u0633") || hMsg.text.includes("\u0644\u0648\u06AF\u0648 \u062D\u0627\u0635\u0644 \u06A9\u0631\u0646\u06D2 \u06A9\u06D2 \u0644\u06CC\u06D2"))) {
+          const priorUserMsg = history[i - 1]?.text || "";
+          const priorCheck = isLogoOrImageRequest(priorUserMsg);
+          const foundSubject = priorCheck.subject || clientUserName || "\u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC \u0648 \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645";
+          logoCheck = {
+            isRequest: true,
+            subject: foundSubject,
+            originalQuery: message
+          };
+          break;
+        }
+      }
+    }
     if (logoCheck.isRequest) {
-      const user = userToken ? getUserByToken(userToken) : null;
-      if (!user) {
+      let user = userToken ? await getUserByToken(userToken) : null;
+      if (!user && userEmail) {
+        user = findUserByEmail(userEmail) || null;
+      }
+      const isAuthenticated = Boolean(user || userToken || userEmail || clientUserName);
+      if (!isAuthenticated) {
         const loginRequiredReply = `### \u{1F451} **\u0644\u06AF\u0698\u0631\u06CC AI \u0644\u0648\u06AF\u0648 \u0627\u0648\u0631 \u062E\u0637\u0627\u0637\u06CC \u0633\u0631\u0648\u0633**
 
 \u0645\u062D\u062A\u0631\u0645 \u0635\u0627\u0631\u0641! \u062E\u0627\u0644\u0635 3D \u06AF\u0648\u0644\u0688\u0646 \u0627\u0633\u0644\u0627\u0645\u06CC \u0644\u0648\u06AF\u0648\u060C \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645 \u0627\u0648\u0631 \u0646\u0627\u0645 \u06A9\u06CC \u0634\u0627\u06C1\u06A9\u0627\u0631 \u062E\u0637\u0627\u0637\u06CC \u062A\u06CC\u0627\u0631 \u06A9\u0631\u0646\u0627 \u06C1\u0645\u0627\u0631\u06D2 **\u0631\u062C\u0633\u0679\u0631\u0688 \u0627\u0648\u0631 \u0644\u0627\u06AF \u0627\u0646 \u0635\u0627\u0631\u0641\u06CC\u0646** \u06A9\u06D2 \u0644\u06CC\u06D2 \u0627\u06CC\u06A9 \u062E\u0635\u0648\u0635\u06CC VIP \u0633\u06C1\u0648\u0644\u062A \u06C1\u06D2\u06D4
@@ -7106,9 +7137,11 @@ app.post("/api/chat", async (req, res) => {
           logoSubject: logoCheck.subject
         });
       }
-      try {
-        incrementUserUsage(user.id);
-      } catch {
+      if (user) {
+        try {
+          incrementUserUsage(user.id);
+        } catch {
+        }
       }
       const subject = logoCheck.subject;
       const promptEncoded = encodeURIComponent(
@@ -7117,9 +7150,10 @@ app.post("/api/chat", async (req, res) => {
       const seed = Math.floor(Math.random() * 9e5) + 1e5;
       const directImageUrl = `https://image.pollinations.ai/prompt/${promptEncoded}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`;
       const proxiedImageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}&name=${encodeURIComponent(subject)}`;
+      const displayName = user?.name || clientUserName || subject;
       const logoSuccessReply = `### \u{1F451} **\u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u06AF\u0698\u0631\u06CC 3D \u0627\u0633\u0644\u0627\u0645\u06CC \u0644\u0648\u06AF\u0648**
 
-\u0645\u062D\u062A\u0631\u0645 **${user.name || subject}**! \u0622\u067E \u06A9\u06CC \u0641\u0631\u0645\u0627\u0626\u0634 \u06A9\u06D2 \u0645\u0637\u0627\u0628\u0642 \u062E\u0627\u0644\u0635 3D \u06AF\u0648\u0644\u0688\u0646 \u062E\u0637\u0627\u0637\u06CC\u060C \u0634\u0627\u06C1\u06CC \u0632\u0645\u0631\u062F\u06CC \u0645\u0627\u0631\u0628\u0644 \u0627\u0648\u0631 \u0633\u0646\u06C1\u0631\u06CC \u0627\u0633\u0644\u0627\u0645\u06CC \u0646\u0642\u0648\u0634 \u067E\u0631 \u0645\u0634\u062A\u0645\u0644 \u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u0648\u06AF\u0648 \u062A\u06CC\u0627\u0631 \u06A9\u0631 \u062F\u06CC\u0627 \u06AF\u06CC\u0627 \u06C1\u06D2:
+\u0645\u062D\u062A\u0631\u0645 **${displayName}**! \u0622\u067E \u06A9\u06CC \u0641\u0631\u0645\u0627\u0626\u0634 \u06A9\u06D2 \u0645\u0637\u0627\u0628\u0642 \u062E\u0627\u0644\u0635 3D \u06AF\u0648\u0644\u0688\u0646 \u062E\u0637\u0627\u0637\u06CC\u060C \u0634\u0627\u06C1\u06CC \u0632\u0645\u0631\u062F\u06CC \u0645\u0627\u0631\u0628\u0644 \u0627\u0648\u0631 \u0633\u0646\u06C1\u0631\u06CC \u0627\u0633\u0644\u0627\u0645\u06CC \u0646\u0642\u0648\u0634 \u067E\u0631 \u0645\u0634\u062A\u0645\u0644 \u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u0648\u06AF\u0648 \u062A\u06CC\u0627\u0631 \u06A9\u0631 \u062F\u06CC\u0627 \u06AF\u06CC\u0627 \u06C1\u06D2:
 
 ![${subject} - \u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u06AF\u0698\u0631\u06CC \u0627\u0633\u0644\u0627\u0645\u06CC \u0644\u0648\u06AF\u0648](${proxiedImageUrl})
 

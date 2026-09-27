@@ -476,8 +476,10 @@ export function isLogoOrImageRequest(query: string): LogoRequestCheck {
   cleanSubject = cleanSubject
     .replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "")
     .replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "")
+    .replace(/^(?:میرے\s*نام\s*کا|میرے\s*نام\s*پر|میرے\s*نام|ہمارے\s*نام\s*کا|ہمارے\s*نام|اپنے\s*نام\s*کا)\s*/i, "")
     .replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:لگژری\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "")
     .replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "")
+    .replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "")
     .replace(/^(?:نام|title|name)\s*[:：\-]\s*/i, "")
     .replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "")
     .trim();
@@ -509,19 +511,26 @@ app.get("/api/image-proxy", async (req, res) => {
       res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadName)}.jpg"`);
     }
 
-    const response = await fetch(targetUrl);
-    if (!response.ok) {
-      return res.status(response.status).send("Failed to fetch image");
+    try {
+      const response = await fetch(targetUrl);
+      if (response.ok) {
+        const contentType = response.headers.get("content-type") || "image/jpeg";
+        res.setHeader("Content-Type", contentType);
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        return res.send(buffer);
+      }
+    } catch (fetchErr) {
+      console.warn("Proxy fetch error, falling back to direct redirect:", fetchErr);
     }
 
-    const contentType = response.headers.get("content-type") || "image/jpeg";
-    res.setHeader("Content-Type", contentType);
-
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    return res.send(buffer);
+    // Direct redirect fallback so browser image never fails to display
+    return res.redirect(targetUrl);
   } catch (err: any) {
     console.error("Image proxy error:", err);
+    if (req.query.url && typeof req.query.url === "string") {
+      return res.redirect(req.query.url);
+    }
     return res.status(500).send("Error proxying image");
   }
 });
@@ -539,6 +548,7 @@ app.post("/api/chat", async (req, res) => {
       language = "urdu",
       stream = true,
       apiKey: clientApiKey,
+      userName: clientUserName,
     } = req.body || {};
 
     if ((!message || typeof message !== "string" || !message.trim()) && !image) {
@@ -548,14 +558,52 @@ app.post("/api/chat", async (req, res) => {
     const apiKey = getGeminiApiKey(clientApiKey);
     const isStreamRequest = stream === true || req.headers.accept === "text/event-stream";
     const userToken = req.body?.userToken || getBearerToken(req);
+    const userEmail = req.body?.userEmail || (req.headers["x-user-email"] as string);
 
     // 🎨 EXCLUSIVE VIP LOGO & CALLIGRAPHY GENERATION (Triggered ONLY when user explicitly asks)
-    const logoCheck = isLogoOrImageRequest(message);
+    let logoCheck = isLogoOrImageRequest(message);
+
+    // Follow-up detection: If previous message asked user to login for logo or previous was logo request,
+    // and user confirms login or asks to proceed:
+    const lowerMsg = (message || "").toLowerCase();
+    const isLoginConfirmation =
+      lowerMsg.includes("لاگ ان") ||
+      lowerMsg.includes("login") ||
+      lowerMsg.includes("اب بنا") ||
+      lowerMsg.includes("لوگو دیں") ||
+      lowerMsg.includes("تیار کریں") ||
+      lowerMsg.includes("بنا دیں") ||
+      lowerMsg.includes("لوگو بنا") ||
+      lowerMsg.includes("میرا لوگو");
+
+    if (!logoCheck.isRequest && Array.isArray(history) && history.length > 0 && isLoginConfirmation) {
+      for (let i = history.length - 1; i >= 0; i--) {
+        const hMsg = history[i];
+        if (hMsg.text && (hMsg.text.includes("لگژری AI لوگو اور خطاطی سروس") || hMsg.text.includes("لوگو حاصل کرنے کے لیے"))) {
+          const priorUserMsg = history[i - 1]?.text || "";
+          const priorCheck = isLogoOrImageRequest(priorUserMsg);
+          const foundSubject = priorCheck.subject || clientUserName || "اسلامی خطاطی و مونوگرام";
+          logoCheck = {
+            isRequest: true,
+            subject: foundSubject,
+            originalQuery: message,
+          };
+          break;
+        }
+      }
+    }
+
     if (logoCheck.isRequest) {
-      const user = userToken ? getUserByToken(userToken) : null;
+      let user = userToken ? await getUserByToken(userToken) : null;
+      if (!user && userEmail) {
+        user = findUserByEmail(userEmail) || null;
+      }
+
+      // Check if user is authenticated
+      const isAuthenticated = Boolean(user || userToken || userEmail || clientUserName);
 
       // Rule: Strictly accessible AFTER login
-      if (!user) {
+      if (!isAuthenticated) {
         const loginRequiredReply = `### 👑 **لگژری AI لوگو اور خطاطی سروس**
 
 محترم صارف! خالص 3D گولڈن اسلامی لوگو، مونوگرام اور نام کی شاہکار خطاطی تیار کرنا ہمارے **رجسٹرڈ اور لاگ ان صارفین** کے لیے ایک خصوصی VIP سہولت ہے۔
@@ -584,9 +632,11 @@ app.post("/api/chat", async (req, res) => {
       }
 
       // User IS logged in: generate luxury logo
-      try {
-        incrementUserUsage(user.id);
-      } catch {}
+      if (user) {
+        try {
+          incrementUserUsage(user.id);
+        } catch {}
+      }
 
       const subject = logoCheck.subject;
       const promptEncoded = encodeURIComponent(
@@ -596,9 +646,10 @@ app.post("/api/chat", async (req, res) => {
       const directImageUrl = `https://image.pollinations.ai/prompt/${promptEncoded}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`;
       const proxiedImageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}&name=${encodeURIComponent(subject)}`;
 
+      const displayName = user?.name || clientUserName || subject;
       const logoSuccessReply = `### 👑 **شاہکار لگژری 3D اسلامی لوگو**
 
-محترم **${user.name || subject}**! آپ کی فرمائش کے مطابق خالص 3D گولڈن خطاطی، شاہی زمردی ماربل اور سنہری اسلامی نقوش پر مشتمل شاہکار لوگو تیار کر دیا گیا ہے:
+محترم **${displayName}**! آپ کی فرمائش کے مطابق خالص 3D گولڈن خطاطی، شاہی زمردی ماربل اور سنہری اسلامی نقوش پر مشتمل شاہکار لوگو تیار کر دیا گیا ہے:
 
 ![${subject} - شاہکار لگژری اسلامی لوگو](${proxiedImageUrl})
 

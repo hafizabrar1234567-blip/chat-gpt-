@@ -300,13 +300,18 @@ export default function App() {
     let isAI = true;
     let alUlamaSource: any = null;
 
+    const activeToken = localStorage.getItem("postly_auth_token") || currentUser?.token || "";
+    const activeEmail = currentUser?.email || "";
+    const activeName = currentUser?.name || "";
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "text/event-stream",
-          ...(currentUser?.token ? { Authorization: `Bearer ${currentUser.token}` } : {}),
+          ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
+          ...(activeEmail ? { "x-user-email": activeEmail } : {}),
         },
         body: JSON.stringify({
           message: trimmedText,
@@ -315,7 +320,9 @@ export default function App() {
           language,
           stream: true,
           apiKey: localStorage.getItem("custom_gemini_api_key") || undefined,
-          userToken: currentUser?.token || undefined,
+          userToken: activeToken || undefined,
+          userEmail: activeEmail || undefined,
+          userName: activeName || undefined,
         }),
       });
 
