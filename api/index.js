@@ -6177,6 +6177,113 @@ GEMINI_API_KEY="${testKey}"
     return res.status(400).json({ success: false, error: `API Key \u063A\u06CC\u0631 \u062F\u0631\u0633\u062A \u06C1\u06D2: ${err?.message || err}` });
   }
 });
+function isLogoOrImageRequest(query) {
+  if (!query || typeof query !== "string") return { isRequest: false, subject: "", originalQuery: "" };
+  const raw = query.trim();
+  const lower = raw.toLowerCase();
+  const fiqhTerms = [
+    "\u062D\u06A9\u0645",
+    "\u062C\u0627\u0626\u0632",
+    "\u062D\u0631\u0627\u0645",
+    "\u0645\u0633\u0626\u0644\u06C1",
+    "\u0641\u062A\u0648\u06CC",
+    "\u06A9\u06CC\u0633\u0627 \u06C1\u06D2",
+    "\u0634\u0631\u0639\u06CC",
+    "\u06AF\u0646\u0627\u06C1",
+    "\u0634\u0631\u06CC\u0639\u062A",
+    "\u0645\u0645\u0627\u0646\u0639\u062A",
+    "ruling",
+    "permissible",
+    "allowed",
+    "haram",
+    "halal"
+  ];
+  if (fiqhTerms.some((term) => lower.includes(term))) {
+    return { isRequest: false, subject: "", originalQuery: raw };
+  }
+  const logoKeywords = [
+    "\u0644\u0648\u06AF\u0648 \u0628\u0646\u0627",
+    "\u0644\u0648\u06AF\u0648 \u062A\u06CC\u0627\u0631",
+    "\u0644\u0648\u06AF\u0648 \u0686\u0627\u06C1",
+    "\u0644\u0648\u06AF\u0648 \u0688\u06CC\u0632\u0627\u0626\u0646",
+    "\u0644\u0648\u06AF\u0648 \u0628\u0646\u0627\u0626\u06CC\u06BA",
+    "\u0644\u0648\u06AF\u0648 \u0628\u0646\u0627\u0624",
+    "\u0644\u0648\u06AF\u0648 \u0628\u0646\u0627 \u06A9\u0631",
+    "\u062A\u0635\u0648\u06CC\u0631 \u0628\u0646\u0627",
+    "\u062A\u0635\u0648\u06CC\u0631 \u062A\u06CC\u0627\u0631",
+    "\u062A\u0635\u0648\u06CC\u0631 \u0628\u0646\u0627\u0626\u06CC\u06BA",
+    "\u062A\u0635\u0648\u06CC\u0631 \u0628\u0646\u0627\u0624",
+    "\u062A\u0635\u0648\u06CC\u0631 \u0628\u0646\u0627 \u06A9\u0631",
+    "\u0646\u0627\u0645 \u0644\u06A9\u06BE \u06A9\u0631 \u062F\u06CC\u06BA",
+    "\u0646\u0627\u0645 \u0644\u06A9\u06BE \u062F\u06CC\u06BA",
+    "\u0646\u0627\u0645 \u0688\u06CC\u0632\u0627\u0626\u0646",
+    "\u0646\u0627\u0645 \u06A9\u06CC \u062E\u0637\u0627\u0637\u06CC",
+    "\u0627\u0633 \u0637\u0631\u062D \u06A9\u0627 \u0646\u0627\u0645",
+    "\u0646\u0627\u0645 \u06A9\u0627 \u0644\u0648\u06AF\u0648",
+    "\u0646\u0627\u0645 \u0644\u06A9\u06BE\u06CC\u06BA",
+    "\u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645 \u0628\u0646\u0627",
+    "\u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645 \u062A\u06CC\u0627\u0631",
+    "\u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645 \u0628\u0646\u0627\u0626\u06CC\u06BA",
+    "\u0688\u06CC \u067E\u06CC \u0628\u0646\u0627",
+    "\u067E\u0631\u0648\u0641\u0627\u0626\u0644 \u062A\u0635\u0648\u06CC\u0631 \u0628\u0646\u0627",
+    "\u062E\u0637\u0627\u0637\u06CC \u0628\u0646\u0627",
+    "\u062E\u0637\u0627\u0637\u06CC \u06A9\u0631 \u06A9\u06D2",
+    "\u062E\u0637\u0627\u0637\u06CC \u062A\u06CC\u0627\u0631",
+    "\u062E\u0637\u0627\u0637\u06CC \u0628\u0646\u0627\u0626\u06CC\u06BA",
+    "logo bana",
+    "make logo",
+    "create logo",
+    "design logo",
+    "generate logo",
+    "image bana",
+    "generate image",
+    "make picture",
+    "create picture",
+    "calligraphy bana",
+    "draw image",
+    "draw logo"
+  ];
+  const matched = logoKeywords.some((kw) => lower.includes(kw));
+  if (!matched) {
+    return { isRequest: false, subject: "", originalQuery: raw };
+  }
+  let cleanSubject = raw;
+  cleanSubject = cleanSubject.replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "").replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "").replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:لگژری\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "").replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "").replace(/^(?:نام|title|name)\s*[:：\-]\s*/i, "").replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "").trim();
+  const quoteMatch = raw.match(/["'«]([^"'»]+)["'»]/);
+  if (quoteMatch && quoteMatch[1]?.trim()) {
+    cleanSubject = quoteMatch[1].trim();
+  }
+  if (!cleanSubject || cleanSubject.length < 2) {
+    cleanSubject = "\u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC \u0648 \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645";
+  }
+  return { isRequest: true, subject: cleanSubject, originalQuery: raw };
+}
+app.get("/api/image-proxy", async (req, res) => {
+  try {
+    const targetUrl = req.query.url;
+    const downloadName = req.query.name || "islami-logo";
+    if (!targetUrl || typeof targetUrl !== "string" || !targetUrl.startsWith("http")) {
+      return res.status(400).send("Invalid target URL");
+    }
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400");
+    if (req.query.download === "true") {
+      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadName)}.jpg"`);
+    }
+    const response = await fetch(targetUrl);
+    if (!response.ok) {
+      return res.status(response.status).send("Failed to fetch image");
+    }
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    res.setHeader("Content-Type", contentType);
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return res.send(buffer);
+  } catch (err) {
+    console.error("Image proxy error:", err);
+    return res.status(500).send("Error proxying image");
+  }
+});
 app.post("/api/chat", async (req, res) => {
   try {
     const {
@@ -6192,6 +6299,77 @@ app.post("/api/chat", async (req, res) => {
     }
     const apiKey = getGeminiApiKey(clientApiKey);
     const isStreamRequest = stream === true || req.headers.accept === "text/event-stream";
+    const userToken = req.body?.userToken || getBearerToken(req);
+    const logoCheck = isLogoOrImageRequest(message);
+    if (logoCheck.isRequest) {
+      const user = userToken ? getUserByToken(userToken) : null;
+      if (!user) {
+        const loginRequiredReply = `### \u{1F451} **\u0644\u06AF\u0698\u0631\u06CC AI \u0644\u0648\u06AF\u0648 \u0627\u0648\u0631 \u062E\u0637\u0627\u0637\u06CC \u0633\u0631\u0648\u0633**
+
+\u0645\u062D\u062A\u0631\u0645 \u0635\u0627\u0631\u0641! \u062E\u0627\u0644\u0635 3D \u06AF\u0648\u0644\u0688\u0646 \u0627\u0633\u0644\u0627\u0645\u06CC \u0644\u0648\u06AF\u0648\u060C \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645 \u0627\u0648\u0631 \u0646\u0627\u0645 \u06A9\u06CC \u0634\u0627\u06C1\u06A9\u0627\u0631 \u062E\u0637\u0627\u0637\u06CC \u062A\u06CC\u0627\u0631 \u06A9\u0631\u0646\u0627 \u06C1\u0645\u0627\u0631\u06D2 **\u0631\u062C\u0633\u0679\u0631\u0688 \u0627\u0648\u0631 \u0644\u0627\u06AF \u0627\u0646 \u0635\u0627\u0631\u0641\u06CC\u0646** \u06A9\u06D2 \u0644\u06CC\u06D2 \u0627\u06CC\u06A9 \u062E\u0635\u0648\u0635\u06CC VIP \u0633\u06C1\u0648\u0644\u062A \u06C1\u06D2\u06D4
+
+\u2728 **\u0627\u0633 \u0633\u06C1\u0648\u0644\u062A \u06A9\u06D2 \u0641\u0648\u0627\u0626\u062F:**
+- \u062E\u0627\u0644\u0635 3D \u0633\u0646\u06C1\u0631\u06CC \u0646\u0642\u0648\u0634 \u0627\u0648\u0631 \u0627\u06CC\u0645\u0628\u0648\u0633\u0688 \u062E\u0637\u0627\u0637\u06CC (24K Embossed Gold Calligraphy)
+- \u0634\u0627\u06C1\u06CC \u0632\u0645\u0631\u062F\u06CC \u0645\u0627\u0631\u0628\u0644 \u0645\u06CC\u0688\u0644\u06CC\u0646 (Royal Emerald Green Medallion)
+- \u0627\u0644\u0679\u0631\u0627 \u06C1\u0627\u0626\u06CC \u0688\u06CC\u0641\u06CC\u0646\u06CC\u0634\u0646 (Ultra HD) \u0688\u0627\u0624\u0646\u0644\u0648\u0688 \u06A9\u06CC \u0633\u06C1\u0648\u0644\u062A \u0628\u0631\u0627\u0626\u06D2 \u0648\u0627\u0679\u0633 \u0627\u06CC\u067E \u0688\u06CC \u067E\u06CC \u0627\u0648\u0631 \u067E\u0631\u0633\u0646\u0644 \u0628\u0631\u0627\u0646\u0688\u0646\u06AF
+
+\u{1F512} **\u0644\u0648\u06AF\u0648 \u062D\u0627\u0635\u0644 \u06A9\u0631\u0646\u06D2 \u06A9\u06D2 \u0644\u06CC\u06D2:**
+\u0628\u0631\u0627\u06C1 \u06A9\u0631\u0645 \u0627\u067E\u0646\u0627 \u0627\u06A9\u0627\u0624\u0646\u0679 **\u0644\u0627\u06AF \u0627\u0646** \u06A9\u0631\u06CC\u06BA \u06CC\u0627 \u0645\u0641\u062A \u0633\u0627\u0626\u0646 \u0627\u067E \u06A9\u0631\u06CC\u06BA\u06D4 \u0644\u0627\u06AF \u0627\u0646 \u06C1\u0648\u062A\u06D2 \u06C1\u06CC \u0622\u067E \u06A9\u0627 \u0645\u0637\u0644\u0648\u0628\u06C1 \u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u0648\u06AF\u0648 **\xAB${logoCheck.subject}\xBB** \u0641\u0648\u0631\u0627\u064B \u062A\u06CC\u0627\u0631 \u06A9\u0631 \u062F\u06CC\u0627 \u062C\u0627\u0626\u06D2 \u06AF\u0627!`;
+        if (isStreamRequest) {
+          res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+          res.setHeader("Cache-Control", "no-cache, no-transform");
+          res.setHeader("Connection", "keep-alive");
+          res.write(`data: ${JSON.stringify({ chunk: loginRequiredReply, done: true, reply: loginRequiredReply, requiresLoginForLogo: true, logoSubject: logoCheck.subject })}
+
+`);
+          return res.end();
+        }
+        return res.json({
+          success: true,
+          reply: loginRequiredReply,
+          requiresLoginForLogo: true,
+          logoSubject: logoCheck.subject
+        });
+      }
+      try {
+        incrementUserUsage(user.id);
+      } catch {
+      }
+      const subject = logoCheck.subject;
+      const promptEncoded = encodeURIComponent(
+        `Luxury 3D embossed metallic gold Arabic and Urdu calligraphy emblem for '${subject}', circular dark emerald green marble medallion, exquisite Thuluth calligraphy art, intricate Islamic geometric arabesque border in pure gold, soft cinematic studio lighting, premium photorealistic jewelry badge aesthetic, 8k resolution, centered composition, opulent Islamic masterpiece`
+      );
+      const seed = Math.floor(Math.random() * 9e5) + 1e5;
+      const directImageUrl = `https://image.pollinations.ai/prompt/${promptEncoded}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`;
+      const proxiedImageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}&name=${encodeURIComponent(subject)}`;
+      const logoSuccessReply = `### \u{1F451} **\u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u06AF\u0698\u0631\u06CC 3D \u0627\u0633\u0644\u0627\u0645\u06CC \u0644\u0648\u06AF\u0648**
+
+\u0645\u062D\u062A\u0631\u0645 **${user.name || subject}**! \u0622\u067E \u06A9\u06CC \u0641\u0631\u0645\u0627\u0626\u0634 \u06A9\u06D2 \u0645\u0637\u0627\u0628\u0642 \u062E\u0627\u0644\u0635 3D \u06AF\u0648\u0644\u0688\u0646 \u062E\u0637\u0627\u0637\u06CC\u060C \u0634\u0627\u06C1\u06CC \u0632\u0645\u0631\u062F\u06CC \u0645\u0627\u0631\u0628\u0644 \u0627\u0648\u0631 \u0633\u0646\u06C1\u0631\u06CC \u0627\u0633\u0644\u0627\u0645\u06CC \u0646\u0642\u0648\u0634 \u067E\u0631 \u0645\u0634\u062A\u0645\u0644 \u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u0648\u06AF\u0648 \u062A\u06CC\u0627\u0631 \u06A9\u0631 \u062F\u06CC\u0627 \u06AF\u06CC\u0627 \u06C1\u06D2:
+
+![${subject} - \u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u06AF\u0698\u0631\u06CC \u0627\u0633\u0644\u0627\u0645\u06CC \u0644\u0648\u06AF\u0648](${proxiedImageUrl})
+
+\u2728 **\u0644\u0648\u06AF\u0648 \u06A9\u06CC \u062A\u0641\u0635\u06CC\u0644\u0627\u062A:**
+- **\u0639\u0646\u0648\u0627\u0646 / \u0646\u0627\u0645:** \xAB${subject}\xBB
+- **\u0627\u0646\u062F\u0627\u0632:** \u062E\u0627\u0644\u0635 3D \u0627\u06CC\u0645\u0628\u0648\u0633\u0688 \u06AF\u0648\u0644\u0688 (24K Embossed Metallic Gold)
+- **\u062E\u0637\u0627\u0637\u06CC:** \u0634\u0627\u06C1\u06A9\u0627\u0631 \u062B\u0644\u062B \u0648 \u062F\u06CC\u0648\u0627\u0646\u06CC \u062E\u0637\u0627\u0637\u06CC \u0645\u0639 \u0627\u0633\u0644\u0627\u0645\u06CC \u0646\u0642\u0648\u0634
+- **\u0628\u06CC\u06A9 \u06AF\u0631\u0627\u0624\u0646\u0688:** \u0634\u0627\u06C1\u06CC \u0632\u0645\u0631\u062F\u06CC \u0645\u0627\u0631\u0628\u0644 \u0645\u06CC\u0688\u0644\u06CC\u0646 (Royal Emerald Marble Medallion)
+- **\u0627\u0633\u062A\u0639\u0645\u0627\u0644:** \u0648\u0627\u0679\u0633 \u0627\u06CC\u067E \u0688\u06CC \u067E\u06CC (WhatsApp DP)\u060C \u067E\u0631\u0648\u0641\u0627\u0626\u0644\u060C \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645 \u0627\u0648\u0631 \u067E\u0631\u0646\u0679\u0646\u06AF \u06A9\u06D2 \u0644\u06CC\u06D2 \u0628\u06C1\u062A\u0631\u06CC\u0646\u06D4`;
+      if (isStreamRequest) {
+        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache, no-transform");
+        res.setHeader("Connection", "keep-alive");
+        res.write(`data: ${JSON.stringify({ chunk: logoSuccessReply, done: true, reply: logoSuccessReply, isLogoGenerated: true, imageUrl: proxiedImageUrl })}
+
+`);
+        return res.end();
+      }
+      return res.json({
+        success: true,
+        reply: logoSuccessReply,
+        isLogoGenerated: true,
+        imageUrl: proxiedImageUrl
+      });
+    }
     if (!apiKey) {
       const noKeyReply = "\u26A0\uFE0F **\u0645\u0639\u0630\u0631\u062A:** AI \u0633\u0631\u0648\u0633 \u0633\u06D2 \u0631\u0627\u0628\u0637\u06C1 \u0639\u0627\u0631\u0636\u06CC \u0637\u0648\u0631 \u067E\u0631 \u062A\u0639\u0637\u0644 \u06A9\u0627 \u0634\u06A9\u0627\u0631 \u06C1\u06D2\u06D4 \u0628\u0631\u0627\u06C1 \u06A9\u0631\u0645 \u06A9\u0686\u06BE \u062F\u06CC\u0631 \u0628\u0639\u062F \u062F\u0648\u0628\u0627\u0631\u06C1 \u06A9\u0648\u0634\u0634 \u0641\u0631\u0645\u0627\u0626\u06CC\u06BA\u06D4";
       if (isStreamRequest) {
@@ -7511,6 +7689,7 @@ if (!process.env.VERCEL) {
 }
 export {
   app,
-  getGeminiApiKey
+  getGeminiApiKey,
+  isLogoOrImageRequest
 };
 export default app;

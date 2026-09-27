@@ -298,6 +298,7 @@ export default function App() {
         headers: {
           "Content-Type": "application/json",
           "Accept": "text/event-stream",
+          ...(currentUser?.token ? { Authorization: `Bearer ${currentUser.token}` } : {}),
         },
         body: JSON.stringify({
           message: trimmedText,
@@ -306,6 +307,7 @@ export default function App() {
           language,
           stream: true,
           apiKey: localStorage.getItem("custom_gemini_api_key") || undefined,
+          userToken: currentUser?.token || undefined,
         }),
       });
 
