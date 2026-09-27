@@ -2,6 +2,15 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { UserAccount, DailyUsage } from "../types";
+import {
+  connectToDatabase,
+  isDatabaseConnected,
+  dbSaveUser,
+  dbGetAllUsers,
+  dbSaveToken,
+  dbDeleteToken,
+  dbGetUserIdByToken,
+} from "./db/database";
 
 export interface UserRecord extends UserAccount {
   passwordHash: string;
@@ -63,8 +72,34 @@ function saveToFiles() {
   }
 }
 
-// Initial load
+// Initial load from local files
 loadFromFiles();
+
+// Sync from database if available
+export async function syncFromDatabase() {
+  if (!isDatabaseConnected()) return;
+  try {
+    const dbUsers = await dbGetAllUsers();
+    for (const u of dbUsers) {
+      if (u.id) {
+        usersStore.set(u.id, u as UserRecord);
+      }
+    }
+  } catch (err) {
+    console.warn("Error syncing users from DB:", err);
+  }
+}
+
+// Auto-connect to database on startup
+connectToDatabase()
+  .then((res) => {
+    if (res.success) {
+      syncFromDatabase();
+    }
+  })
+  .catch((err) => {
+    console.warn("Database connection check on startup:", err?.message || err);
+  });
 
 export function getTodayDateString(): string {
   const today = new Date();
@@ -121,6 +156,10 @@ export function registerUser(email: string, password: string, name?: string): { 
 
   saveToFiles();
 
+  // Async persist to MongoDB
+  dbSaveUser(userRecord);
+  dbSaveToken(token, userId);
+
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = userRecord;
   return { token, user: publicUser };
 }
@@ -146,6 +185,10 @@ export function loginUser(email: string, password: string): { token: string; use
   tokensStore.set(token, user.id);
 
   saveToFiles();
+
+  // Async persist to MongoDB
+  dbSaveUser(user);
+  dbSaveToken(token, user.id);
 
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = user;
   return { token, user: publicUser };
@@ -183,6 +226,7 @@ export function incrementUserUsage(userId: string): DailyUsage {
 
   user.dailyUsage.count += 1;
   saveToFiles();
+  dbSaveUser(user);
 
   return user.dailyUsage;
 }
@@ -191,6 +235,7 @@ export function logoutUser(token: string): boolean {
   if (tokensStore.has(token)) {
     tokensStore.delete(token);
     saveToFiles();
+    dbDeleteToken(token);
     return true;
   }
   return false;
@@ -206,6 +251,7 @@ export function requestForgotPassword(email: string): { success: boolean; resetC
   user.resetCode = resetCode;
   user.resetCodeExpires = Date.now() + 15 * 60 * 1000; // 15 mins
   saveToFiles();
+  dbSaveUser(user);
 
   return { success: true, resetCode };
 }
@@ -235,6 +281,7 @@ export function resetPasswordWithCode(email: string, code: string, newPassword: 
   delete user.resetCodeExpires;
 
   saveToFiles();
+  dbSaveUser(user);
   return true;
 }
 
@@ -264,12 +311,17 @@ export function loginOrRegisterGoogle(email: string, name?: string): { token: st
   tokensStore.set(token, user.id);
   saveToFiles();
 
+  dbSaveUser(user);
+  dbSaveToken(token, user.id);
+
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = user;
   return { token, user: publicUser };
 }
 
 export function getAllUsers(): UserAccount[] {
   loadFromFiles();
+  // Trigger background sync from database if connected
+  syncFromDatabase();
   return Array.from(usersStore.values()).map((u) => {
     const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = u;
     return publicUser;
@@ -291,6 +343,7 @@ export function syncExternalUser(user: Partial<UserAccount>): UserAccount {
       existing.name = user.name.trim();
     }
     saveToFiles();
+    dbSaveUser(existing);
     const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = existing;
     return publicUser;
   }
@@ -312,6 +365,7 @@ export function syncExternalUser(user: Partial<UserAccount>): UserAccount {
 
   usersStore.set(userId, newUser);
   saveToFiles();
+  dbSaveUser(newUser);
 
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = newUser;
   return publicUser;

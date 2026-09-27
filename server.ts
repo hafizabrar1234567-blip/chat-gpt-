@@ -32,6 +32,11 @@ import {
 } from "./src/server/alUlamaService";
 import { generateSmartChatFallback } from "./src/server/smartChatEngine";
 import { sanitizeUrduIslamicContent } from "./src/utils/textSanitizer";
+import {
+  getDatabaseStatus,
+  connectToDatabase,
+  isDatabaseConnected,
+} from "./src/server/db/database";
 import fs from "fs";
 
 // Ensure Node TLS handles local Windows certificate proxies cleanly
@@ -186,6 +191,75 @@ app.get("/api/admin/users", (req, res) => {
       success: true,
       totalUsers: allUsers.length,
       users: allUsers,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 🗄️ ADMIN: Database Status & Configuration
+app.get("/api/admin/database", (req, res) => {
+  try {
+    const status = getDatabaseStatus();
+    const allUsers = getAllUsers();
+    status.totalUsers = allUsers.length;
+    return res.json({ success: true, ...status });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/database", async (req, res) => {
+  try {
+    const pin = (req.headers["x-admin-pin"] as string) || (req.body?.pin as string);
+    const token = getBearerToken(req) || (req.body?.token as string);
+
+    let isAuthorized = false;
+    if (pin && (pin === "786" || pin === "admin786" || pin === "hafizabrar" || pin === "hafizabrar1234567@gmail.com")) {
+      isAuthorized = true;
+    } else if (token) {
+      const user = getUserByToken(token);
+      if (user && ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({ success: false, error: "صرف ایڈمن کے پاس رسائی کی اجازت ہے۔" });
+    }
+
+    const { uri } = req.body || {};
+    if (!uri || typeof uri !== "string" || !uri.trim()) {
+      return res.status(400).json({ success: false, error: "درست MongoDB Connection String درج کریں۔" });
+    }
+
+    const result = await connectToDatabase(uri.trim());
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.message });
+    }
+
+    process.env.MONGODB_URI = uri.trim();
+
+    try {
+      const envPath = path.join(process.cwd(), ".env");
+      let envContent = "";
+      if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, "utf-8");
+      }
+      if (envContent.includes("MONGODB_URI=")) {
+        envContent = envContent.replace(/MONGODB_URI=.*/g, `MONGODB_URI="${uri.trim()}"`);
+      } else {
+        envContent += `\nMONGODB_URI="${uri.trim()}"\n`;
+      }
+      fs.writeFileSync(envPath, envContent, "utf-8");
+    } catch (saveErr) {
+      console.warn("Could not write .env file:", saveErr);
+    }
+
+    return res.json({
+      success: true,
+      message: result.message,
+      status: getDatabaseStatus(),
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });

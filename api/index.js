@@ -1,6 +1,6 @@
 // server.ts
 import express from "express";
-import path3 from "path";
+import path4 from "path";
 import { GoogleGenAI as GoogleGenAI2, Type } from "@google/genai";
 import dotenv from "dotenv";
 
@@ -2602,15 +2602,169 @@ Life is full of blessings. Stay focused on your goals, work hard, and spread hap
 }
 
 // src/server/authStore.ts
+import fs2 from "fs";
+import path2 from "path";
+import crypto from "crypto";
+
+// src/server/db/database.ts
+import { MongoClient } from "mongodb";
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
-var DATA_DIR = path.join(process.cwd(), "data");
-var USERS_FILE = path.join(DATA_DIR, "users.json");
-var TOKENS_FILE = path.join(DATA_DIR, "tokens.json");
-if (!fs.existsSync(DATA_DIR)) {
+var client = null;
+var db = null;
+var usersCollection = null;
+var tokensCollection = null;
+var isConnected = false;
+var connectionError = null;
+function getDatabaseStatus() {
+  return {
+    connected: isConnected,
+    type: isConnected ? "mongodb" : "file",
+    databaseName: db?.databaseName,
+    totalUsers: 0,
+    message: isConnected ? `\u{1F7E2} \u06A9\u0644\u0627\u0624\u0688 \u0688\u06CC\u0679\u0627 \u0628\u06CC\u0633 (MongoDB Atlas) \u06A9\u0627\u0645\u06CC\u0627\u0628\u06CC \u0633\u06D2 \u0645\u0646\u0633\u0644\u06A9 \u06C1\u06D2 [${db?.databaseName || "islamic_chatgpt"}]` : connectionError ? `\u26A0\uFE0F \u0688\u06CC\u0679\u0627 \u0628\u06CC\u0633 \u0633\u06D2 \u0631\u0627\u0628\u0637\u06C1 \u0646\u06C1\u06CC\u06BA \u06C1\u0648 \u0633\u06A9\u0627 (${connectionError}) - \u0645\u0642\u0627\u0645\u06CC \u0641\u0627\u0626\u0644 \u0627\u0633\u0679\u0648\u0631\u06CC\u062C \u0641\u0639\u0627\u0644 \u06C1\u06D2` : "\u{1F7E1} \u0645\u0642\u0627\u0645\u06CC \u0641\u0627\u0626\u0644 \u0627\u0633\u0679\u0648\u0631\u06CC\u062C \u0645\u0648\u0688 \u0641\u0639\u0627\u0644 \u06C1\u06D2\u06D4 \u0622\u067E \u0627\u06CC\u0688\u0645\u0646 \u0633\u06CC\u0679\u0646\u06AF\u0632 \u0645\u06CC\u06BA \u06A9\u0644\u0627\u0624\u0688 \u0688\u06CC\u0679\u0627 \u0628\u06CC\u0633 (MongoDB) \u06A9\u0627 \u0644\u0646\u06A9 \u062F\u0631\u062C \u06A9\u0631 \u0633\u06A9\u062A\u06D2 \u06C1\u06CC\u06BA\u06D4"
+  };
+}
+function isDatabaseConnected() {
+  return isConnected;
+}
+async function connectToDatabase(customUri) {
+  const uri = customUri || process.env.MONGODB_URI || process.env.DATABASE_URL;
+  if (!uri || typeof uri !== "string" || !uri.trim()) {
+    isConnected = false;
+    connectionError = null;
+    return {
+      success: false,
+      message: "\u06A9\u0648\u0626\u06CC MongoDB \u06A9\u0646\u06A9\u0634\u0646 \u0627\u0633\u0679\u0631\u0646\u06AF \u0645\u0648\u062C\u0648\u062F \u0646\u06C1\u06CC\u06BA \u06C1\u06D2\u06D4 \u0645\u0642\u0627\u0645\u06CC \u0641\u0627\u0626\u0644 \u0627\u0633\u0679\u0648\u0631\u06CC\u062C \u0627\u0633\u062A\u0639\u0645\u0627\u0644 \u06C1\u0648 \u0631\u06C1\u0627 \u06C1\u06D2\u06D4"
+    };
+  }
+  const cleanUri = uri.trim();
   try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (client) {
+      try {
+        await client.close();
+      } catch (_) {
+      }
+      client = null;
+      db = null;
+      usersCollection = null;
+      tokensCollection = null;
+    }
+    const newClient = new MongoClient(cleanUri, {
+      connectTimeoutMS: 1e4,
+      serverSelectionTimeoutMS: 1e4
+    });
+    await newClient.connect();
+    await newClient.db("admin").command({ ping: 1 });
+    client = newClient;
+    db = client.db("islamic_chatgpt");
+    usersCollection = db.collection("users");
+    tokensCollection = db.collection("tokens");
+    await usersCollection.createIndex({ email: 1 }, { unique: true });
+    await usersCollection.createIndex({ id: 1 }, { unique: true });
+    await tokensCollection.createIndex({ token: 1 }, { unique: true });
+    isConnected = true;
+    connectionError = null;
+    console.log("\u2705 Successfully connected to MongoDB Atlas database:", db.databaseName);
+    await syncLocalFilesToDatabase();
+    return {
+      success: true,
+      message: "MongoDB \u0688\u06CC\u0679\u0627 \u0628\u06CC\u0633 \u06A9\u0627\u0645\u06CC\u0627\u0628\u06CC \u0633\u06D2 \u0645\u0646\u0633\u0644\u06A9 \u06C1\u0648 \u06AF\u06CC\u0627 \u06C1\u06D2 \u0627\u0648\u0631 \u062A\u0635\u062F\u06CC\u0642 \u0645\u06A9\u0645\u0644 \u06C1\u0648 \u0686\u06A9\u06CC \u06C1\u06D2\u06D4"
+    };
+  } catch (err) {
+    isConnected = false;
+    connectionError = err?.message || String(err);
+    console.warn("\u26A0\uFE0F Failed to connect to MongoDB:", connectionError);
+    return {
+      success: false,
+      message: `\u0688\u06CC\u0679\u0627 \u0628\u06CC\u0633 \u06A9\u0646\u06A9\u0634\u0646 \u0646\u0627\u06A9\u0627\u0645 \u0631\u06C1\u0627: ${connectionError}`
+    };
+  }
+}
+async function syncLocalFilesToDatabase() {
+  if (!usersCollection || !tokensCollection) return;
+  try {
+    const dataDir = path.join(process.cwd(), "data");
+    const usersFile = path.join(dataDir, "users.json");
+    const tokensFile = path.join(dataDir, "tokens.json");
+    if (fs.existsSync(usersFile)) {
+      const content = fs.readFileSync(usersFile, "utf-8");
+      const list = JSON.parse(content);
+      for (const u of list) {
+        if (u.email) {
+          await usersCollection.updateOne(
+            { email: u.email.toLowerCase().trim() },
+            { $set: u },
+            { upsert: true }
+          );
+        }
+      }
+      console.log(`\u{1F4E6} Synced ${list.length} local users to MongoDB collection`);
+    }
+    if (fs.existsSync(tokensFile)) {
+      const content = fs.readFileSync(tokensFile, "utf-8");
+      const mapObj = JSON.parse(content);
+      for (const [tok, uid] of Object.entries(mapObj)) {
+        await tokensCollection.updateOne(
+          { token: tok },
+          { $set: { token: tok, userId: uid, createdAt: (/* @__PURE__ */ new Date()).toISOString() } },
+          { upsert: true }
+        );
+      }
+    }
+  } catch (err) {
+    console.warn("Error during local to DB sync:", err);
+  }
+}
+async function dbSaveUser(user) {
+  if (!isConnected || !usersCollection) return;
+  try {
+    await usersCollection.updateOne(
+      { email: user.email.toLowerCase().trim() },
+      { $set: user },
+      { upsert: true }
+    );
+  } catch (e) {
+    console.error("dbSaveUser error:", e);
+  }
+}
+async function dbGetAllUsers() {
+  if (!isConnected || !usersCollection) return [];
+  try {
+    return await usersCollection.find({}).toArray();
+  } catch (e) {
+    console.error("dbGetAllUsers error:", e);
+    return [];
+  }
+}
+async function dbSaveToken(token, userId) {
+  if (!isConnected || !tokensCollection) return;
+  try {
+    await tokensCollection.updateOne(
+      { token },
+      { $set: { token, userId, createdAt: (/* @__PURE__ */ new Date()).toISOString() } },
+      { upsert: true }
+    );
+  } catch (e) {
+    console.error("dbSaveToken error:", e);
+  }
+}
+async function dbDeleteToken(token) {
+  if (!isConnected || !tokensCollection) return;
+  try {
+    await tokensCollection.deleteOne({ token });
+  } catch (e) {
+    console.error("dbDeleteToken error:", e);
+  }
+}
+
+// src/server/authStore.ts
+var DATA_DIR = path2.join(process.cwd(), "data");
+var USERS_FILE = path2.join(DATA_DIR, "users.json");
+var TOKENS_FILE = path2.join(DATA_DIR, "tokens.json");
+if (!fs2.existsSync(DATA_DIR)) {
+  try {
+    fs2.mkdirSync(DATA_DIR, { recursive: true });
   } catch (err) {
     console.error("Error creating data directory:", err);
   }
@@ -2619,8 +2773,8 @@ var usersStore = /* @__PURE__ */ new Map();
 var tokensStore = /* @__PURE__ */ new Map();
 function loadFromFiles() {
   try {
-    if (fs.existsSync(USERS_FILE)) {
-      const data = fs.readFileSync(USERS_FILE, "utf-8");
+    if (fs2.existsSync(USERS_FILE)) {
+      const data = fs2.readFileSync(USERS_FILE, "utf-8");
       const list = JSON.parse(data);
       usersStore.clear();
       list.forEach((u) => usersStore.set(u.id, u));
@@ -2629,8 +2783,8 @@ function loadFromFiles() {
     console.error("Error loading users file:", e);
   }
   try {
-    if (fs.existsSync(TOKENS_FILE)) {
-      const data = fs.readFileSync(TOKENS_FILE, "utf-8");
+    if (fs2.existsSync(TOKENS_FILE)) {
+      const data = fs2.readFileSync(TOKENS_FILE, "utf-8");
       const mapObj = JSON.parse(data);
       tokensStore.clear();
       Object.entries(mapObj).forEach(([k, v]) => tokensStore.set(k, v));
@@ -2642,14 +2796,34 @@ function loadFromFiles() {
 function saveToFiles() {
   try {
     const userList = Array.from(usersStore.values());
-    fs.writeFileSync(USERS_FILE, JSON.stringify(userList, null, 2), "utf-8");
+    fs2.writeFileSync(USERS_FILE, JSON.stringify(userList, null, 2), "utf-8");
     const tokensObj = Object.fromEntries(tokensStore.entries());
-    fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokensObj, null, 2), "utf-8");
+    fs2.writeFileSync(TOKENS_FILE, JSON.stringify(tokensObj, null, 2), "utf-8");
   } catch (e) {
     console.error("Error saving users/tokens to disk:", e);
   }
 }
 loadFromFiles();
+async function syncFromDatabase() {
+  if (!isDatabaseConnected()) return;
+  try {
+    const dbUsers = await dbGetAllUsers();
+    for (const u of dbUsers) {
+      if (u.id) {
+        usersStore.set(u.id, u);
+      }
+    }
+  } catch (err) {
+    console.warn("Error syncing users from DB:", err);
+  }
+}
+connectToDatabase().then((res) => {
+  if (res.success) {
+    syncFromDatabase();
+  }
+}).catch((err) => {
+  console.warn("Database connection check on startup:", err?.message || err);
+});
 function getTodayDateString() {
   const today = /* @__PURE__ */ new Date();
   return today.toISOString().split("T")[0];
@@ -2695,6 +2869,8 @@ function registerUser(email, password, name) {
   const token = "tok_" + crypto.randomBytes(24).toString("hex");
   tokensStore.set(token, userId);
   saveToFiles();
+  dbSaveUser(userRecord);
+  dbSaveToken(token, userId);
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = userRecord;
   return { token, user: publicUser };
 }
@@ -2714,6 +2890,8 @@ function loginUser(email, password) {
   const token = "tok_" + crypto.randomBytes(24).toString("hex");
   tokensStore.set(token, user.id);
   saveToFiles();
+  dbSaveUser(user);
+  dbSaveToken(token, user.id);
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = user;
   return { token, user: publicUser };
 }
@@ -2742,12 +2920,14 @@ function incrementUserUsage(userId) {
   }
   user.dailyUsage.count += 1;
   saveToFiles();
+  dbSaveUser(user);
   return user.dailyUsage;
 }
 function logoutUser(token) {
   if (tokensStore.has(token)) {
     tokensStore.delete(token);
     saveToFiles();
+    dbDeleteToken(token);
     return true;
   }
   return false;
@@ -2761,6 +2941,7 @@ function requestForgotPassword(email) {
   user.resetCode = resetCode;
   user.resetCodeExpires = Date.now() + 15 * 60 * 1e3;
   saveToFiles();
+  dbSaveUser(user);
   return { success: true, resetCode };
 }
 function resetPasswordWithCode(email, code, newPassword) {
@@ -2783,6 +2964,7 @@ function resetPasswordWithCode(email, code, newPassword) {
   delete user.resetCode;
   delete user.resetCodeExpires;
   saveToFiles();
+  dbSaveUser(user);
   return true;
 }
 function loginOrRegisterGoogle(email, name) {
@@ -2807,11 +2989,14 @@ function loginOrRegisterGoogle(email, name) {
   const token = "tok_" + crypto.randomBytes(24).toString("hex");
   tokensStore.set(token, user.id);
   saveToFiles();
+  dbSaveUser(user);
+  dbSaveToken(token, user.id);
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = user;
   return { token, user: publicUser };
 }
 function getAllUsers() {
   loadFromFiles();
+  syncFromDatabase();
   return Array.from(usersStore.values()).map((u) => {
     const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = u;
     return publicUser;
@@ -2830,6 +3015,7 @@ function syncExternalUser(user) {
       existing.name = user.name.trim();
     }
     saveToFiles();
+    dbSaveUser(existing);
     const { passwordHash: _2, passwordSalt: __2, resetCode: ___2, resetCodeExpires: ____2, ...publicUser2 } = existing;
     return publicUser2;
   }
@@ -2848,22 +3034,23 @@ function syncExternalUser(user) {
   };
   usersStore.set(userId, newUser);
   saveToFiles();
+  dbSaveUser(newUser);
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = newUser;
   return publicUser;
 }
 
 // src/server/knowledgeBase.ts
-import fs2 from "fs";
-import path2 from "path";
-var DATA_DIR2 = path2.join(process.cwd(), "data");
-var BOOKS_DIR = path2.join(DATA_DIR2, "books");
-var STORE_PATH = path2.join(DATA_DIR2, "knowledge_base.json");
+import fs3 from "fs";
+import path3 from "path";
+var DATA_DIR2 = path3.join(process.cwd(), "data");
+var BOOKS_DIR = path3.join(DATA_DIR2, "books");
+var STORE_PATH = path3.join(DATA_DIR2, "knowledge_base.json");
 function ensureDirs() {
-  if (!fs2.existsSync(DATA_DIR2)) {
-    fs2.mkdirSync(DATA_DIR2, { recursive: true });
+  if (!fs3.existsSync(DATA_DIR2)) {
+    fs3.mkdirSync(DATA_DIR2, { recursive: true });
   }
-  if (!fs2.existsSync(BOOKS_DIR)) {
-    fs2.mkdirSync(BOOKS_DIR, { recursive: true });
+  if (!fs3.existsSync(BOOKS_DIR)) {
+    fs3.mkdirSync(BOOKS_DIR, { recursive: true });
   }
 }
 async function extractTextFromBuffer(buffer, fileType) {
@@ -2883,7 +3070,7 @@ async function extractTextFromBuffer(buffer, fileType) {
 }
 function getKnowledgeStore() {
   ensureDirs();
-  if (!fs2.existsSync(STORE_PATH)) {
+  if (!fs3.existsSync(STORE_PATH)) {
     const defaultStore = {
       books: [
         {
@@ -3062,7 +3249,7 @@ function getKnowledgeStore() {
     return defaultStore;
   }
   try {
-    const raw = fs2.readFileSync(STORE_PATH, "utf-8");
+    const raw = fs3.readFileSync(STORE_PATH, "utf-8");
     return JSON.parse(raw);
   } catch (err) {
     console.error("Error reading knowledge base store:", err);
@@ -3071,7 +3258,7 @@ function getKnowledgeStore() {
 }
 function saveKnowledgeStore(store) {
   ensureDirs();
-  fs2.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+  fs3.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
 }
 function extractKeywords(text) {
   if (!text) return [];
@@ -3140,7 +3327,7 @@ async function addBook(title, content, options) {
   saveKnowledgeStore(store);
   try {
     const safeName = `${bookId}_${newBook.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-    fs2.writeFileSync(path2.join(BOOKS_DIR, safeName), content, "utf-8");
+    fs3.writeFileSync(path3.join(BOOKS_DIR, safeName), content, "utf-8");
   } catch (err) {
     console.error("Could not write raw book file:", err);
   }
@@ -6208,7 +6395,7 @@ function sanitizeUrduIslamicContent(rawText) {
 }
 
 // server.ts
-import fs3 from "fs";
+import fs4 from "fs";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 dotenv.config();
 var app = express();
@@ -6337,6 +6524,67 @@ app.get("/api/admin/users", (req, res) => {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
+app.get("/api/admin/database", (req, res) => {
+  try {
+    const status = getDatabaseStatus();
+    const allUsers = getAllUsers();
+    status.totalUsers = allUsers.length;
+    return res.json({ success: true, ...status });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+app.post("/api/admin/database", async (req, res) => {
+  try {
+    const pin = req.headers["x-admin-pin"] || req.body?.pin;
+    const token = getBearerToken(req) || req.body?.token;
+    let isAuthorized = false;
+    if (pin && (pin === "786" || pin === "admin786" || pin === "hafizabrar" || pin === "hafizabrar1234567@gmail.com")) {
+      isAuthorized = true;
+    } else if (token) {
+      const user = getUserByToken(token);
+      if (user && ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) {
+        isAuthorized = true;
+      }
+    }
+    if (!isAuthorized) {
+      return res.status(403).json({ success: false, error: "\u0635\u0631\u0641 \u0627\u06CC\u0688\u0645\u0646 \u06A9\u06D2 \u067E\u0627\u0633 \u0631\u0633\u0627\u0626\u06CC \u06A9\u06CC \u0627\u062C\u0627\u0632\u062A \u06C1\u06D2\u06D4" });
+    }
+    const { uri } = req.body || {};
+    if (!uri || typeof uri !== "string" || !uri.trim()) {
+      return res.status(400).json({ success: false, error: "\u062F\u0631\u0633\u062A MongoDB Connection String \u062F\u0631\u062C \u06A9\u0631\u06CC\u06BA\u06D4" });
+    }
+    const result = await connectToDatabase(uri.trim());
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.message });
+    }
+    process.env.MONGODB_URI = uri.trim();
+    try {
+      const envPath = path4.join(process.cwd(), ".env");
+      let envContent = "";
+      if (fs4.existsSync(envPath)) {
+        envContent = fs4.readFileSync(envPath, "utf-8");
+      }
+      if (envContent.includes("MONGODB_URI=")) {
+        envContent = envContent.replace(/MONGODB_URI=.*/g, `MONGODB_URI="${uri.trim()}"`);
+      } else {
+        envContent += `
+MONGODB_URI="${uri.trim()}"
+`;
+      }
+      fs4.writeFileSync(envPath, envContent, "utf-8");
+    } catch (saveErr) {
+      console.warn("Could not write .env file:", saveErr);
+    }
+    return res.json({
+      success: true,
+      message: result.message,
+      status: getDatabaseStatus()
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 app.get("/api/books", (req, res) => {
   try {
     const store = getKnowledgeStore();
@@ -6441,10 +6689,10 @@ app.post("/api/settings/key", async (req, res) => {
     }
     process.env.GEMINI_API_KEY = testKey;
     try {
-      const envPath = path3.join(process.cwd(), ".env");
+      const envPath = path4.join(process.cwd(), ".env");
       let envContent = "";
-      if (fs3.existsSync(envPath)) {
-        envContent = fs3.readFileSync(envPath, "utf-8");
+      if (fs4.existsSync(envPath)) {
+        envContent = fs4.readFileSync(envPath, "utf-8");
       }
       if (envContent.includes("GEMINI_API_KEY=")) {
         envContent = envContent.replace(/GEMINI_API_KEY=.*/g, `GEMINI_API_KEY="${testKey}"`);
@@ -6453,7 +6701,7 @@ app.post("/api/settings/key", async (req, res) => {
 GEMINI_API_KEY="${testKey}"
 `;
       }
-      fs3.writeFileSync(envPath, envContent, "utf-8");
+      fs4.writeFileSync(envPath, envContent, "utf-8");
     } catch (saveErr) {
       console.warn("Could not write .env file:", saveErr);
     }
@@ -7974,10 +8222,10 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path3.join(process.cwd(), "dist");
+    const distPath = path4.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path3.join(distPath, "index.html"));
+      res.sendFile(path4.join(distPath, "index.html"));
     });
   }
   app.listen(PORT, "0.0.0.0", () => {

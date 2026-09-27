@@ -17,6 +17,7 @@ import {
   User,
   Calendar,
   MessageSquare,
+  Database,
 } from "lucide-react";
 import { QARI_LIST, QariId } from "../utils/quranAudioService";
 import { UserAccount } from "../types";
@@ -56,11 +57,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [pinError, setPinError] = useState("");
 
   const isAdmin = isDirectAdminUser || isAdminUnlocked;
-  const [adminTab, setAdminTab] = useState<"users" | "apikey">("users");
+  const [adminTab, setAdminTab] = useState<"users" | "apikey" | "database">("users");
   const [usersList, setUsersList] = useState<UserAccount[]>([]);
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [isUsersLoading, setIsUsersLoading] = useState<boolean>(false);
   const [usersError, setUsersError] = useState<string | null>(null);
+
+  // Database state
+  const [dbStatus, setDbStatus] = useState<{
+    connected: boolean;
+    type: string;
+    message: string;
+    databaseName?: string;
+    totalUsers?: number;
+  } | null>(null);
+  const [dbUri, setDbUri] = useState("");
+  const [isDbLoading, setIsDbLoading] = useState(false);
+  const [dbFeedback, setDbFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const handleQariChange = (id: QariId) => {
     setDefaultQari(id);
@@ -121,6 +134,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       if (isAdmin) {
         fetchStatus();
         fetchUsers();
+        fetchDatabaseStatus();
       }
     }
   }, [isOpen, isAdmin]);
@@ -134,6 +148,60 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const fetchDatabaseStatus = async () => {
+    try {
+      const res = await fetch("/api/admin/database");
+      const data = await res.json();
+      if (data.success) {
+        setDbStatus(data);
+      }
+    } catch (e) {
+      console.error("fetchDatabaseStatus error:", e);
+    }
+  };
+
+  const handleSaveDatabase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dbUri.trim()) return;
+    setIsDbLoading(true);
+    setDbFeedback(null);
+    try {
+      const pin = localStorage.getItem("admin_session_unlocked") === "true" ? "786" : "";
+      const token = localStorage.getItem("postly_auth_token") || "";
+      const res = await fetch("/api/admin/database", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(pin ? { "x-admin-pin": pin } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ uri: dbUri.trim(), pin, token }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDbFeedback({
+          type: "success",
+          text: data.message || "MongoDB کلاؤڈ ڈیٹا بیس کامیابی سے منسلک ہو گیا ہے! 🎉",
+        });
+        setDbStatus(data.status);
+        setDbUri("");
+        fetchUsers();
+      } else {
+        setDbFeedback({
+          type: "error",
+          text: data.error || "ڈیٹا بیس سے رابطہ قائم نہیں ہو سکا",
+        });
+      }
+    } catch (err: any) {
+      setDbFeedback({
+        type: "error",
+        text: err.message || "سرور سے رابطہ نہیں ہو سکا",
+      });
+    } finally {
+      setIsDbLoading(false);
     }
   };
 
@@ -300,31 +368,44 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Admin Tabs */}
-              <div className="grid grid-cols-2 gap-2 bg-[#020b08] p-1 rounded-xl border border-emerald-900/40">
+              <div className="grid grid-cols-3 gap-1.5 bg-[#020b08] p-1 rounded-xl border border-emerald-900/40">
                 <button
                   type="button"
                   onClick={() => setAdminTab("users")}
-                  className={`py-2 px-3 rounded-lg text-xs font-urdu font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-2 rounded-lg text-xs font-urdu font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
                     adminTab === "users"
                       ? "bg-emerald-600 text-white shadow-md"
                       : "text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/40"
                   }`}
                 >
                   <Users className="w-3.5 h-3.5" />
-                  <span>👥 لاگ ان صارفین ({totalUsers})</span>
+                  <span className="truncate">صارفین ({totalUsers})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAdminTab("database")}
+                  className={`py-2 px-2 rounded-lg text-xs font-urdu font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                    adminTab === "database"
+                      ? "bg-emerald-600 text-white shadow-md"
+                      : "text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/40"
+                  }`}
+                >
+                  <Database className="w-3.5 h-3.5" />
+                  <span className="truncate">ڈیٹا بیس</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setAdminTab("apikey")}
-                  className={`py-2 px-3 rounded-lg text-xs font-urdu font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`py-2 px-2 rounded-lg text-xs font-urdu font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
                     adminTab === "apikey"
                       ? "bg-emerald-600 text-white shadow-md"
                       : "text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/40"
                   }`}
                 >
                   <Key className="w-3.5 h-3.5" />
-                  <span>🔑 Gemini API کلید</span>
+                  <span className="truncate">API کلید</span>
                 </button>
               </div>
 
@@ -506,6 +587,115 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <span>Google AI Studio سے مفت Key لیں</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: CLOUD DATABASE SETTINGS */}
+          {adminTab === "database" && (
+            <div className="space-y-4">
+              {/* Status Badge */}
+              <div
+                className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-urdu ${
+                  dbStatus?.connected
+                    ? "bg-emerald-950/70 border-emerald-700/50 text-emerald-300"
+                    : "bg-amber-950/70 border-amber-700/50 text-amber-300"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-emerald-400" />
+                  <span>
+                    {dbStatus?.connected
+                      ? "🟢 کلاؤڈ ڈیٹا بیس منسلک ہے (MongoDB Atlas)"
+                      : "🟡 مقامی فائل اسٹوریج موڈ (Local File Storage)"}
+                  </span>
+                </div>
+                {dbStatus?.databaseName && (
+                  <span className="font-mono text-[11px] bg-black/40 px-2 py-0.5 rounded text-emerald-400">
+                    {dbStatus.databaseName}
+                  </span>
+                )}
+              </div>
+
+              {dbStatus?.message && (
+                <div className="text-[11px] text-slate-300 font-urdu bg-black/40 p-3 rounded-xl border border-emerald-900/30">
+                  {dbStatus.message}
+                </div>
+              )}
+
+              {/* Feedback */}
+              {dbFeedback && (
+                <div
+                  className={`p-3.5 rounded-2xl flex items-center gap-2.5 text-xs font-urdu ${
+                    dbFeedback.type === "success"
+                      ? "bg-emerald-950/80 border border-emerald-600/50 text-emerald-200"
+                      : "bg-red-950/80 border border-red-600/50 text-red-200"
+                  }`}
+                >
+                  {dbFeedback.type === "success" ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  )}
+                  <span>{dbFeedback.text}</span>
+                </div>
+              )}
+
+              {/* Form */}
+              <form onSubmit={handleSaveDatabase} className="space-y-4">
+                <div>
+                  <label className="block text-xs text-slate-300 font-urdu mb-1.5 font-medium">
+                    MongoDB Connection String (URI):
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="mongodb+srv://username:password@cluster.mongodb.net/islamic_chatgpt?retryWrites=true&w=majority"
+                    value={dbUri}
+                    onChange={(e) => setDbUri(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#050c0a] border border-emerald-900/50 rounded-xl text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 text-left"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isDbLoading || !dbUri.trim()}
+                  className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 disabled:opacity-50 text-white rounded-xl font-urdu font-bold text-xs shadow-lg shadow-emerald-950/50 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isDbLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> ڈیٹا بیس ٹیسٹ ہو رہا ہے...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="w-4 h-4" /> کنکشن محفوظ اور ٹیسٹ کریں
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Instructions */}
+              <div className="p-3.5 bg-emerald-950/30 border border-emerald-900/30 rounded-2xl text-xs text-slate-400 font-urdu space-y-2">
+                <p className="font-bold text-emerald-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" /> مفت MongoDB Atlas ڈیٹا بیس کیسے بنائیں؟
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-[11px] leading-relaxed">
+                  <li>
+                    <a
+                      href="https://www.mongodb.com/cloud/atlas/register"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-400 hover:underline inline-flex items-center gap-1 font-sans"
+                    >
+                      mongodb.com/atlas <ExternalLink className="w-3 h-3" />
+                    </a>{" "}
+                    پر مفت سائن اپ کریں۔
+                  </li>
+                  <li>"M0 Free Cluster" منتخب کریں اور Create Database پر کلک کریں۔</li>
+                  <li>Database Access میں ڈیٹا بیس صارف کا یوزر نیم اور پاس ورڈ بنائیں۔</li>
+                  <li>Network Access میں <code>0.0.0.0/0</code> (Allow Access from Anywhere) منتخب کریں۔</li>
+                  <li>Connect ➔ Drivers کا کنکشن لنک کاپی کر کے اوپر داخل کر کے محفوظ کریں۔</li>
+                </ol>
               </div>
             </div>
           )}
