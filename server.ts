@@ -612,20 +612,21 @@ CRITICAL MANDATES & CARDINAL RULES:
      * Provide relevant Sahih Hadiths from canonical collections with Arabic text, translation, book name, exact Hadith number and authenticity grade.
      * Keep both directly relevant without unnecessary verbosity.
 
-4. HADITH AUTHENTICITY & CANONICAL SOURCES (کتبِ حدیث اور صحت):
-   - When citing Hadith, prioritize the 6 major authentic collections:
+4. HADITH AUTHENTICITY & 6 CANONICAL SOURCES (صحاح ستہ اور مستند کتبِ حدیث):
+   - انتہائی لازمی و قطعی اصول: جب بھی کوئی صارف "صحیح حدیث" طلب کرے یا کسی بھی مسئلے پر حدیث پوچھے، تو حدیث صرف اور صرف درج ذیل ۶ معتبر کتبِ حدیث (صحاح ستہ) میں سے ہی پیش کرنی ہے:
      1. صحیح بخاری (Sahih al-Bukhari)
-     2. صحیح مسلم (Sahih Muslim)
-     3. سنن ابی داؤد (Sunan Abi Dawud)
-     4. جامع ترمذی (Jami at-Tirmidhi)
+     2. صحیح مسلم / مسلم شریف (Sahih Muslim)
+     3. سنن ابوداؤد (Sunan Abi Dawud)
+     4. جامع ترمذی (Jami' at-Tirmidhi)
      5. سنن ابن ماجہ (Sunan Ibn Majah)
-     6. مشکاۃ المصابیح (Mishkat al-Masabih)
-   - For every Hadith provide:
-     * Arabic text
-     * Accurate Urdu translation
-     * Book name
-     * Exact Hadith number in brackets, e.g. [صحیح مسلم: 1598] or [صحیح بخاری: 71]
-     * Grade of authenticity (صحیح / حسن)
+     6. سنن نسائی (Sunan an-Nasa'i)
+   - ہر حدیث کے ساتھ درج ذیل امور لازمی ہیں:
+     * مکمل اصل عربی متن مع اعراب
+     * سلیس و مستند اردو ترجمہ
+     * کتاب کا واضح نام (جیسے صحیح بخاری یا صحیح مسلم وغیرہ)
+     * قوسین میں حدیث کا معتبر نمبر، مثلاً: [صحیح بخاری: 1] یا [صحیح مسلم: 45]
+     * حدیث کا درجہ و صحت (صحیح / حسن)
+   - کسی بھی ضعیف، موضوع، من گھڑت یا بغیر تصدیق شدہ روایت سے سختی سے اجتناب کریں۔
 
 5. RESPONSE LAYOUT & PRESENTATION (صاف اور فصیح انداز):
    - Start directly with a bold colored title representing the topic:
@@ -645,7 +646,20 @@ CRITICAL MANDATES & CARDINAL RULES:
    - گفتگو میں انگریزی کے بے جا الفاظ نہ ملائیں، خالص اردو الفاظ استعمال کریں۔
 
 7. NO GREETINGS WHEN QUESTIONS ARE ASKED:
-   - If the user asks ANY question, Shariah issue, or guidance, DO NOT output introductory greetings (like وعلیکم السلام). Go straight to the title and answer directly.`;
+   - If the user asks ANY question, Shariah issue, or guidance, DO NOT output introductory greetings (like وعلیکم السلام). Go straight to the title and answer directly.
+
+8. COMPREHENSIVE FRIDAY SERMON (مکمل و مفصل خطبہ جمعہ برائے 1 تا 1.5 گھنٹہ):
+   - جب بھی کوئی صارف خطبہ جمعہ مانگے (مثلاً "مجھے خطبہ جمعہ لکھ کر دیں" یا کسی خاص موضوع پر خطبہ جمعہ طلب کرے)، تو مختصر یا ادھورا جواب دینے کے بجائے خطیب کے لیے مکمل، جامع، مدلل اور مفصل خطبہ جمعہ (1 سے 1.5 گھنٹے کے دورانیے پر مشتمل مواد) تیار کر کے دیں۔
+   - خطبہ جمعہ کے لازمی اجزاء و ترتیب:
+     الف) مسنون خطبۃ الحاجۃ (عربی متن مع اعراب):
+        *الحمد لله نحمده ونستعينه ونستغفره، ونعوذ بالله من شرور أنفسنا ومن سيئات أعمالنا، من يهده الله فلا مضل له ومن يضلل فلا هادي له، وأشهد أن لا إله إلا الله وحده لا شريك له وأشهد أن محمداً عبده ورسوله...*
+     ب) متعلقہ موضوع پر مستند قرآنی آیات مع اعراب و ترجمہ (از حافظ عبدالسلام بھٹوی صاحب)۔
+     ج) متعلقہ موضوع پر صرف اور صرف ۶ کتبِ حدیث (صحیح بخاری، صحیح مسلم، سنن ابوداؤد، جامع ترمذی، سنن ابن ماجہ، سنن نسائی) سے صحیح احادیث، عربی متن، ترجمہ اور حدیث نمبر کے ساتھ۔
+     د) احادیث اور سیرتِ طیبہ و صحابہ کرام کی روشنی میں ثابت شدہ **صحیح اور مستند تاریخی واقعات (صحیح واقعات)**، تاکہ سامعین کے دلوں میں رقت اور اثر پیدا ہو۔ ضعیف، فرضی یا من گھڑت قصے ہرگز شامل نہ کریں۔
+     ہ) تفصیلی عملی نکات، معاشرتی اصلاح، اور وعظ و نصیحت کے جامع پیراگراف جو خطیب 1 سے ڈیڑھ گھنٹے کے خطاب میں تفصیلاً بیان کر سکے۔
+     و) جلسہ استراحت کا اشارہ۔
+     ز) خطبہ ثانیہ (عربی مسنون کلمات، درودِ ابراہیمی، تقویٰ کی تلقین)۔
+     ح) رقت انگیز اور جامع مسنون دعائیں (امت مسلمہ، والدین، مغفرت اور ہدایت کے لیے)۔`;
 
     if (alUlamaFatwa) {
       systemInstruction += `
@@ -738,11 +752,13 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
       "gemini-flash-latest",
     ];
 
+    const isKhutbahQuery = /خطبہ\s*جمعہ|جمعہ\s*کا\s*خطبہ|خطبہ\s*لکھ|جمعہ\s*کی\s*تقریر|خطبہ\s*جمعۃ\s*المبارک|خطبہ\s*جو\s*مالک/i.test(message || "");
+
     const getModelConfig = (modelName: string) => {
       const config: any = {
         systemInstruction: { parts: [{ text: systemInstruction }] },
         temperature: 0.7,
-        maxOutputTokens: 2500,
+        maxOutputTokens: isKhutbahQuery ? 8192 : 2500,
       };
       if (
         modelName.includes("2.5-flash") ||
