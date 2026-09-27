@@ -2,7 +2,7 @@
 import express from "express";
 import path4 from "path";
 import { GoogleGenAI as GoogleGenAI2, Type } from "@google/genai";
-import dotenv from "dotenv";
+import dotenv2 from "dotenv";
 
 // src/utils/calendarConverter.ts
 var GREGORIAN_MONTHS_URDU = [
@@ -2610,6 +2610,9 @@ import crypto from "crypto";
 import { MongoClient } from "mongodb";
 import fs from "fs";
 import path from "path";
+import dns from "dns";
+import dotenv from "dotenv";
+dotenv.config();
 var client = null;
 var db = null;
 var usersCollection = null;
@@ -2640,6 +2643,10 @@ async function connectToDatabase(customUri) {
   }
   const cleanUri = uri.trim();
   try {
+    try {
+      dns.setServers(["8.8.8.8", "1.1.1.1"]);
+    } catch (_) {
+    }
     if (client) {
       try {
         await client.close();
@@ -2651,8 +2658,9 @@ async function connectToDatabase(customUri) {
       tokensCollection = null;
     }
     const newClient = new MongoClient(cleanUri, {
-      connectTimeoutMS: 1e4,
-      serverSelectionTimeoutMS: 1e4
+      connectTimeoutMS: 15e3,
+      serverSelectionTimeoutMS: 15e3,
+      tlsAllowInvalidCertificates: true
     });
     await newClient.connect();
     await newClient.db("admin").command({ ping: 1 });
@@ -6397,7 +6405,7 @@ function sanitizeUrduIslamicContent(rawText) {
 // server.ts
 import fs4 from "fs";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-dotenv.config();
+dotenv2.config();
 var app = express();
 var PORT = Number(process.env.PORT) || 5e3;
 var appUrl = process.env.APP_URL || `http://localhost:${PORT}`;

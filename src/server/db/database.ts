@@ -1,7 +1,11 @@
 import { MongoClient, Db, Collection } from "mongodb";
 import fs from "fs";
 import path from "path";
+import dns from "dns";
+import dotenv from "dotenv";
 import { UserAccount } from "../../types";
+
+dotenv.config();
 
 export interface DBUserRecord extends UserAccount {
   passwordHash: string;
@@ -65,6 +69,10 @@ export async function connectToDatabase(customUri?: string): Promise<{ success: 
   const cleanUri = uri.trim();
 
   try {
+    try {
+      dns.setServers(["8.8.8.8", "1.1.1.1"]);
+    } catch (_) {}
+
     if (client) {
       try {
         await client.close();
@@ -76,8 +84,9 @@ export async function connectToDatabase(customUri?: string): Promise<{ success: 
     }
 
     const newClient = new MongoClient(cleanUri, {
-      connectTimeoutMS: 10000,
-      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 15000,
+      serverSelectionTimeoutMS: 15000,
+      tlsAllowInvalidCertificates: true,
     });
 
     await newClient.connect();
