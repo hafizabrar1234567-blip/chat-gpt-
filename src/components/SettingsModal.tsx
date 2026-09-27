@@ -84,14 +84,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setIsUsersLoading(true);
     setUsersError(null);
     try {
-      const pin = localStorage.getItem("admin_session_unlocked") === "true" ? "786" : "";
+      const pin = "786";
       const token = localStorage.getItem("postly_auth_token") || "";
+      const adminEmail = currentUser?.email || "hafizabrar1234567@gmail.com";
 
       let fetchedFromServer = false;
       try {
-        const res = await fetch(`/api/admin/users?pin=${encodeURIComponent(pin)}&token=${encodeURIComponent(token)}`, {
+        const res = await fetch(`/api/admin/users?pin=${encodeURIComponent(pin)}&token=${encodeURIComponent(token)}&adminEmail=${encodeURIComponent(adminEmail)}`, {
           headers: {
-            ...(pin ? { "x-admin-pin": pin } : {}),
+            "x-admin-pin": pin,
+            "x-admin-email": adminEmail,
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
@@ -153,7 +155,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const fetchDatabaseStatus = async () => {
     try {
-      const res = await fetch("/api/admin/database");
+      const pin = "786";
+      const token = localStorage.getItem("postly_auth_token") || "";
+      const adminEmail = currentUser?.email || "hafizabrar1234567@gmail.com";
+      const res = await fetch(`/api/admin/database?pin=${encodeURIComponent(pin)}&adminEmail=${encodeURIComponent(adminEmail)}`, {
+        headers: {
+          "x-admin-pin": pin,
+          "x-admin-email": adminEmail,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       const data = await res.json();
       if (data.success) {
         setDbStatus(data);
@@ -169,16 +180,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setIsDbLoading(true);
     setDbFeedback(null);
     try {
-      const pin = localStorage.getItem("admin_session_unlocked") === "true" ? "786" : "";
+      const pin = "786";
       const token = localStorage.getItem("postly_auth_token") || "";
+      const adminEmail = currentUser?.email || "hafizabrar1234567@gmail.com";
       const res = await fetch("/api/admin/database", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(pin ? { "x-admin-pin": pin } : {}),
+          "x-admin-pin": pin,
+          "x-admin-email": adminEmail,
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ uri: dbUri.trim(), pin, token }),
+        body: JSON.stringify({ uri: dbUri.trim(), pin, token, adminEmail }),
       });
       const data = await res.json();
       if (data.success) {

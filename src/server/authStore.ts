@@ -10,6 +10,8 @@ import {
   dbSaveToken,
   dbDeleteToken,
   dbGetUserIdByToken,
+  dbFindUserByEmail,
+  dbFindUserById,
 } from "./db/database";
 
 export interface UserRecord extends UserAccount {
@@ -28,7 +30,7 @@ if (!fs.existsSync(DATA_DIR)) {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   } catch (err) {
-    console.error("Error creating data directory:", err);
+    // Read-only filesystem on serverless
   }
 }
 
@@ -45,7 +47,7 @@ function loadFromFiles() {
       list.forEach((u) => usersStore.set(u.id, u));
     }
   } catch (e) {
-    console.error("Error loading users file:", e);
+    // Ignore on serverless
   }
 
   try {
@@ -56,7 +58,7 @@ function loadFromFiles() {
       Object.entries(mapObj).forEach(([k, v]) => tokensStore.set(k, v));
     }
   } catch (e) {
-    console.error("Error loading tokens file:", e);
+    // Ignore on serverless
   }
 }
 
@@ -68,7 +70,7 @@ function saveToFiles() {
     const tokensObj = Object.fromEntries(tokensStore.entries());
     fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokensObj, null, 2), "utf-8");
   } catch (e) {
-    console.error("Error saving users/tokens to disk:", e);
+    // Ignore read-only errors on serverless
   }
 }
 
@@ -77,6 +79,11 @@ loadFromFiles();
 
 // Sync from database if available
 export async function syncFromDatabase() {
+  if (!isDatabaseConnected()) {
+    try {
+      await connectToDatabase();
+    } catch (_) {}
+  }
   if (!isDatabaseConnected()) return;
   try {
     const dbUsers = await dbGetAllUsers();
@@ -120,9 +127,24 @@ export function findUserByEmail(email: string): UserRecord | undefined {
   return undefined;
 }
 
-export function registerUser(email: string, password: string, name?: string): { token: string; user: UserAccount } {
+export async function registerUser(email: string, password: string, name?: string): Promise<{ token: string; user: UserAccount }> {
   const cleanEmail = email.trim().toLowerCase();
-  if (findUserByEmail(cleanEmail)) {
+
+  let existing = findUserByEmail(cleanEmail);
+  if (!existing) {
+    if (!isDatabaseConnected()) {
+      try { await connectToDatabase(); } catch (_) {}
+    }
+    if (isDatabaseConnected()) {
+      const dbU = await dbFindUserByEmail(cleanEmail);
+      if (dbU) {
+        existing = dbU as UserRecord;
+        usersStore.set(existing.id, existing);
+      }
+    }
+  }
+
+  if (existing) {
     throw new Error("اس ای میل پر اکاؤنٹ پہلے سے موجود ہے۔ لاگ ان کریں۔");
   }
 
@@ -156,16 +178,40 @@ export function registerUser(email: string, password: string, name?: string): { 
 
   saveToFiles();
 
-  // Async persist to MongoDB
-  dbSaveUser(userRecord);
-  dbSaveToken(token, userId);
+  // Persist to MongoDB with await so serverless does not freeze before writing
+  if (!isDatabaseConnected()) {
+    try { await connectToDatabase(); } catch (_) {}
+  }
+  if (isDatabaseConnected()) {
+    try {
+      await dbSaveUser(userRecord);
+      await dbSaveToken(token, userId);
+    } catch (dbErr) {
+      console.error("registerUser db save error:", dbErr);
+    }
+  }
 
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = userRecord;
   return { token, user: publicUser };
 }
 
-export function loginUser(email: string, password: string): { token: string; user: UserAccount } {
-  const user = findUserByEmail(email);
+export async function loginUser(email: string, password: string): Promise<{ token: string; user: UserAccount }> {
+  const cleanEmail = email.trim().toLowerCase();
+  let user = findUserByEmail(cleanEmail);
+
+  if (!user) {
+    if (!isDatabaseConnected()) {
+      try { await connectToDatabase(); } catch (_) {}
+    }
+    if (isDatabaseConnected()) {
+      const dbU = await dbFindUserByEmail(cleanEmail);
+      if (dbU) {
+        user = dbU as UserRecord;
+        usersStore.set(user.id, user);
+      }
+    }
+  }
+
   if (!user) {
     throw new Error("ای میل یا پاس ورڈ غلط ہے۔");
   }
@@ -177,7 +223,7 @@ export function loginUser(email: string, password: string): { token: string; use
 
   // Ensure daily usage is fresh for today
   const todayStr = getTodayDateString();
-  if (user.dailyUsage.date !== todayStr) {
+  if (!user.dailyUsage || user.dailyUsage.date !== todayStr) {
     user.dailyUsage = { date: todayStr, count: 0 };
   }
 
@@ -186,27 +232,65 @@ export function loginUser(email: string, password: string): { token: string; use
 
   saveToFiles();
 
-  // Async persist to MongoDB
-  dbSaveUser(user);
-  dbSaveToken(token, user.id);
+  // Persist to MongoDB with await
+  if (!isDatabaseConnected()) {
+    try { await connectToDatabase(); } catch (_) {}
+  }
+  if (isDatabaseConnected()) {
+    try {
+      await dbSaveUser(user);
+      await dbSaveToken(token, user.id);
+    } catch (dbErr) {
+      console.error("loginUser db save error:", dbErr);
+    }
+  }
 
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = user;
   return { token, user: publicUser };
 }
 
-export function getUserByToken(token: string): UserAccount | null {
+export async function getUserByToken(token: string): Promise<UserAccount | null> {
   if (!token) return null;
-  const userId = tokensStore.get(token);
+
+  let userId = tokensStore.get(token);
+  if (!userId) {
+    if (!isDatabaseConnected()) {
+      try { await connectToDatabase(); } catch (_) {}
+    }
+    if (isDatabaseConnected()) {
+      userId = (await dbGetUserIdByToken(token)) || undefined;
+      if (userId) {
+        tokensStore.set(token, userId);
+      }
+    }
+  }
+
   if (!userId) return null;
 
-  const user = usersStore.get(userId);
+  let user = usersStore.get(userId);
+  if (!user) {
+    if (!isDatabaseConnected()) {
+      try { await connectToDatabase(); } catch (_) {}
+    }
+    if (isDatabaseConnected()) {
+      const dbU = await dbFindUserById(userId);
+      if (dbU) {
+        user = dbU as UserRecord;
+        usersStore.set(userId, user);
+      }
+    }
+  }
+
   if (!user) return null;
 
   // Auto-reset daily limit if calendar day changed
   const todayStr = getTodayDateString();
-  if (user.dailyUsage.date !== todayStr) {
+  if (!user.dailyUsage || user.dailyUsage.date !== todayStr) {
     user.dailyUsage = { date: todayStr, count: 0 };
     saveToFiles();
+    if (isDatabaseConnected()) {
+      await dbSaveUser(user);
+    }
   }
 
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = user;
@@ -220,7 +304,7 @@ export function incrementUserUsage(userId: string): DailyUsage {
   }
 
   const todayStr = getTodayDateString();
-  if (user.dailyUsage.date !== todayStr) {
+  if (!user.dailyUsage || user.dailyUsage.date !== todayStr) {
     user.dailyUsage = { date: todayStr, count: 0 };
   }
 
@@ -241,8 +325,17 @@ export function logoutUser(token: string): boolean {
   return false;
 }
 
-export function requestForgotPassword(email: string): { success: boolean; resetCode: string } {
-  const user = findUserByEmail(email);
+export async function requestForgotPassword(email: string): Promise<{ success: boolean; resetCode: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+  let user = findUserByEmail(cleanEmail);
+  if (!user && isDatabaseConnected()) {
+    const dbU = await dbFindUserByEmail(cleanEmail);
+    if (dbU) {
+      user = dbU as UserRecord;
+      usersStore.set(user.id, user);
+    }
+  }
+
   if (!user) {
     throw new Error("اس ای میل سے کوئی اکاؤنٹ رجسٹرڈ نہیں ہے۔");
   }
@@ -251,13 +344,24 @@ export function requestForgotPassword(email: string): { success: boolean; resetC
   user.resetCode = resetCode;
   user.resetCodeExpires = Date.now() + 15 * 60 * 1000; // 15 mins
   saveToFiles();
-  dbSaveUser(user);
+  if (isDatabaseConnected()) {
+    await dbSaveUser(user);
+  }
 
   return { success: true, resetCode };
 }
 
-export function resetPasswordWithCode(email: string, code: string, newPassword: string): boolean {
-  const user = findUserByEmail(email);
+export async function resetPasswordWithCode(email: string, code: string, newPassword: string): Promise<boolean> {
+  const cleanEmail = email.trim().toLowerCase();
+  let user = findUserByEmail(cleanEmail);
+  if (!user && isDatabaseConnected()) {
+    const dbU = await dbFindUserByEmail(cleanEmail);
+    if (dbU) {
+      user = dbU as UserRecord;
+      usersStore.set(user.id, user);
+    }
+  }
+
   if (!user) {
     throw new Error("اکاؤنٹ نہیں مل سکا۔");
   }
@@ -281,22 +385,40 @@ export function resetPasswordWithCode(email: string, code: string, newPassword: 
   delete user.resetCodeExpires;
 
   saveToFiles();
-  dbSaveUser(user);
+  if (isDatabaseConnected()) {
+    await dbSaveUser(user);
+  }
   return true;
 }
 
-export function loginOrRegisterGoogle(email: string, name?: string): { token: string; user: UserAccount } {
-  let user = findUserByEmail(email);
+export async function loginOrRegisterGoogle(email: string, name?: string): Promise<{ token: string; user: UserAccount }> {
+  const cleanEmail = email.trim().toLowerCase();
+  let user = findUserByEmail(cleanEmail);
+
+  if (!user) {
+    if (!isDatabaseConnected()) {
+      try { await connectToDatabase(); } catch (_) {}
+    }
+    if (isDatabaseConnected()) {
+      const dbU = await dbFindUserByEmail(cleanEmail);
+      if (dbU) {
+        user = dbU as UserRecord;
+        usersStore.set(user.id, user);
+      }
+    }
+  }
+
+  const todayStr = getTodayDateString();
+
   if (!user) {
     const salt = crypto.randomBytes(16).toString("hex");
     const dummyPasswordHash = hashPassword(crypto.randomBytes(16).toString("hex"), salt);
     const userId = "usr_g_" + Date.now() + "_" + crypto.randomBytes(4).toString("hex");
-    const todayStr = getTodayDateString();
 
     user = {
       id: userId,
-      email: email.trim().toLowerCase(),
-      name: name || email.split("@")[0] || "Google User",
+      email: cleanEmail,
+      name: name || cleanEmail.split("@")[0] || "Google User",
       createdAt: new Date().toISOString(),
       plan: "FREE",
       dailyUsage: { date: todayStr, count: 0 },
@@ -305,14 +427,23 @@ export function loginOrRegisterGoogle(email: string, name?: string): { token: st
     };
 
     usersStore.set(userId, user);
+  } else {
+    if (user.dailyUsage && user.dailyUsage.date !== todayStr) {
+      user.dailyUsage = { date: todayStr, count: 0 };
+    }
   }
 
   const token = "tok_" + crypto.randomBytes(24).toString("hex");
   tokensStore.set(token, user.id);
   saveToFiles();
 
-  dbSaveUser(user);
-  dbSaveToken(token, user.id);
+  if (!isDatabaseConnected()) {
+    try { await connectToDatabase(); } catch (_) {}
+  }
+  if (isDatabaseConnected()) {
+    await dbSaveUser(user);
+    await dbSaveToken(token, user.id);
+  }
 
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = user;
   return { token, user: publicUser };
@@ -320,6 +451,11 @@ export function loginOrRegisterGoogle(email: string, name?: string): { token: st
 
 export async function getAllUsers(): Promise<UserAccount[]> {
   loadFromFiles();
+  if (!isDatabaseConnected()) {
+    try {
+      await connectToDatabase();
+    } catch (_) {}
+  }
   if (isDatabaseConnected()) {
     try {
       const dbUsers = await dbGetAllUsers();
@@ -338,7 +474,7 @@ export async function getAllUsers(): Promise<UserAccount[]> {
   });
 }
 
-export function syncExternalUser(user: Partial<UserAccount>): UserAccount {
+export async function syncExternalUser(user: Partial<UserAccount>): Promise<UserAccount> {
   loadFromFiles();
   const cleanEmail = (user.email || "").trim().toLowerCase();
   if (!cleanEmail) {
@@ -346,6 +482,19 @@ export function syncExternalUser(user: Partial<UserAccount>): UserAccount {
   }
 
   let existing = findUserByEmail(cleanEmail);
+  if (!existing) {
+    if (!isDatabaseConnected()) {
+      try { await connectToDatabase(); } catch (_) {}
+    }
+    if (isDatabaseConnected()) {
+      const dbU = await dbFindUserByEmail(cleanEmail);
+      if (dbU) {
+        existing = dbU as UserRecord;
+        usersStore.set(existing.id, existing);
+      }
+    }
+  }
+
   const todayStr = getTodayDateString();
 
   if (existing) {
@@ -353,7 +502,12 @@ export function syncExternalUser(user: Partial<UserAccount>): UserAccount {
       existing.name = user.name.trim();
     }
     saveToFiles();
-    dbSaveUser(existing);
+    if (!isDatabaseConnected()) {
+      try { await connectToDatabase(); } catch (_) {}
+    }
+    if (isDatabaseConnected()) {
+      await dbSaveUser(existing);
+    }
     const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = existing;
     return publicUser;
   }
@@ -375,7 +529,13 @@ export function syncExternalUser(user: Partial<UserAccount>): UserAccount {
 
   usersStore.set(userId, newUser);
   saveToFiles();
-  dbSaveUser(newUser);
+
+  if (!isDatabaseConnected()) {
+    try { await connectToDatabase(); } catch (_) {}
+  }
+  if (isDatabaseConnected()) {
+    await dbSaveUser(newUser);
+  }
 
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = newUser;
   return publicUser;

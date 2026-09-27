@@ -112,52 +112,52 @@ app.get("/api/health", (req, res) => {
 
 const ADMIN_EMAILS = ["hafizabrar1234567@gmail.com"];
 
-app.post("/api/auth/register", (req, res) => {
+app.post("/api/auth/register", async (req, res) => {
   try {
     const { email, password, name } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ success: false, error: "ای میل اور پاس ورڈ درج کرنا لازمی ہے۔" });
     }
-    const result = registerUser(email, password, name);
+    const result = await registerUser(email, password, name);
     return res.json({ success: true, ...result });
   } catch (err: any) {
     return res.status(400).json({ success: false, error: err.message || "رجسٹریشن نہیں ہو سکی۔" });
   }
 });
 
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ success: false, error: "ای میل اور پاس ورڈ درج کرنا لازمی ہے۔" });
     }
-    const result = loginUser(email, password);
+    const result = await loginUser(email, password);
     return res.json({ success: true, ...result });
   } catch (err: any) {
     return res.status(400).json({ success: false, error: err.message || "لاگ ان نہیں ہو سکا۔" });
   }
 });
 
-app.post("/api/auth/google", (req, res) => {
+app.post("/api/auth/google", async (req, res) => {
   try {
     const { email, name } = req.body || {};
     if (!email) {
       return res.status(400).json({ success: false, error: "جی میل ایڈریس درکار ہے۔" });
     }
-    const result = loginOrRegisterGoogle(email, name);
+    const result = await loginOrRegisterGoogle(email, name);
     return res.json({ success: true, ...result });
   } catch (err: any) {
     return res.status(400).json({ success: false, error: err.message || "گوگل لاگ ان ناکام رہا۔" });
   }
 });
 
-app.post("/api/auth/sync-user", (req, res) => {
+app.post("/api/auth/sync-user", async (req, res) => {
   try {
     const { user } = req.body || {};
     if (!user || !user.email) {
       return res.status(400).json({ success: false, error: "صارف کا ڈیٹا درکار ہے۔" });
     }
-    const synced = syncExternalUser(user);
+    const synced = await syncExternalUser(user);
     return res.json({ success: true, user: synced });
   } catch (err: any) {
     return res.status(400).json({ success: false, error: err.message });
@@ -169,12 +169,15 @@ app.get("/api/admin/users", async (req, res) => {
   try {
     const pin = (req.headers["x-admin-pin"] as string) || (req.query.pin as string);
     const token = getBearerToken(req) || (req.query.token as string);
+    const adminEmail = (req.headers["x-admin-email"] as string) || (req.query.adminEmail as string);
 
     let isAuthorized = false;
     if (pin && (pin === "786" || pin === "admin786" || pin === "hafizabrar" || pin === "hafizabrar1234567@gmail.com")) {
       isAuthorized = true;
+    } else if (adminEmail && ADMIN_EMAILS.includes(adminEmail.toLowerCase().trim())) {
+      isAuthorized = true;
     } else if (token) {
-      const user = getUserByToken(token);
+      const user = await getUserByToken(token);
       if (user && ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) {
         isAuthorized = true;
       }
@@ -200,6 +203,9 @@ app.get("/api/admin/users", async (req, res) => {
 // 🗄️ ADMIN: Database Status & Configuration
 app.get("/api/admin/database", async (req, res) => {
   try {
+    if (!isDatabaseConnected()) {
+      await connectToDatabase();
+    }
     const status = getDatabaseStatus();
     const allUsers = await getAllUsers();
     status.totalUsers = allUsers.length;
@@ -211,14 +217,17 @@ app.get("/api/admin/database", async (req, res) => {
 
 app.post("/api/admin/database", async (req, res) => {
   try {
-    const pin = (req.headers["x-admin-pin"] as string) || (req.body?.pin as string);
-    const token = getBearerToken(req) || (req.body?.token as string);
+    const pin = (req.headers["x-admin-pin"] as string) || (req.body?.pin as string) || (req.query?.pin as string);
+    const token = getBearerToken(req) || (req.body?.token as string) || (req.query?.token as string);
+    const adminEmail = (req.headers["x-admin-email"] as string) || (req.body?.adminEmail as string) || (req.query?.adminEmail as string);
 
     let isAuthorized = false;
     if (pin && (pin === "786" || pin === "admin786" || pin === "hafizabrar" || pin === "hafizabrar1234567@gmail.com")) {
       isAuthorized = true;
+    } else if (adminEmail && ADMIN_EMAILS.includes(adminEmail.toLowerCase().trim())) {
+      isAuthorized = true;
     } else if (token) {
-      const user = getUserByToken(token);
+      const user = await getUserByToken(token);
       if (user && ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) {
         isAuthorized = true;
       }
@@ -1023,40 +1032,14 @@ Verified Direct Fatwa URL: ${alUlamaFatwa.link}
   }
 });
 
-// AUTHENTICATION API ROUTES
+// AUTHENTICATION HELPER API ROUTES
 
-app.post("/api/auth/register", (req, res) => {
-  try {
-    const { email, password, name } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: "ای میل اور پاس ورڈ ضروری ہیں" });
-    }
-    const result = registerUser(email, password, name);
-    return res.json({ success: true, ...result });
-  } catch (err: any) {
-    return res.status(400).json({ success: false, error: err.message || "رجسٹریشن میں ناکامی" });
-  }
-});
-
-app.post("/api/auth/login", (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: "ای میل اور پاس ورڈ ضروری ہیں" });
-    }
-    const result = loginUser(email, password);
-    return res.json({ success: true, ...result });
-  } catch (err: any) {
-    return res.status(401).json({ success: false, error: err.message || "لاگ ان میں ناکامی" });
-  }
-});
-
-app.get("/api/auth/me", (req, res) => {
+app.get("/api/auth/me", async (req, res) => {
   const token = getBearerToken(req);
   if (!token) {
     return res.status(401).json({ success: false, error: "ٹاکن موجود نہیں ہے" });
   }
-  const user = getUserByToken(token);
+  const user = await getUserByToken(token);
   if (!user) {
     return res.status(401).json({ success: false, error: "سیشن ختم ہو چکا ہے" });
   }
@@ -1071,13 +1054,13 @@ app.post("/api/auth/logout", (req, res) => {
   return res.json({ success: true, message: "Logged out successfully" });
 });
 
-app.post("/api/auth/forgot-password", (req, res) => {
+app.post("/api/auth/forgot-password", async (req, res) => {
   try {
     const { email } = req.body || {};
     if (!email) {
       return res.status(400).json({ success: false, error: "ای میل درج کریں" });
     }
-    const result = requestForgotPassword(email);
+    const result = await requestForgotPassword(email);
     return res.json({
       success: true,
       message: "ری سیٹ کوڈ بھیج دیا گیا ہے",
@@ -1088,54 +1071,41 @@ app.post("/api/auth/forgot-password", (req, res) => {
   }
 });
 
-app.post("/api/auth/reset-password", (req, res) => {
+app.post("/api/auth/reset-password", async (req, res) => {
   try {
     const { email, code, newPassword } = req.body || {};
     if (!email || !code || !newPassword) {
       return res.status(400).json({ success: false, error: "تمام خانے پر کریں" });
     }
-    resetPasswordWithCode(email, code, newPassword);
+    await resetPasswordWithCode(email, code, newPassword);
     return res.json({ success: true, message: "پاس ورڈ کامیابی سے تبدیل ہو گیا ہے۔" });
   } catch (err: any) {
     return res.status(400).json({ success: false, error: err.message || "پاس ورڈ تبدیلی میں ناکامی" });
   }
 });
 
-app.post("/api/auth/google", (req, res) => {
-  try {
-    const { email, name } = req.body || {};
-    if (!email) {
-      return res.status(400).json({ success: false, error: "ای میل درج کریں" });
-    }
-    const result = loginOrRegisterGoogle(email, name);
-    return res.json({ success: true, ...result });
-  } catch (err: any) {
-    return res.status(400).json({ success: false, error: err.message || "گوگل سائن ان ناکام ہو گیا" });
-  }
-});
-
-app.get("/api/auth/usage", (req, res) => {
+app.get("/api/auth/usage", async (req, res) => {
   const token = getBearerToken(req);
   if (!token) {
     return res.status(401).json({ success: false, error: "Unauthorized" });
   }
-  const user = getUserByToken(token);
+  const user = await getUserByToken(token);
   if (!user) {
     return res.status(401).json({ success: false, error: "Unauthorized" });
   }
   return res.json({ success: true, dailyUsage: user.dailyUsage });
 });
 
-app.post("/api/auth/increment-usage", (req, res) => {
+app.post("/api/auth/increment-usage", async (req, res) => {
   const token = getBearerToken(req);
   if (!token) {
     return res.status(401).json({ success: false, error: "Unauthorized" });
   }
-  const user = getUserByToken(token);
+  const user = await getUserByToken(token);
   if (!user) {
     return res.status(401).json({ success: false, error: "Unauthorized" });
   }
-  if (user.dailyUsage.count >= 10) {
+  if (user.dailyUsage && user.dailyUsage.count >= 10) {
     return res.status(403).json({ success: false, error: "آج کی مفت نسلیں ختم ہو چکی ہیں" });
   }
   const updatedUsage = incrementUserUsage(user.id);

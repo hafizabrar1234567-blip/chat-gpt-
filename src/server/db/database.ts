@@ -70,10 +70,21 @@ export async function connectToDatabase(customUri?: string): Promise<{ success: 
 
   const cleanUri = uri.trim();
 
+  // If already connected to the same URI, skip reconnecting
+  if (!customUri && isConnected && client && db) {
+    return {
+      success: true,
+      message: "MongoDB ڈیٹا بیس پہلے سے منسلک ہے۔",
+    };
+  }
+
   try {
-    try {
-      dns.setServers(["8.8.8.8", "1.1.1.1"]);
-    } catch (_) {}
+    const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+    if (!isServerless && process.platform === "win32") {
+      try {
+        dns.setServers(["8.8.8.8", "1.1.1.1"]);
+      } catch (_) {}
+    }
 
     if (client) {
       try {
@@ -86,9 +97,10 @@ export async function connectToDatabase(customUri?: string): Promise<{ success: 
     }
 
     const newClient = new MongoClient(cleanUri, {
-      connectTimeoutMS: 15000,
-      serverSelectionTimeoutMS: 15000,
-      tlsAllowInvalidCertificates: true,
+      connectTimeoutMS: 20000,
+      serverSelectionTimeoutMS: 20000,
+      tls: true,
+      tlsAllowInvalidCertificates: process.platform === "win32" && !isServerless,
     });
 
     await newClient.connect();
