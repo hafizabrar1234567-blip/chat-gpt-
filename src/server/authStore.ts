@@ -267,3 +267,52 @@ export function loginOrRegisterGoogle(email: string, name?: string): { token: st
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = user;
   return { token, user: publicUser };
 }
+
+export function getAllUsers(): UserAccount[] {
+  loadFromFiles();
+  return Array.from(usersStore.values()).map((u) => {
+    const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = u;
+    return publicUser;
+  });
+}
+
+export function syncExternalUser(user: Partial<UserAccount>): UserAccount {
+  loadFromFiles();
+  const cleanEmail = (user.email || "").trim().toLowerCase();
+  if (!cleanEmail) {
+    throw new Error("Email is required");
+  }
+
+  let existing = findUserByEmail(cleanEmail);
+  const todayStr = getTodayDateString();
+
+  if (existing) {
+    if (user.name && user.name.trim() && existing.name !== user.name.trim()) {
+      existing.name = user.name.trim();
+    }
+    saveToFiles();
+    const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = existing;
+    return publicUser;
+  }
+
+  const salt = crypto.randomBytes(16).toString("hex");
+  const dummyPasswordHash = hashPassword(crypto.randomBytes(16).toString("hex"), salt);
+  const userId = user.id || "usr_sync_" + Date.now() + "_" + crypto.randomBytes(4).toString("hex");
+
+  const newUser: UserRecord = {
+    id: userId,
+    email: cleanEmail,
+    name: user.name || cleanEmail.split("@")[0] || "Islamic ChatGPT User",
+    createdAt: user.createdAt || new Date().toISOString(),
+    plan: user.plan || "FREE",
+    dailyUsage: user.dailyUsage || { date: todayStr, count: 0 },
+    passwordHash: dummyPasswordHash,
+    passwordSalt: salt,
+  };
+
+  usersStore.set(userId, newUser);
+  saveToFiles();
+
+  const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = newUser;
+  return publicUser;
+}

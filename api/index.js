@@ -2810,6 +2810,47 @@ function loginOrRegisterGoogle(email, name) {
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = user;
   return { token, user: publicUser };
 }
+function getAllUsers() {
+  loadFromFiles();
+  return Array.from(usersStore.values()).map((u) => {
+    const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = u;
+    return publicUser;
+  });
+}
+function syncExternalUser(user) {
+  loadFromFiles();
+  const cleanEmail = (user.email || "").trim().toLowerCase();
+  if (!cleanEmail) {
+    throw new Error("Email is required");
+  }
+  let existing = findUserByEmail(cleanEmail);
+  const todayStr = getTodayDateString();
+  if (existing) {
+    if (user.name && user.name.trim() && existing.name !== user.name.trim()) {
+      existing.name = user.name.trim();
+    }
+    saveToFiles();
+    const { passwordHash: _2, passwordSalt: __2, resetCode: ___2, resetCodeExpires: ____2, ...publicUser2 } = existing;
+    return publicUser2;
+  }
+  const salt = crypto.randomBytes(16).toString("hex");
+  const dummyPasswordHash = hashPassword(crypto.randomBytes(16).toString("hex"), salt);
+  const userId = user.id || "usr_sync_" + Date.now() + "_" + crypto.randomBytes(4).toString("hex");
+  const newUser = {
+    id: userId,
+    email: cleanEmail,
+    name: user.name || cleanEmail.split("@")[0] || "Islamic ChatGPT User",
+    createdAt: user.createdAt || (/* @__PURE__ */ new Date()).toISOString(),
+    plan: user.plan || "FREE",
+    dailyUsage: user.dailyUsage || { date: todayStr, count: 0 },
+    passwordHash: dummyPasswordHash,
+    passwordSalt: salt
+  };
+  usersStore.set(userId, newUser);
+  saveToFiles();
+  const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = newUser;
+  return publicUser;
+}
 
 // src/server/knowledgeBase.ts
 import fs2 from "fs";
@@ -6051,6 +6092,82 @@ function getBearerToken(req) {
 }
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", service: "Islamic ChatGPT API" });
+});
+var ADMIN_EMAILS = ["hafizabrar1234567@gmail.com"];
+app.post("/api/auth/register", (req, res) => {
+  try {
+    const { email, password, name } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: "\u0627\u06CC \u0645\u06CC\u0644 \u0627\u0648\u0631 \u067E\u0627\u0633 \u0648\u0631\u0688 \u062F\u0631\u062C \u06A9\u0631\u0646\u0627 \u0644\u0627\u0632\u0645\u06CC \u06C1\u06D2\u06D4" });
+    }
+    const result = registerUser(email, password, name);
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message || "\u0631\u062C\u0633\u0679\u0631\u06CC\u0634\u0646 \u0646\u06C1\u06CC\u06BA \u06C1\u0648 \u0633\u06A9\u06CC\u06D4" });
+  }
+});
+app.post("/api/auth/login", (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: "\u0627\u06CC \u0645\u06CC\u0644 \u0627\u0648\u0631 \u067E\u0627\u0633 \u0648\u0631\u0688 \u062F\u0631\u062C \u06A9\u0631\u0646\u0627 \u0644\u0627\u0632\u0645\u06CC \u06C1\u06D2\u06D4" });
+    }
+    const result = loginUser(email, password);
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message || "\u0644\u0627\u06AF \u0627\u0646 \u0646\u06C1\u06CC\u06BA \u06C1\u0648 \u0633\u06A9\u0627\u06D4" });
+  }
+});
+app.post("/api/auth/google", (req, res) => {
+  try {
+    const { email, name } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ success: false, error: "\u062C\u06CC \u0645\u06CC\u0644 \u0627\u06CC\u0688\u0631\u06CC\u0633 \u062F\u0631\u06A9\u0627\u0631 \u06C1\u06D2\u06D4" });
+    }
+    const result = loginOrRegisterGoogle(email, name);
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message || "\u06AF\u0648\u06AF\u0644 \u0644\u0627\u06AF \u0627\u0646 \u0646\u0627\u06A9\u0627\u0645 \u0631\u06C1\u0627\u06D4" });
+  }
+});
+app.post("/api/auth/sync-user", (req, res) => {
+  try {
+    const { user } = req.body || {};
+    if (!user || !user.email) {
+      return res.status(400).json({ success: false, error: "\u0635\u0627\u0631\u0641 \u06A9\u0627 \u0688\u06CC\u0679\u0627 \u062F\u0631\u06A9\u0627\u0631 \u06C1\u06D2\u06D4" });
+    }
+    const synced = syncExternalUser(user);
+    return res.json({ success: true, user: synced });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+app.get("/api/admin/users", (req, res) => {
+  try {
+    const pin = req.headers["x-admin-pin"] || req.query.pin;
+    const token = getBearerToken(req) || req.query.token;
+    let isAuthorized = false;
+    if (pin && (pin === "786" || pin === "admin786" || pin === "hafizabrar" || pin === "hafizabrar1234567@gmail.com")) {
+      isAuthorized = true;
+    } else if (token) {
+      const user = getUserByToken(token);
+      if (user && ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) {
+        isAuthorized = true;
+      }
+    }
+    if (!isAuthorized) {
+      return res.status(403).json({ success: false, error: "\u0635\u0631\u0641 \u0627\u06CC\u0688\u0645\u0646 \u06A9\u06D2 \u067E\u0627\u0633 \u0631\u0633\u0627\u0626\u06CC \u06A9\u06CC \u0627\u062C\u0627\u0632\u062A \u06C1\u06D2\u06D4" });
+    }
+    const allUsers = getAllUsers();
+    allUsers.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    return res.json({
+      success: true,
+      totalUsers: allUsers.length,
+      users: allUsers
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 app.get("/api/books", (req, res) => {
   try {

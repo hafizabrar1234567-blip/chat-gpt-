@@ -10,8 +10,13 @@ import {
   Loader2,
   Volume2,
   Lock,
-  Unlock,
   Settings as SettingsIcon,
+  Users,
+  RefreshCw,
+  Mail,
+  User,
+  Calendar,
+  MessageSquare,
 } from "lucide-react";
 import { QARI_LIST, QariId } from "../utils/quranAudioService";
 import { UserAccount } from "../types";
@@ -51,10 +56,60 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [pinError, setPinError] = useState("");
 
   const isAdmin = isDirectAdminUser || isAdminUnlocked;
+  const [adminTab, setAdminTab] = useState<"users" | "apikey">("users");
+  const [usersList, setUsersList] = useState<UserAccount[]>([]);
+  const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [isUsersLoading, setIsUsersLoading] = useState<boolean>(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
 
   const handleQariChange = (id: QariId) => {
     setDefaultQari(id);
     localStorage.setItem("preferred_qari", id);
+  };
+
+  const fetchUsers = async () => {
+    setIsUsersLoading(true);
+    setUsersError(null);
+    try {
+      const pin = localStorage.getItem("admin_session_unlocked") === "true" ? "786" : "";
+      const token = localStorage.getItem("postly_auth_token") || "";
+
+      let fetchedFromServer = false;
+      try {
+        const res = await fetch(`/api/admin/users?pin=${encodeURIComponent(pin)}&token=${encodeURIComponent(token)}`, {
+          headers: {
+            ...(pin ? { "x-admin-pin": pin } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.users)) {
+            setTotalUsers(data.totalUsers || data.users.length);
+            setUsersList(data.users);
+            fetchedFromServer = true;
+          }
+        }
+      } catch (serverErr) {
+        // Fallback to local
+      }
+
+      if (!fetchedFromServer) {
+        const raw = localStorage.getItem("postly_local_users_db");
+        if (raw) {
+          const localList: UserAccount[] = JSON.parse(raw);
+          setTotalUsers(localList.length);
+          setUsersList(localList);
+        } else {
+          setTotalUsers(0);
+          setUsersList([]);
+        }
+      }
+    } catch (err: any) {
+      setUsersError(err.message || "ڈیٹا لانے میں مسئلہ پیش آیا۔");
+    } finally {
+      setIsUsersLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -65,6 +120,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setAdminPinInput("");
       if (isAdmin) {
         fetchStatus();
+        fetchUsers();
       }
     }
   }, [isOpen, isAdmin]);
@@ -96,6 +152,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setShowAdminPinPrompt(false);
       setPinError("");
       fetchStatus();
+      fetchUsers();
     } else {
       setPinError("غیر درست ایڈمن پاس ورڈ / پن درج کیا گیا ہے۔");
     }
@@ -223,13 +280,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* ADMIN ONLY SECTION: Gemini AI Key Configuration */}
+          {/* ADMIN ONLY SECTION: Users Dashboard & Gemini AI Key */}
           {isAdmin ? (
-            <div className="space-y-4 pt-2 border-t border-emerald-900/40">
+            <div className="space-y-4 pt-3 border-t border-emerald-900/40">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-emerald-300 font-urdu flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  Gemini API کلید کنٹرول (صرف ایڈمن):
+                  ایڈمن کنٹرول پینل (Admin Dashboard):
                 </span>
                 {!isDirectAdminUser && (
                   <button
@@ -242,26 +299,144 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </div>
 
-              {/* Status Badge */}
-              <div
-                className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-urdu ${
-                  hasKey
-                    ? "bg-emerald-950/70 border-emerald-700/50 text-emerald-300"
-                    : "bg-amber-950/70 border-amber-700/50 text-amber-300"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>
-                    {hasKey
-                      ? "✅ لائیو AI (Gemini Flash) فعال ہے"
-                      : "⚠️ Gemini API Key شامل نہیں ہے"}
-                  </span>
-                </div>
-                <span className="font-mono text-[11px] bg-black/40 px-2 py-0.5 rounded">
-                  gemini-3.7-flash
-                </span>
+              {/* Admin Tabs */}
+              <div className="grid grid-cols-2 gap-2 bg-[#020b08] p-1 rounded-xl border border-emerald-900/40">
+                <button
+                  type="button"
+                  onClick={() => setAdminTab("users")}
+                  className={`py-2 px-3 rounded-lg text-xs font-urdu font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    adminTab === "users"
+                      ? "bg-emerald-600 text-white shadow-md"
+                      : "text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/40"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>👥 لاگ ان صارفین ({totalUsers})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAdminTab("apikey")}
+                  className={`py-2 px-3 rounded-lg text-xs font-urdu font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    adminTab === "apikey"
+                      ? "bg-emerald-600 text-white shadow-md"
+                      : "text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/40"
+                  }`}
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>🔑 Gemini API کلید</span>
+                </button>
               </div>
+
+              {/* TAB 1: USERS ANALYTICS DASHBOARD */}
+              {adminTab === "users" && (
+                <div className="space-y-3">
+                  {/* Summary Metric Card */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950 via-[#031d12] to-emerald-950 border border-emerald-600/40 flex items-center justify-between shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shadow-inner">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-emerald-300/90 font-urdu block">
+                          کل لاگ ان و رجسٹرڈ صارفین:
+                        </span>
+                        <h3 className="text-xl font-bold text-white font-mono leading-none mt-1">
+                          {totalUsers} افراد
+                        </h3>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={fetchUsers}
+                      disabled={isUsersLoading}
+                      className="px-2.5 py-1.5 rounded-xl bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 text-xs font-urdu flex items-center gap-1.5 border border-emerald-700/50 cursor-pointer active:scale-95 transition-all shadow-xs"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isUsersLoading ? "animate-spin" : ""}`} />
+                      <span>تازہ کریں</span>
+                    </button>
+                  </div>
+
+                  {/* Users List */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between px-1 text-[11px] text-slate-400 font-urdu">
+                      <span>صارفین کی فہرست:</span>
+                      {usersList.length > 0 && <span>تازہ ترین پہلے</span>}
+                    </div>
+
+                    {isUsersLoading ? (
+                      <div className="p-6 text-center text-emerald-400 text-xs font-urdu flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>صارفین کا ڈیٹا حاصل ہو رہا ہے...</span>
+                      </div>
+                    ) : usersError ? (
+                      <div className="p-3 rounded-xl bg-red-950/60 border border-red-700/40 text-red-200 text-xs font-urdu text-center">
+                        {usersError}
+                      </div>
+                    ) : usersList.length === 0 ? (
+                      <div className="p-5 rounded-2xl bg-black/40 border border-emerald-900/30 text-center text-slate-400 text-xs font-urdu space-y-1">
+                        <p>ابھی تک کوئی نیا صارف رجسٹرڈ نہیں ہوا۔</p>
+                        <p className="text-[10px] text-slate-500">جیسے ہی کوئی سائن اپ یا لاگ ان کرے گا، وہ فوراً یہاں نظر آئے گا۔</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                        {usersList.map((u, i) => (
+                          <div
+                            key={u.id || i}
+                            className="p-3 rounded-xl bg-[#03150d] border border-emerald-900/50 flex items-center justify-between gap-3 text-xs hover:border-emerald-700/50 transition-all"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-full bg-emerald-700/40 border border-emerald-500/30 flex items-center justify-center font-bold text-emerald-200 shrink-0 shadow-inner">
+                                {(u.name || u.email || "U").charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-white font-urdu truncate leading-snug">
+                                  {u.name || "صارف"}
+                                </p>
+                                <p className="text-[11px] text-emerald-400 font-mono truncate" dir="ltr">
+                                  {u.email}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-left shrink-0 text-[10px] text-slate-400 font-sans space-y-0.5" dir="ltr">
+                              <span className="block text-emerald-300 font-urdu font-medium text-right">
+                                💬 سوالات: {u.dailyUsage?.count ?? 0}
+                              </span>
+                              <span className="block text-slate-400">
+                                {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "Active"}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: GEMINI API KEY */}
+              {adminTab === "apikey" && (
+                <div className="space-y-4">
+                  {/* Status Badge */}
+                  <div
+                    className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-urdu ${
+                      hasKey
+                        ? "bg-emerald-950/70 border-emerald-700/50 text-emerald-300"
+                        : "bg-amber-950/70 border-amber-700/50 text-amber-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>
+                        {hasKey
+                          ? "✅ لائیو AI (Gemini Flash) فعال ہے"
+                          : "⚠️ Gemini API Key شامل نہیں ہے"}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[11px] bg-black/40 px-2 py-0.5 rounded">
+                      gemini-3.7-flash
+                    </span>
+                  </div>
 
               {/* Feedback */}
               {feedback && (
@@ -333,7 +508,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </a>
               </div>
             </div>
-          ) : (
+          )}
+        </div>
+      ) : (
             /* NON-ADMIN: Subtle Admin Unlock Option */
             <div className="pt-2 border-t border-emerald-900/30">
               {!showAdminPinPrompt ? (

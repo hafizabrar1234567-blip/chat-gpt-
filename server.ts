@@ -13,6 +13,8 @@ import {
   requestForgotPassword,
   resetPasswordWithCode,
   loginOrRegisterGoogle,
+  getAllUsers,
+  syncExternalUser,
 } from "./src/server/authStore";
 import {
   getKnowledgeStore,
@@ -97,6 +99,97 @@ function getBearerToken(req: express.Request): string | null {
 // API routes
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", service: "Islamic ChatGPT API" });
+});
+
+// ==========================================
+// 🔐 AUTHENTICATION & USER MANAGEMENT APIS
+// ==========================================
+
+const ADMIN_EMAILS = ["hafizabrar1234567@gmail.com"];
+
+app.post("/api/auth/register", (req, res) => {
+  try {
+    const { email, password, name } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: "ای میل اور پاس ورڈ درج کرنا لازمی ہے۔" });
+    }
+    const result = registerUser(email, password, name);
+    return res.json({ success: true, ...result });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err.message || "رجسٹریشن نہیں ہو سکی۔" });
+  }
+});
+
+app.post("/api/auth/login", (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: "ای میل اور پاس ورڈ درج کرنا لازمی ہے۔" });
+    }
+    const result = loginUser(email, password);
+    return res.json({ success: true, ...result });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err.message || "لاگ ان نہیں ہو سکا۔" });
+  }
+});
+
+app.post("/api/auth/google", (req, res) => {
+  try {
+    const { email, name } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ success: false, error: "جی میل ایڈریس درکار ہے۔" });
+    }
+    const result = loginOrRegisterGoogle(email, name);
+    return res.json({ success: true, ...result });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err.message || "گوگل لاگ ان ناکام رہا۔" });
+  }
+});
+
+app.post("/api/auth/sync-user", (req, res) => {
+  try {
+    const { user } = req.body || {};
+    if (!user || !user.email) {
+      return res.status(400).json({ success: false, error: "صارف کا ڈیٹا درکار ہے۔" });
+    }
+    const synced = syncExternalUser(user);
+    return res.json({ success: true, user: synced });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 👑 ADMIN: User Analytics & Registered Users List
+app.get("/api/admin/users", (req, res) => {
+  try {
+    const pin = (req.headers["x-admin-pin"] as string) || (req.query.pin as string);
+    const token = getBearerToken(req) || (req.query.token as string);
+
+    let isAuthorized = false;
+    if (pin && (pin === "786" || pin === "admin786" || pin === "hafizabrar" || pin === "hafizabrar1234567@gmail.com")) {
+      isAuthorized = true;
+    } else if (token) {
+      const user = getUserByToken(token);
+      if (user && ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({ success: false, error: "صرف ایڈمن کے پاس رسائی کی اجازت ہے۔" });
+    }
+
+    const allUsers = getAllUsers();
+    allUsers.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+    return res.json({
+      success: true,
+      totalUsers: allUsers.length,
+      users: allUsers,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ==========================================
