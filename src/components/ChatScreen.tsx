@@ -29,6 +29,7 @@ import {
   Bookmark,
   BookmarkCheck,
   MessageSquarePlus,
+  SquarePen,
   Settings2,
   Home,
 } from "lucide-react";
@@ -689,7 +690,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
               className="p-2 sm:px-2.5 sm:py-1.5 rounded-xl text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-xs"
               title="نئی چیٹ شروع کریں"
             >
-              <MessageSquarePlus className="w-4 h-4" />
+              <SquarePen className="w-4 h-4" />
               <span className="hidden sm:inline text-xs font-urdu font-semibold">نئی چیٹ</span>
             </button>
           )}
@@ -1230,6 +1231,21 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       {/* Bottom Input Area */}
       <div className="p-2.5 sm:p-4 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shrink-0 z-30 pb-[max(0.6rem,env(safe-area-inset-bottom))] shadow-xs">
         <form onSubmit={handleFormSubmit} className="max-w-3xl mx-auto relative">
+          {/* Mobile-Only Quick "New Chat" Button Above Input */}
+          {onNewChat && session.messages.length > 0 && (
+            <div className="flex sm:hidden items-center justify-between mb-1.5 px-1">
+              <button
+                type="button"
+                onClick={onNewChat}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full shadow-xs text-xs font-urdu font-medium active:scale-95 transition-all cursor-pointer"
+                title="نئی چیٹ شروع کریں"
+              >
+                <SquarePen className="w-3.5 h-3.5 text-emerald-600" />
+                <span>نئی چیٹ</span>
+              </button>
+            </div>
+          )}
+
           {/* Selected Image Preview */}
           {selectedImage && (
             <div className="mb-2 flex items-center gap-2">
