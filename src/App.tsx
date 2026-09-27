@@ -113,6 +113,14 @@ export default function App() {
     setAuthModalNotice(null);
     setIsAuthModalOpen(false);
     setCurrentView("chat");
+
+    try {
+      fetch("/api/auth/sync-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user }),
+      }).catch(() => {});
+    } catch (_) {}
   };
 
   const handleLogout = () => {

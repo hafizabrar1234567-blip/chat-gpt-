@@ -318,10 +318,20 @@ export function loginOrRegisterGoogle(email: string, name?: string): { token: st
   return { token, user: publicUser };
 }
 
-export function getAllUsers(): UserAccount[] {
+export async function getAllUsers(): Promise<UserAccount[]> {
   loadFromFiles();
-  // Trigger background sync from database if connected
-  syncFromDatabase();
+  if (isDatabaseConnected()) {
+    try {
+      const dbUsers = await dbGetAllUsers();
+      for (const u of dbUsers) {
+        if (u.id) {
+          usersStore.set(u.id, u as UserRecord);
+        }
+      }
+    } catch (e) {
+      console.warn("getAllUsers db sync error:", e);
+    }
+  }
   return Array.from(usersStore.values()).map((u) => {
     const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = u;
     return publicUser;

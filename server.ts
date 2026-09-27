@@ -165,7 +165,7 @@ app.post("/api/auth/sync-user", (req, res) => {
 });
 
 // 👑 ADMIN: User Analytics & Registered Users List
-app.get("/api/admin/users", (req, res) => {
+app.get("/api/admin/users", async (req, res) => {
   try {
     const pin = (req.headers["x-admin-pin"] as string) || (req.query.pin as string);
     const token = getBearerToken(req) || (req.query.token as string);
@@ -184,7 +184,7 @@ app.get("/api/admin/users", (req, res) => {
       return res.status(403).json({ success: false, error: "صرف ایڈمن کے پاس رسائی کی اجازت ہے۔" });
     }
 
-    const allUsers = getAllUsers();
+    const allUsers = await getAllUsers();
     allUsers.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
     return res.json({
@@ -198,10 +198,10 @@ app.get("/api/admin/users", (req, res) => {
 });
 
 // 🗄️ ADMIN: Database Status & Configuration
-app.get("/api/admin/database", (req, res) => {
+app.get("/api/admin/database", async (req, res) => {
   try {
     const status = getDatabaseStatus();
-    const allUsers = getAllUsers();
+    const allUsers = await getAllUsers();
     status.totalUsers = allUsers.length;
     return res.json({ success: true, ...status });
   } catch (err: any) {

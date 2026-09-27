@@ -2631,8 +2631,9 @@ function getDatabaseStatus() {
 function isDatabaseConnected() {
   return isConnected;
 }
+var DEFAULT_MONGODB_URI = "mongodb+srv://hafizabrar1234567_db_user:8i2GWE9QohuzYNAZ@cluster0.jbsr6hz.mongodb.net/islamic_chatgpt?retryWrites=true&w=majority&appName=Cluster0";
 async function connectToDatabase(customUri) {
-  const uri = customUri || process.env.MONGODB_URI || process.env.DATABASE_URL;
+  const uri = customUri || process.env.MONGODB_URI || process.env.DATABASE_URL || DEFAULT_MONGODB_URI;
   if (!uri || typeof uri !== "string" || !uri.trim()) {
     isConnected = false;
     connectionError = null;
@@ -3002,9 +3003,20 @@ function loginOrRegisterGoogle(email, name) {
   const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = user;
   return { token, user: publicUser };
 }
-function getAllUsers() {
+async function getAllUsers() {
   loadFromFiles();
-  syncFromDatabase();
+  if (isDatabaseConnected()) {
+    try {
+      const dbUsers = await dbGetAllUsers();
+      for (const u of dbUsers) {
+        if (u.id) {
+          usersStore.set(u.id, u);
+        }
+      }
+    } catch (e) {
+      console.warn("getAllUsers db sync error:", e);
+    }
+  }
   return Array.from(usersStore.values()).map((u) => {
     const { passwordHash: _, passwordSalt: __, resetCode: ___, resetCodeExpires: ____, ...publicUser } = u;
     return publicUser;
@@ -6505,7 +6517,7 @@ app.post("/api/auth/sync-user", (req, res) => {
     return res.status(400).json({ success: false, error: err.message });
   }
 });
-app.get("/api/admin/users", (req, res) => {
+app.get("/api/admin/users", async (req, res) => {
   try {
     const pin = req.headers["x-admin-pin"] || req.query.pin;
     const token = getBearerToken(req) || req.query.token;
@@ -6521,7 +6533,7 @@ app.get("/api/admin/users", (req, res) => {
     if (!isAuthorized) {
       return res.status(403).json({ success: false, error: "\u0635\u0631\u0641 \u0627\u06CC\u0688\u0645\u0646 \u06A9\u06D2 \u067E\u0627\u0633 \u0631\u0633\u0627\u0626\u06CC \u06A9\u06CC \u0627\u062C\u0627\u0632\u062A \u06C1\u06D2\u06D4" });
     }
-    const allUsers = getAllUsers();
+    const allUsers = await getAllUsers();
     allUsers.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     return res.json({
       success: true,
@@ -6532,10 +6544,10 @@ app.get("/api/admin/users", (req, res) => {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
-app.get("/api/admin/database", (req, res) => {
+app.get("/api/admin/database", async (req, res) => {
   try {
     const status = getDatabaseStatus();
-    const allUsers = getAllUsers();
+    const allUsers = await getAllUsers();
     status.totalUsers = allUsers.length;
     return res.json({ success: true, ...status });
   } catch (err) {

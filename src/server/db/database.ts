@@ -54,8 +54,10 @@ export function isDatabaseConnected(): boolean {
   return isConnected;
 }
 
+const DEFAULT_MONGODB_URI = "mongodb+srv://hafizabrar1234567_db_user:8i2GWE9QohuzYNAZ@cluster0.jbsr6hz.mongodb.net/islamic_chatgpt?retryWrites=true&w=majority&appName=Cluster0";
+
 export async function connectToDatabase(customUri?: string): Promise<{ success: boolean; message: string }> {
-  const uri = customUri || process.env.MONGODB_URI || process.env.DATABASE_URL;
+  const uri = customUri || process.env.MONGODB_URI || process.env.DATABASE_URL || DEFAULT_MONGODB_URI;
 
   if (!uri || typeof uri !== "string" || !uri.trim()) {
     isConnected = false;
