@@ -244,199 +244,6 @@ const InlineAyahAudio: React.FC<InlineAyahAudioProps> = ({
   );
 };
 
-interface LuxuryImageCardProps {
-  src?: string;
-  alt?: string;
-}
-
-const LuxuryImageCard: React.FC<LuxuryImageCardProps> = ({ src = "", alt = "" }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  if (!src) return null;
-
-  const cleanTitle =
-    (alt?.replace(/ - شاہکار.*$/, "").replace(/["'“”‘’«»()[\]]/g, "").trim()) || "شاہکار اسلامی لوگو";
-  const downloadUrl = `${src}${src.includes("?") ? "&" : "?"}download=true`;
-
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDownloading(true);
-    try {
-      if (src.includes("/api/logo-svg") || src.endsWith(".svg")) {
-        const fullSvgUrl = src.startsWith("http") ? src : `${window.location.origin}${src}`;
-        const res = await fetch(fullSvgUrl);
-        const svgText = await res.text();
-        const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
-        const blobUrl = URL.createObjectURL(blob);
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = 2048;
-          canvas.height = 2048;
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, 2048, 2048);
-            const pngUrl = canvas.toDataURL("image/png");
-            const a = document.createElement("a");
-            a.download = `${cleanTitle}-3D-Logo.png`;
-            a.href = pngUrl;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-            setIsDownloading(false);
-          }
-        };
-        img.src = blobUrl;
-        return;
-      }
-      window.open(downloadUrl, "_blank");
-    } catch {
-      window.open(downloadUrl, "_blank");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="my-5 max-w-sm sm:max-w-md mx-auto rounded-3xl bg-gradient-to-b from-[#03150d] via-[#052b1b] to-[#02100a] border-2 border-amber-400/80 shadow-2xl p-3.5 sm:p-4 text-right relative overflow-hidden select-none">
-        {/* Subtle decorative gold corner glow */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-
-        {/* Card Header with Crown Badge */}
-        <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-amber-400/25 relative z-10">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md shrink-0">
-              <Crown className="w-4 h-4 text-slate-950" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="text-xs sm:text-sm font-bold text-amber-200 font-urdu truncate leading-tight">
-                {cleanTitle}
-              </h4>
-              <span className="text-[10px] text-amber-400/80 font-sans tracking-wide block">
-                Ultra HD • 24K Gold 3D Calligraphy
-              </span>
-            </div>
-          </div>
-          <span className="text-[10px] font-urdu font-medium px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 shrink-0">
-            شاہکار لوگو
-          </span>
-        </div>
-
-        {/* Luxury Image Display Container */}
-        <div
-          className="relative rounded-2xl overflow-hidden bg-black/80 border border-amber-400/40 shadow-inner aspect-square flex items-center justify-center group cursor-pointer"
-          onClick={() => setIsZoomed(true)}
-          title="بڑے سائز میں دیکھنے کے لیے کلک کریں"
-        >
-          {!isLoaded && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 text-amber-300 gap-2 z-10">
-              <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs font-urdu">شاہکار لوگو لوڈ ہو رہا ہے...</span>
-            </div>
-          )}
-          <img
-            src={src}
-            alt={alt || "اسلامی لوگو"}
-            onLoad={() => setIsLoaded(true)}
-            className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${
-              isLoaded ? "opacity-100" : "opacity-0"
-            }`}
-            loading="lazy"
-          />
-
-          {/* Hover overlay hint */}
-          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-urdu backdrop-blur-[2px]">
-            <Maximize2 className="w-4 h-4 text-amber-300" />
-            <span>بڑے سائز میں دیکھیں</span>
-          </div>
-        </div>
-
-        {/* Action Controls Bar */}
-        <div className="mt-3 pt-2.5 border-t border-amber-400/25 flex items-center justify-between gap-2 relative z-10">
-          {/* Direct HD Download Button */}
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={isDownloading}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-bold text-xs sm:text-sm font-urdu shadow-lg shadow-amber-900/30 active:scale-95 transition-all cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>{isDownloading ? "ڈاؤنلوڈ جاری ہے..." : "HD ڈاؤنلوڈ کریں (PNG)"}</span>
-          </button>
-
-          {/* Full Screen View Button */}
-          <button
-            type="button"
-            onClick={() => setIsZoomed(true)}
-            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-amber-200 border border-amber-400/40 text-xs font-urdu active:scale-95 transition-all cursor-pointer shadow-xs"
-            title="مکمل سکرین پر دیکھیں"
-          >
-            <Maximize2 className="w-4 h-4" />
-          </button>
-
-          {/* WhatsApp Share Button */}
-          <button
-            type="button"
-            onClick={() => {
-              const fullUrl = src.startsWith("http") ? src : `${window.location.origin}${src}`;
-              const text = `اسلامی چیٹ جی پی ٹی کا شاہکار 3D گولڈن لوگو برائے «${cleanTitle}»: ${fullUrl}`;
-              window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
-            }}
-            className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-medium border border-emerald-500/50 text-xs font-urdu active:scale-95 transition-all cursor-pointer shadow-xs"
-            title="واٹس ایپ پر شیئر کریں"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">شیئر</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Full Size Zoom Modal */}
-      {isZoomed && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
-          onClick={() => setIsZoomed(false)}
-        >
-          <div
-            className="relative max-w-xl w-full bg-slate-950 border-2 border-amber-400 rounded-3xl overflow-hidden p-3 sm:p-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-amber-400/30">
-              <span className="text-sm font-bold text-amber-200 font-urdu">{cleanTitle}</span>
-              <button
-                type="button"
-                onClick={() => setIsZoomed(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <img src={src} alt={alt} className="w-full max-h-[70vh] object-contain rounded-2xl mx-auto" />
-            <div className="mt-3 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 font-bold text-xs font-urdu rounded-xl cursor-pointer shadow-md active:scale-95 transition-all"
-              >
-                <Download className="w-4 h-4" />
-                <span>{isDownloading ? "ڈاؤنلوڈ جاری ہے..." : "HD ڈاؤنلوڈ کریں (PNG)"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
-
-
 interface ChatScreenProps {
   session: ChatSession;
   books: BookRecord[];
@@ -1150,26 +957,19 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
                               );
                             },
                             img: ({ src, alt }) => {
-                              return <LuxuryImageCard src={src as string} alt={alt as string} />;
+                              return (
+                                <img
+                                  src={src as string}
+                                  alt={(alt as string) || "تصویر"}
+                                  className="my-3 max-w-full h-auto rounded-xl shadow-md mx-auto"
+                                  loading="lazy"
+                                />
+                              );
                             },
                           }}
                         >
                           {sanitizeUrduIslamicContent(msg.text)}
                         </ReactMarkdown>
-
-                            {/* Interactive Login Action Button if message asks user to login for logo */}
-                            {msg.text.includes("لگژری AI لوگو اور خطاطی سروس") && !currentUser && onOpenAuth && (
-                              <div className="mt-3.5 pt-1">
-                                <button
-                                  type="button"
-                                  onClick={onOpenAuth}
-                                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-bold text-xs sm:text-sm font-urdu rounded-xl shadow-lg shadow-amber-900/20 cursor-pointer transition-all active:scale-95"
-                                >
-                                  <Crown className="w-4 h-4 text-slate-950" />
-                                  <span>اکاؤنٹ لاگ ان کریں اور لوگو حاصل کریں</span>
-                                </button>
-                              </div>
-                            )}
                           </>
                         ) : (
                         <div className="flex items-center gap-2 py-1 text-emerald-600 text-xs">

@@ -38,7 +38,6 @@ import {
   connectToDatabase,
   isDatabaseConnected,
 } from "./src/server/db/database";
-import { generateIslamicEmblemSvg, cleanLogoSubject } from "./src/server/logoGenerator";
 import fs from "fs";
 
 // Ensure Node TLS handles local Windows certificate proxies cleanly
@@ -431,74 +430,6 @@ app.post("/api/settings/key", async (req, res) => {
   }
 });
 
-// ==========================================
-// 🎨 LUXURY ISLAMIC AI LOGO & CALLIGRAPHY ENGINE
-// ==========================================
-
-export interface LogoRequestCheck {
-  isRequest: boolean;
-  subject: string;
-  originalQuery: string;
-}
-
-export function isLogoOrImageRequest(query: string): LogoRequestCheck {
-  if (!query || typeof query !== "string") return { isRequest: false, subject: "", originalQuery: "" };
-  const raw = query.trim();
-  const lower = raw.toLowerCase();
-
-  // 1. Guard against Fiqh / Shariah ruling queries about images or logos
-  const fiqhTerms = [
-    "حکم", "جائز", "حرام", "مسئلہ", "فتوی", "کیسا ہے", "شرعی", "گناہ", "شریعت", "ممانعت",
-    "ruling", "permissible", "allowed", "haram", "halal"
-  ];
-  if (fiqhTerms.some((term) => lower.includes(term))) {
-    return { isRequest: false, subject: "", originalQuery: raw };
-  }
-
-  // 2. Action keywords explicitly asking to GENERATE / CREATE / DRAW / MAKE
-  const logoKeywords = [
-    "لوگو بنا", "لوگو تیار", "لوگو چاہ", "لوگو ڈیزائن", "لوگو بنائیں", "لوگو بناؤ", "لوگو بنا کر",
-    "تصویر بنا", "تصویر تیار", "تصویر بنائیں", "تصویر بناؤ", "تصویر بنا کر",
-    "نام لکھ کر دیں", "نام لکھ دیں", "نام ڈیزائن", "نام کی خطاطی", "اس طرح کا نام", "نام کا لوگو", "نام لکھیں",
-    "مونوگرام بنا", "مونوگرام تیار", "مونوگرام بنائیں",
-    "ڈی پی بنا", "پروفائل تصویر بنا",
-    "خطاطی بنا", "خطاطی کر کے", "خطاطی تیار", "خطاطی بنائیں",
-    "logo bana", "make logo", "create logo", "design logo", "generate logo",
-    "image bana", "generate image", "make picture", "create picture",
-    "calligraphy bana", "draw image", "draw logo"
-  ];
-
-  const matched = logoKeywords.some((kw) => lower.includes(kw));
-  if (!matched) {
-    return { isRequest: false, subject: "", originalQuery: raw };
-  }
-
-  // Extract clean subject / name using dedicated NLP patterns
-  const cleanSubject = cleanLogoSubject(raw);
-
-  return { isRequest: true, subject: cleanSubject, originalQuery: raw };
-}
-
-// 🎨 DYNAMIC 3D ISLAMIC EMBLEM LOGO GENERATOR (SVG / Ultra HD)
-app.get("/api/logo-svg", (req, res) => {
-  try {
-    const rawName = (req.query.name as string) || "اسلامی خطاطی";
-    const cleanName = cleanLogoSubject(rawName);
-    const svg = generateIslamicEmblemSvg(cleanName);
-
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400");
-    if (req.query.download === "true") {
-      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(cleanName)}-3d-logo.svg"`);
-    }
-    return res.send(svg);
-  } catch (err: any) {
-    console.error("Logo SVG generation error:", err);
-    return res.status(500).send("Error generating emblem");
-  }
-});
-
 // Image Proxy Endpoint for secure cross-origin rendering and direct HD downloading
 app.get("/api/image-proxy", async (req, res) => {
   try {
@@ -562,115 +493,6 @@ app.post("/api/chat", async (req, res) => {
     const isStreamRequest = stream === true || req.headers.accept === "text/event-stream";
     const userToken = req.body?.userToken || getBearerToken(req);
     const userEmail = req.body?.userEmail || (req.headers["x-user-email"] as string);
-
-    // 🎨 EXCLUSIVE VIP LOGO & CALLIGRAPHY GENERATION (Triggered ONLY when user explicitly asks)
-    let logoCheck = isLogoOrImageRequest(message);
-
-    // Follow-up detection: If previous message asked user to login for logo or previous was logo request,
-    // and user confirms login or asks to proceed:
-    const lowerMsg = (message || "").toLowerCase();
-    const isLoginConfirmation =
-      lowerMsg.includes("لاگ ان") ||
-      lowerMsg.includes("login") ||
-      lowerMsg.includes("اب بنا") ||
-      lowerMsg.includes("لوگو دیں") ||
-      lowerMsg.includes("تیار کریں") ||
-      lowerMsg.includes("بنا دیں") ||
-      lowerMsg.includes("لوگو بنا") ||
-      lowerMsg.includes("میرا لوگو");
-
-    if (!logoCheck.isRequest && Array.isArray(history) && history.length > 0 && isLoginConfirmation) {
-      for (let i = history.length - 1; i >= 0; i--) {
-        const hMsg = history[i];
-        if (hMsg.text && (hMsg.text.includes("لگژری AI لوگو اور خطاطی سروس") || hMsg.text.includes("لوگو حاصل کرنے کے لیے"))) {
-          const priorUserMsg = history[i - 1]?.text || "";
-          const priorCheck = isLogoOrImageRequest(priorUserMsg);
-          const foundSubject = cleanLogoSubject(priorCheck.subject || clientUserName || "اسلامی خطاطی و مونوگرام");
-          logoCheck = {
-            isRequest: true,
-            subject: foundSubject,
-            originalQuery: message,
-          };
-          break;
-        }
-      }
-    }
-
-    if (logoCheck.isRequest) {
-      let user = userToken ? await getUserByToken(userToken) : null;
-      if (!user && userEmail) {
-        user = findUserByEmail(userEmail) || null;
-      }
-
-      // Check if user is authenticated
-      const isAuthenticated = Boolean(user || userToken || userEmail || clientUserName);
-
-      // Rule: Strictly accessible AFTER login
-      if (!isAuthenticated) {
-        const loginRequiredReply = `### 👑 **لگژری AI لوگو اور خطاطی سروس**
-
-محترم صارف! خالص 3D گولڈن اسلامی لوگو، مونوگرام اور نام کی شاہکار خطاطی تیار کرنا ہمارے **رجسٹرڈ اور لاگ ان صارفین** کے لیے ایک خصوصی VIP سہولت ہے۔
-
-✨ **اس سہولت کے فوائد:**
-- خالص 3D سنہری نقوش اور ایمبوسڈ خطاطی (24K Embossed Gold Calligraphy)
-- شاہی زمردی ماربل میڈلین (Royal Emerald Green Medallion)
-- الٹرا ہائی ڈیفینیشن (Ultra HD) ڈاؤنلوڈ کی سہولت برائے واٹس ایپ ڈی پی اور پرسنل برانڈنگ
-
-🔒 **لوگو حاصل کرنے کے لیے:**
-براہ کرم اپنا اکاؤنٹ **لاگ ان** کریں یا مفت سائن اپ کریں۔ لاگ ان ہوتے ہی آپ کا مطلوبہ شاہکار لوگو **«${logoCheck.subject}»** فوراً تیار کر دیا جائے گا!`;
-
-        if (isStreamRequest) {
-          res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
-          res.setHeader("Cache-Control", "no-cache, no-transform");
-          res.setHeader("Connection", "keep-alive");
-          res.write(`data: ${JSON.stringify({ chunk: loginRequiredReply, done: true, reply: loginRequiredReply, requiresLoginForLogo: true, logoSubject: logoCheck.subject })}\n\n`);
-          return res.end();
-        }
-        return res.json({
-          success: true,
-          reply: loginRequiredReply,
-          requiresLoginForLogo: true,
-          logoSubject: logoCheck.subject,
-        });
-      }
-
-      // User IS logged in: generate luxury logo
-      if (user) {
-        try {
-          incrementUserUsage(user.id);
-        } catch {}
-      }
-
-      const subject = cleanLogoSubject(logoCheck.subject);
-      const emblemSvgUrl = `/api/logo-svg?name=${encodeURIComponent(subject)}`;
-      const displayName = user?.name || clientUserName || subject;
-
-      const logoSuccessReply = `### 👑 **شاہکار لگژری 3D اسلامی خطاطی و مونوگرام لوگو**
-
-محترم **${displayName}**! آپ کی فرمائش کے مطابق خالص **3D سنہری خطاطی (24K Embossed Gold)**، شاہی زمردی ماربل اور اسلامی نقوش کے ساتھ **«${subject}»** کا شاہکار لوگو تیار کر دیا گیا ہے:
-
-![${subject} - شاہکار لگژری اسلامی لوگو](${emblemSvgUrl})
-
-✨ **لوگو کی تفصیلات:**
-- **نام / خطاطی:** «${subject}» (واضح، مستند اور خوبصورت سنہری 3D خطاطی)
-- **انداز:** خالص 24 قیراط چمکدار سنہری نقوش (24K Gold 3D Emblem)
-- **پس منظر:** شاہی زمردی مخمل ماربل میڈلین (Royal Emerald Velvet Medallion)
-- **استعمال:** واٹس ایپ ڈی پی (WhatsApp DP)، پروفائل، مونوگرام اور پرنٹنگ کے لیے بہترین۔`;
-
-      if (isStreamRequest) {
-        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
-        res.setHeader("Cache-Control", "no-cache, no-transform");
-        res.setHeader("Connection", "keep-alive");
-        res.write(`data: ${JSON.stringify({ chunk: logoSuccessReply, done: true, reply: logoSuccessReply, isLogoGenerated: true, imageUrl: emblemSvgUrl })}\n\n`);
-        return res.end();
-      }
-      return res.json({
-        success: true,
-        reply: logoSuccessReply,
-        isLogoGenerated: true,
-        imageUrl: emblemSvgUrl,
-      });
-    }
 
     if (!apiKey) {
       const noKeyReply = "⚠️ **معذرت:** AI سروس سے رابطہ عارضی طور پر تعطل کا شکار ہے۔ براہ کرم کچھ دیر بعد دوبارہ کوشش فرمائیں۔";
