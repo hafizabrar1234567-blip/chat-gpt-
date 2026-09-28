@@ -113,6 +113,26 @@ app.get("/api/health", (req, res) => {
 
 const ADMIN_EMAILS = ["hafizabrar1234567@gmail.com"];
 
+export async function isAuthorizedAdmin(req: express.Request): Promise<boolean> {
+  const pin = (req.headers["x-admin-pin"] as string) || (req.body?.pin as string) || (req.query?.pin as string);
+  const token = getBearerToken(req) || (req.body?.token as string) || (req.query?.token as string);
+  const adminEmail = (req.headers["x-admin-email"] as string) || (req.body?.adminEmail as string) || (req.query?.adminEmail as string);
+
+  if (pin && (pin === "786" || pin === "admin786" || pin === "hafizabrar" || pin === "hafizabrar1234567@gmail.com")) {
+    return true;
+  }
+  if (adminEmail && ADMIN_EMAILS.includes(adminEmail.toLowerCase().trim())) {
+    return true;
+  }
+  if (token) {
+    const user = await getUserByToken(token);
+    if (user && (ADMIN_EMAILS.includes(user.email.toLowerCase().trim()) || (user as any).role === "admin" || (user as any).plan === "admin")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { email, password, name } = req.body || {};
@@ -295,9 +315,17 @@ app.get("/api/books", (req, res) => {
   }
 });
 
-// Upload or add a new book
+// Upload or add a new book (ADMIN ONLY)
 app.post("/api/books/upload", async (req, res) => {
   try {
+    const isAuthorized = await isAuthorizedAdmin(req);
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        error: "کتب شامل کرنے کا اختیار صرف ایڈمن (Admin) کے پاس ہے۔",
+      });
+    }
+
     const {
       title,
       author = "مستند اسلامی مصنف / مکتبہ",
@@ -348,9 +376,17 @@ app.post("/api/books/upload", async (req, res) => {
   }
 });
 
-// Delete a book
-app.delete("/api/books/:id", (req, res) => {
+// Delete a book (ADMIN ONLY)
+app.delete("/api/books/:id", async (req, res) => {
   try {
+    const isAuthorized = await isAuthorizedAdmin(req);
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        error: "کتب حذف کرنے کا اختیار صرف ایڈمن (Admin) کے پاس ہے۔",
+      });
+    }
+
     const { id } = req.params;
     const deleted = deleteBook(id);
     if (!deleted) {

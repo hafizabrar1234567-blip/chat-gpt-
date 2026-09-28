@@ -606,6 +606,7 @@ export default function App() {
         onClose={() => setIsKnowledgeBaseOpen(false)}
         books={books}
         onRefreshBooks={fetchBooks}
+        currentUser={currentUser}
       />
 
       {/* 4. Triple Islamic Calendar Modal */}

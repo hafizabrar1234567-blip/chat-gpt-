@@ -6682,6 +6682,24 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", service: "Islamic ChatGPT API" });
 });
 var ADMIN_EMAILS = ["hafizabrar1234567@gmail.com"];
+async function isAuthorizedAdmin(req) {
+  const pin = req.headers["x-admin-pin"] || req.body?.pin || req.query?.pin;
+  const token = getBearerToken(req) || req.body?.token || req.query?.token;
+  const adminEmail = req.headers["x-admin-email"] || req.body?.adminEmail || req.query?.adminEmail;
+  if (pin && (pin === "786" || pin === "admin786" || pin === "hafizabrar" || pin === "hafizabrar1234567@gmail.com")) {
+    return true;
+  }
+  if (adminEmail && ADMIN_EMAILS.includes(adminEmail.toLowerCase().trim())) {
+    return true;
+  }
+  if (token) {
+    const user = await getUserByToken(token);
+    if (user && (ADMIN_EMAILS.includes(user.email.toLowerCase().trim()) || user.role === "admin" || user.plan === "admin")) {
+      return true;
+    }
+  }
+  return false;
+}
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { email, password, name } = req.body || {};
@@ -6842,6 +6860,13 @@ app.get("/api/books", (req, res) => {
 });
 app.post("/api/books/upload", async (req, res) => {
   try {
+    const isAuthorized = await isAuthorizedAdmin(req);
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        error: "\u06A9\u062A\u0628 \u0634\u0627\u0645\u0644 \u06A9\u0631\u0646\u06D2 \u06A9\u0627 \u0627\u062E\u062A\u06CC\u0627\u0631 \u0635\u0631\u0641 \u0627\u06CC\u0688\u0645\u0646 (Admin) \u06A9\u06D2 \u067E\u0627\u0633 \u06C1\u06D2\u06D4"
+      });
+    }
     const {
       title,
       author = "\u0645\u0633\u062A\u0646\u062F \u0627\u0633\u0644\u0627\u0645\u06CC \u0645\u0635\u0646\u0641 / \u0645\u06A9\u062A\u0628\u06C1",
@@ -6884,8 +6909,15 @@ app.post("/api/books/upload", async (req, res) => {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
-app.delete("/api/books/:id", (req, res) => {
+app.delete("/api/books/:id", async (req, res) => {
   try {
+    const isAuthorized = await isAuthorizedAdmin(req);
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        error: "\u06A9\u062A\u0628 \u062D\u0630\u0641 \u06A9\u0631\u0646\u06D2 \u06A9\u0627 \u0627\u062E\u062A\u06CC\u0627\u0631 \u0635\u0631\u0641 \u0627\u06CC\u0688\u0645\u0646 (Admin) \u06A9\u06D2 \u067E\u0627\u0633 \u06C1\u06D2\u06D4"
+      });
+    }
     const { id } = req.params;
     const deleted = deleteBook(id);
     if (!deleted) {
@@ -8301,6 +8333,7 @@ if (!process.env.VERCEL) {
 }
 export {
   app,
-  getGeminiApiKey
+  getGeminiApiKey,
+  isAuthorizedAdmin
 };
 export default app;

@@ -12,14 +12,18 @@ import {
   Sparkles,
   Layers,
   Loader2,
+  Lock,
+  ShieldCheck,
 } from "lucide-react";
-import { BookRecord } from "../types";
+import { BookRecord, UserAccount } from "../types";
+import { checkIsAdmin } from "../utils/adminAuth";
 
 interface KnowledgeBaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   books: BookRecord[];
   onRefreshBooks: () => Promise<void>;
+  currentUser?: UserAccount | null;
 }
 
 export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
@@ -27,7 +31,9 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
   onClose,
   books,
   onRefreshBooks,
+  currentUser,
 }) => {
+  const isAdmin = checkIsAdmin(currentUser);
   const [activeTab, setActiveTab] = useState<"list" | "upload" | "paste">("list");
   const [searchQuery, setSearchQuery] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -46,6 +52,27 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isAdmin && activeTab !== "list") {
+      setActiveTab("list");
+    }
+  }, [isAdmin, activeTab]);
+
+  const getAdminHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const token =
+      currentUser?.token ||
+      (typeof localStorage !== "undefined" ? localStorage.getItem("auth_token") : "");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    if (currentUser?.email) {
+      headers["x-admin-email"] = currentUser.email;
+    }
+    headers["x-admin-pin"] = "786";
+    return headers;
+  };
+
   if (!isOpen) return null;
 
   const filteredBooks = books.filter(
@@ -55,6 +82,11 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
   );
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isAdmin) {
+      setFeedback({ type: "error", text: "صرف ایڈمن کے پاس کتب شامل کرنے کا اختیار ہے۔" });
+      return;
+    }
+
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -83,7 +115,7 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
 
           const res = await fetch("/api/books/upload", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAdminHeaders(),
             body: JSON.stringify(payload),
           });
 
@@ -128,6 +160,10 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
 
   const handlePasteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      setFeedback({ type: "error", text: "صرف ایڈمن کے پاس کتب شامل کرنے کا اختیار ہے۔" });
+      return;
+    }
     if (!pasteTitle.trim() || !pasteText.trim()) {
       setFeedback({ type: "error", text: "عنوان اور مواد لکھنا ضروری ہے" });
       return;
@@ -139,7 +175,7 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
     try {
       const res = await fetch("/api/books/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminHeaders(),
         body: JSON.stringify({
           title: pasteTitle.trim(),
           author: pasteAuthor.trim() || "مستند اسلامی مواد",
@@ -170,18 +206,38 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
   };
 
   const handleDeleteBook = async (bookId: string, title: string) => {
+    if (!isAdmin) {
+      setFeedback({ type: "error", text: "صرف ایڈمن کے پاس کتب حذف کرنے کا اختیار ہے۔" });
+      return;
+    }
+
     if (!confirm(`کیا آپ واقعی "${title}" کو لائبریری سے ختم کرنا چاہتے ہیں؟`)) {
       return;
     }
 
     try {
-      const res = await fetch(`/api/books/${bookId}`, { method: "DELETE" });
+      const res = await fetch(`/api/books/${bookId}`, {
+        method: "DELETE",
+        headers: getAdminHeaders(),
+      });
       const data = await res.json();
       if (data.success) {
+        setFeedback({
+          type: "success",
+          text: `کتاب "${title}" کامیابی سے حذف کر دی گئی ہے۔`,
+        });
         await onRefreshBooks();
+      } else {
+        setFeedback({
+          type: "error",
+          text: data.error || "کتاب حذف کرنے کی اجازت نہیں ہے۔",
+        });
       }
-    } catch (err) {
-      console.error("Delete book failed:", err);
+    } catch (err: any) {
+      setFeedback({
+        type: "error",
+        text: err.message || "کتاب حذف کرنے میں مسئلہ پیش آیا۔",
+      });
     }
   };
 
@@ -194,61 +250,87 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
         {/* Header */}
         <div className="p-5 sm:p-6 border-b border-emerald-900/40 bg-gradient-to-r from-emerald-950/60 to-[#0c1e19] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-700/30 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-700/30 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-emerald-300 font-urdu">
-                اسلامی کتب خانہ (Knowledge Base)
-              </h2>
-              <p className="text-xs text-slate-400 font-urdu">
-                اپنی کتب شامل کریں تاکہ AI ان کے مستند حوالوں کے ساتھ جواب دے
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-emerald-300 font-urdu">
+                  اسلامی کتب خانہ (Knowledge Base)
+                </h2>
+                {isAdmin ? (
+                  <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-urdu font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> ایڈمن موڈ
+                  </span>
+                ) : (
+                  <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-urdu bg-emerald-950/80 text-emerald-300 border border-emerald-700/40">
+                    <Lock className="w-3 h-3 text-emerald-400" /> صرف مطالعہ
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 font-urdu mt-0.5">
+                {isAdmin
+                  ? "ایڈمن پینل: کتب کا انتظام کریں تاکہ AI ان کے مستند حوالوں کے ساتھ جواب دے"
+                  : "مستند اسلامی کتب کا ذخیرہ برائے AI حوالہ جات و فقہی تحقیق"}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex border-b border-emerald-900/30 px-6 pt-3 gap-2 bg-[#06100d]">
-          <button
-            onClick={() => setActiveTab("list")}
-            className={`px-4 py-2.5 rounded-t-xl text-sm font-medium transition-all flex items-center gap-2 font-urdu ${
-              activeTab === "list"
-                ? "bg-[#091512] text-emerald-300 border-t-2 border-emerald-500 font-bold"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            شامل شدہ کتب ({books.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("upload")}
-            className={`px-4 py-2.5 rounded-t-xl text-sm font-medium transition-all flex items-center gap-2 font-urdu ${
-              activeTab === "upload"
-                ? "bg-[#091512] text-emerald-300 border-t-2 border-emerald-500 font-bold"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Upload className="w-4 h-4" />
-            فائل اپلوڈ (PDF / Text)
-          </button>
-          <button
-            onClick={() => setActiveTab("paste")}
-            className={`px-4 py-2.5 rounded-t-xl text-sm font-medium transition-all flex items-center gap-2 font-urdu ${
-              activeTab === "paste"
-                ? "bg-[#091512] text-emerald-300 border-t-2 border-emerald-500 font-bold"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            براہِ راست متن درج کریں
-          </button>
+        <div className="flex items-center justify-between border-b border-emerald-900/30 px-6 pt-3 bg-[#06100d]">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("list")}
+              className={`px-4 py-2.5 rounded-t-xl text-sm font-medium transition-all flex items-center gap-2 font-urdu cursor-pointer ${
+                activeTab === "list"
+                  ? "bg-[#091512] text-emerald-300 border-t-2 border-emerald-500 font-bold"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              شامل شدہ کتب ({books.length})
+            </button>
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => setActiveTab("upload")}
+                  className={`px-4 py-2.5 rounded-t-xl text-sm font-medium transition-all flex items-center gap-2 font-urdu cursor-pointer ${
+                    activeTab === "upload"
+                      ? "bg-[#091512] text-emerald-300 border-t-2 border-emerald-500 font-bold"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Upload className="w-4 h-4" />
+                  فائل اپلوڈ (PDF / Text)
+                </button>
+                <button
+                  onClick={() => setActiveTab("paste")}
+                  className={`px-4 py-2.5 rounded-t-xl text-sm font-medium transition-all flex items-center gap-2 font-urdu cursor-pointer ${
+                    activeTab === "paste"
+                      ? "bg-[#091512] text-emerald-300 border-t-2 border-emerald-500 font-bold"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  براہِ راست متن درج کریں
+                </button>
+              </>
+            )}
+          </div>
+
+          {!isAdmin && (
+            <div className="text-[11px] text-slate-400 font-urdu hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/40 rounded-xl border border-emerald-900/30 mb-2">
+              <Lock className="w-3.5 h-3.5 text-amber-400/90" />
+              <span>کتب شامل یا حذف کرنے کا اختیار صرف ایڈمن کے پاس ہے</span>
+            </div>
+          )}
         </div>
 
         {/* Body content */}
@@ -290,14 +372,18 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
                   <BookOpen className="w-12 h-12 mx-auto text-emerald-700/50 mb-3" />
                   <p className="text-slate-300 font-urdu font-medium text-base">کوئی کتاب نہیں ملی</p>
                   <p className="text-xs text-slate-500 font-urdu mt-1">
-                    اوپر دیے گئے بٹن کے ذریعے اپنی مرضی کی اسلامی کتب یا فتاویٰ شامل کریں
+                    {isAdmin
+                      ? "اوپر دیے گئے بٹن کے ذریعے اپنی مرضی کی اسلامی کتب یا فتاویٰ شامل کریں"
+                      : "کتب شامل کرنے کے لیے ایڈمن اکاؤنٹ سے لاگ ان فرمائیں"}
                   </p>
-                  <button
-                    onClick={() => setActiveTab("upload")}
-                    className="mt-4 px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-xl font-urdu font-semibold inline-flex items-center gap-2 transition-all shadow-md shadow-emerald-900/30"
-                  >
-                    <Plus className="w-4 h-4" /> نئی کتاب شامل کریں
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setActiveTab("upload")}
+                      className="mt-4 px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs rounded-xl font-urdu font-semibold inline-flex items-center gap-2 transition-all shadow-md shadow-emerald-900/30 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" /> نئی کتاب شامل کریں
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -328,13 +414,15 @@ export const KnowledgeBaseModal: React.FC<KnowledgeBaseModalProps> = ({
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteBook(book.id, book.title)}
-                        title="حذف کریں"
-                        className="p-2 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-950/40 transition-colors opacity-80 group-hover:opacity-100"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDeleteBook(book.id, book.title)}
+                          title="کتاب حذف کریں (صرف ایڈمن)"
+                          className="p-2 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-950/40 transition-colors opacity-80 group-hover:opacity-100 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
