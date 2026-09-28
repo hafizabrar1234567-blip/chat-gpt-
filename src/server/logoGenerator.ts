@@ -4,8 +4,106 @@
  * Solves the critical issue where generic AI image generators produce illegible squiggles.
  */
 
+export function cleanLogoSubject(raw: string): string {
+  if (!raw || typeof raw !== "string") return "اسلامی خطاطی و مونوگرام";
+
+  let text = raw.trim();
+
+  // Strip wrapping and inline quotation marks and brackets
+  text = text.replace(/["'“”‘’«»()[\]]/g, " ").replace(/\s+/g, " ").trim();
+
+  // Targeted pattern matching for Urdu and English/Roman Urdu logo queries
+  const patterns: RegExp[] = [
+    // 1. "میرا نام X ہے" / "میرا نام ہے X"
+    /میرا\s*نام\s*(?:ہے\s*)?([^\n\r,،۔!؟]+?)(?:\s*ہے|\s*کا\s*لوگو|\s*لوگو|\s*بنا|\s*$)/i,
+
+    // 2. "مجھے میرے نام X کا لوگو" / "میرے نام X کا لوگو"
+    /(?:مجھے\s*)?(?:میرے|ہمارے|اپنے)\s*نام\s*(?:کا\s*)?([^\n\r,،۔!؟]+?)(?:\s*کا\s*(?:لوگو|مونوگرام|تصویر|ڈی\s*پی|ڈیزائن)|$|\s*(?:بنا|تیار|چاہیے|لکھ))/i,
+
+    // 3. "لوگو بنائیں نام: X" / "نام: X" / "Name: X"
+    /(?:نام|name|title)\s*[:：\-]\s*([^\n\r,،۔!؟]+)/i,
+
+    // 4. "جس پر X لکھا ہو"
+    /(?:جس\s*پر\s*|جس\s*میں\s*)(?:نام\s*)?([^\n\r,،۔!؟]+?)\s*(?:لکھا\s*ہو|لکھیں)/i,
+
+    // 5. "X نام کا شاہکار لگژری لوگو" / "X کے نام کا لوگو"
+    /([^\n\r,،۔!؟]+?)\s*(?:کے\s*نام\s*کا|کے\s*نام|کا\s*نام|نام\s*کا|نام\s*پر)\s*(?:لوگو|مونوگرام|تصویر|ڈی\s*پی|ڈیزائن|شاہکار|3d|لگژری)/i,
+
+    // 6. "X کا لوگو بنا دیں" / "X کا لوگو"
+    /([^\n\r,،۔!؟]+?)\s*کا\s*(?:شاہکار\s*)?(?:لگژری\s*)?(?:3d\s*)?(?:تھری\s*ڈی\s*)?(?:اسلامی\s*)?(?:لوگو|مونوگرام|تصویر|ڈیزائن)/i,
+
+    // 7. "لوگو بنا کر دیں مجھے میرے نام X" / "لوگو بنا دیں ابرار" / "میرے نام کا لوگو بنا دیں ابرار"
+    /(?:لوگو|مونوگرام|تصویر)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں)\s*(?:برائے\s*|نام\s*[:：\-]?\s*|جس\s*پر\s*لکھا\s*ہو\s*|مجھے\s*میرے\s*نام\s*|میرے\s*نام\s*کا\s*|میرے\s*نام\s*|میرا\s*نام\s*|کے\s*نام\s*کا\s*|کا\s*)?([^\n\r,،۔!؟]+)/i,
+
+    // 8. "میرے نام کا لوگو ... [NAME]"
+    /(?:میرے|ہمارے|اپنے)\s*نام\s*کا\s*(?:لوگو|مونوگرام|تصویر)[^\n\r,،۔!؟]*?\s+([^\n\r,،۔!؟\s]+)$/i,
+
+    // 9. "make logo for X" / "logo for X" / "logo of X"
+    /(?:logo|monogram|design)\s*(?:for|of)\s+([a-zA-Z\s]+)/i,
+
+    // 10. Roman Urdu: "Abrar logo bana dein"
+    /([a-zA-Z\s]+?)\s+(?:ka\s+)?(?:logo|monogram)/i,
+  ];
+
+  const isInvalidCandidate = (str: string): boolean => {
+    if (!str) return true;
+    const s = str.trim();
+    if (s.length < 2) return true;
+    const stopWords = /^(?:کا|کے|کی|کو|سے|میں|پر|اور|ایک|یہ|وہ|لوگو|تصویر|مونوگرام|ڈیزائن|نام|میرے\s*نام|ہمارے\s*نام|اپنے\s*نام|میرے|ہمارے|اپنے|میرا|میری|مجھے|ہمیں|بنا|بنائیں|بناؤ|دیں|کریں|چاہیے|چاہئیے|شاہکار|لگژری|logo|image|picture)$/i;
+    return stopWords.test(s);
+  };
+
+  let candidate = "";
+  for (const pat of patterns) {
+    const m = text.match(pat);
+    if (m && m[1] && m[1].trim()) {
+      const testVal = m[1].trim();
+      if (!isInvalidCandidate(testVal)) {
+        candidate = testVal;
+        break;
+      }
+    }
+  }
+
+  // Fallback to text if no pattern matched
+  if (!candidate) {
+    candidate = text;
+  }
+
+  // Deep clean candidate to strip any remaining noise words
+  candidate = candidate
+    .replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/gi, "")
+    .replace(/(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*$/gi, "")
+    .replace(/(?:مجھے\s*)?(?:میرے|ہمارے|اپنے)\s*نام\s*(?:کا|پر)?\s*/gi, "")
+    .replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/gi, "")
+    .replace(/(?:میرا\s*نام\s*ہے|میرا\s*نام)\s*/gi, "")
+    .replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:شاہکار\s*)?(?:لگژری\s*)?(?:تھری\s*ڈی\s*)?(?:3d\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?/gi, "")
+    .replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|بناؤ)\s*$/gi, "")
+    .replace(/^(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*/gi, "")
+    .replace(/(?:شاہکار\s*)?(?:لگژری\s*)?(?:3d\s*)?(?:تھری\s*ڈی\s*)?(?:اسلامی\s*)?(?:لوگو|مونوگرام|تصویر)\s*$/gi, "")
+    .replace(/\s*(?:کے\s*نام\s*کا|کے\s*نام|کا\s*نام|نام\s*کا|نام\s*پر|نام)\s*$/gi, "")
+    .replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "")
+    .replace(/\s*(?:چاہیے|چاہئیے)\s*$/gi, "")
+    .replace(/\s*(?:کا|کے|کی)\s*$/gi, "")
+    .replace(/^\s*(?:کا|کے|کی)\s*/gi, "")
+    .replace(/^(?:نام|title|name)\s*[:：\-]?\s*/gi, "")
+    .replace(/(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/gi, "")
+    .replace(/^(?:ہے|اس\s*کا|ایک|یہ)\s*/gi, "")
+    .replace(/\s*(?:ہے|اس\s*کا)\s*$/gi, "")
+    .replace(/\b(?:logo|bana|dein|karen|chahiye|image|picture)\b/gi, "")
+    .replace(/["'“”‘’«»()[\]]/g, "")
+    .trim();
+
+  // Final sanity check
+  if (!candidate || candidate.length < 2) {
+    candidate = "اسلامی خطاطی و مونوگرام";
+  }
+
+  return candidate;
+}
+
 export function generateIslamicEmblemSvg(rawName: string): string {
-  const name = (rawName || "سلمان").trim();
+  const name = cleanLogoSubject(rawName || "سلمان");
 
   // Dynamic font sizing based on character count so long or short names fit with perfection
   let fontSize = 150;

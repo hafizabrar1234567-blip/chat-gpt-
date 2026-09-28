@@ -38,7 +38,7 @@ import {
   connectToDatabase,
   isDatabaseConnected,
 } from "./src/server/db/database";
-import { generateIslamicEmblemSvg } from "./src/server/logoGenerator";
+import { generateIslamicEmblemSvg, cleanLogoSubject } from "./src/server/logoGenerator";
 import fs from "fs";
 
 // Ensure Node TLS handles local Windows certificate proxies cleanly
@@ -473,32 +473,8 @@ export function isLogoOrImageRequest(query: string): LogoRequestCheck {
     return { isRequest: false, subject: "", originalQuery: raw };
   }
 
-  // Extract clean subject / name
-  let cleanSubject = raw;
-  cleanSubject = cleanSubject
-    .replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "")
-    .replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "")
-    .replace(/^(?:میرے\s*نام\s*کا|میرے\s*نام\s*پر|میرے\s*نام|ہمارے\s*نام\s*کا|ہمارے\s*نام|اپنے\s*نام\s*کا)\s*/i, "")
-    .replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:شاہکار\s*)?(?:لگژری\s*)?(?:تھری\s*ڈی\s*)?(?:3d\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "")
-    .replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "")
-    .replace(/(?:شاہکار\s*)?(?:لگژری\s*)?(?:3d\s*)?(?:تھری\s*ڈی\s*)?(?:اسلامی\s*)?(?:لوگو|مونوگرام|تصویر)\s*$/gi, "")
-    .replace(/\s*(?:کے\s*نام\s*کا|کے\s*نام|کا\s*نام|نام\s*کا|نام\s*پر|نام)\s*$/gi, "")
-    .replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "")
-    .replace(/\s*(?:چاہیے|چاہئیے)\s*$/gi, "")
-    .replace(/\s*(?:کا|کے|کی)\s*$/gi, "")
-    .replace(/^\s*(?:کا|کے|کی)\s*/gi, "")
-    .replace(/^(?:نام|title|name)\s*[:：\-]?\s*/i, "")
-    .replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "")
-    .trim();
-
-  const quoteMatch = raw.match(/["'«]([^"'»]+)["'»]/);
-  if (quoteMatch && quoteMatch[1]?.trim()) {
-    cleanSubject = quoteMatch[1].trim();
-  }
-
-  if (!cleanSubject || cleanSubject.length < 2) {
-    cleanSubject = "اسلامی خطاطی و مونوگرام";
-  }
+  // Extract clean subject / name using dedicated NLP patterns
+  const cleanSubject = cleanLogoSubject(raw);
 
   return { isRequest: true, subject: cleanSubject, originalQuery: raw };
 }
@@ -507,13 +483,14 @@ export function isLogoOrImageRequest(query: string): LogoRequestCheck {
 app.get("/api/logo-svg", (req, res) => {
   try {
     const rawName = (req.query.name as string) || "اسلامی خطاطی";
-    const svg = generateIslamicEmblemSvg(rawName);
+    const cleanName = cleanLogoSubject(rawName);
+    const svg = generateIslamicEmblemSvg(cleanName);
 
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400");
     if (req.query.download === "true") {
-      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(rawName)}-3d-logo.svg"`);
+      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(cleanName)}-3d-logo.svg"`);
     }
     return res.send(svg);
   } catch (err: any) {
@@ -608,7 +585,7 @@ app.post("/api/chat", async (req, res) => {
         if (hMsg.text && (hMsg.text.includes("لگژری AI لوگو اور خطاطی سروس") || hMsg.text.includes("لوگو حاصل کرنے کے لیے"))) {
           const priorUserMsg = history[i - 1]?.text || "";
           const priorCheck = isLogoOrImageRequest(priorUserMsg);
-          const foundSubject = priorCheck.subject || clientUserName || "اسلامی خطاطی و مونوگرام";
+          const foundSubject = cleanLogoSubject(priorCheck.subject || clientUserName || "اسلامی خطاطی و مونوگرام");
           logoCheck = {
             isRequest: true,
             subject: foundSubject,
@@ -664,7 +641,7 @@ app.post("/api/chat", async (req, res) => {
         } catch {}
       }
 
-      const subject = logoCheck.subject;
+      const subject = cleanLogoSubject(logoCheck.subject);
       const emblemSvgUrl = `/api/logo-svg?name=${encodeURIComponent(subject)}`;
       const displayName = user?.name || clientUserName || subject;
 

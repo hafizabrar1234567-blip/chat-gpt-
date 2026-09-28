@@ -6628,8 +6628,61 @@ function sanitizeUrduIslamicContent(rawText) {
 }
 
 // src/server/logoGenerator.ts
+function cleanLogoSubject(raw) {
+  if (!raw || typeof raw !== "string") return "\u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC \u0648 \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645";
+  let text = raw.trim();
+  text = text.replace(/["'“”‘’«»()[\]]/g, " ").replace(/\s+/g, " ").trim();
+  const patterns = [
+    // 1. "میرا نام X ہے" / "میرا نام ہے X"
+    /میرا\s*نام\s*(?:ہے\s*)?([^\n\r,،۔!؟]+?)(?:\s*ہے|\s*کا\s*لوگو|\s*لوگو|\s*بنا|\s*$)/i,
+    // 2. "مجھے میرے نام X کا لوگو" / "میرے نام X کا لوگو"
+    /(?:مجھے\s*)?(?:میرے|ہمارے|اپنے)\s*نام\s*(?:کا\s*)?([^\n\r,،۔!؟]+?)(?:\s*کا\s*(?:لوگو|مونوگرام|تصویر|ڈی\s*پی|ڈیزائن)|$|\s*(?:بنا|تیار|چاہیے|لکھ))/i,
+    // 3. "لوگو بنائیں نام: X" / "نام: X" / "Name: X"
+    /(?:نام|name|title)\s*[:：\-]\s*([^\n\r,،۔!؟]+)/i,
+    // 4. "جس پر X لکھا ہو"
+    /(?:جس\s*پر\s*|جس\s*میں\s*)(?:نام\s*)?([^\n\r,،۔!؟]+?)\s*(?:لکھا\s*ہو|لکھیں)/i,
+    // 5. "X نام کا شاہکار لگژری لوگو" / "X کے نام کا لوگو"
+    /([^\n\r,،۔!؟]+?)\s*(?:کے\s*نام\s*کا|کے\s*نام|کا\s*نام|نام\s*کا|نام\s*پر)\s*(?:لوگو|مونوگرام|تصویر|ڈی\s*پی|ڈیزائن|شاہکار|3d|لگژری)/i,
+    // 6. "X کا لوگو بنا دیں" / "X کا لوگو"
+    /([^\n\r,،۔!؟]+?)\s*کا\s*(?:شاہکار\s*)?(?:لگژری\s*)?(?:3d\s*)?(?:تھری\s*ڈی\s*)?(?:اسلامی\s*)?(?:لوگو|مونوگرام|تصویر|ڈیزائن)/i,
+    // 7. "لوگو بنا کر دیں مجھے میرے نام X" / "لوگو بنا دیں ابرار" / "میرے نام کا لوگو بنا دیں ابرار"
+    /(?:لوگو|مونوگرام|تصویر)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں)\s*(?:برائے\s*|نام\s*[:：\-]?\s*|جس\s*پر\s*لکھا\s*ہو\s*|مجھے\s*میرے\s*نام\s*|میرے\s*نام\s*کا\s*|میرے\s*نام\s*|میرا\s*نام\s*|کے\s*نام\s*کا\s*|کا\s*)?([^\n\r,،۔!؟]+)/i,
+    // 8. "میرے نام کا لوگو ... [NAME]"
+    /(?:میرے|ہمارے|اپنے)\s*نام\s*کا\s*(?:لوگو|مونوگرام|تصویر)[^\n\r,،۔!؟]*?\s+([^\n\r,،۔!؟\s]+)$/i,
+    // 9. "make logo for X" / "logo for X" / "logo of X"
+    /(?:logo|monogram|design)\s*(?:for|of)\s+([a-zA-Z\s]+)/i,
+    // 10. Roman Urdu: "Abrar logo bana dein"
+    /([a-zA-Z\s]+?)\s+(?:ka\s+)?(?:logo|monogram)/i
+  ];
+  const isInvalidCandidate = (str) => {
+    if (!str) return true;
+    const s = str.trim();
+    if (s.length < 2) return true;
+    const stopWords = /^(?:کا|کے|کی|کو|سے|میں|پر|اور|ایک|یہ|وہ|لوگو|تصویر|مونوگرام|ڈیزائن|نام|میرے\s*نام|ہمارے\s*نام|اپنے\s*نام|میرے|ہمارے|اپنے|میرا|میری|مجھے|ہمیں|بنا|بنائیں|بناؤ|دیں|کریں|چاہیے|چاہئیے|شاہکار|لگژری|logo|image|picture)$/i;
+    return stopWords.test(s);
+  };
+  let candidate = "";
+  for (const pat of patterns) {
+    const m = text.match(pat);
+    if (m && m[1] && m[1].trim()) {
+      const testVal = m[1].trim();
+      if (!isInvalidCandidate(testVal)) {
+        candidate = testVal;
+        break;
+      }
+    }
+  }
+  if (!candidate) {
+    candidate = text;
+  }
+  candidate = candidate.replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/gi, "").replace(/(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*$/gi, "").replace(/(?:مجھے\s*)?(?:میرے|ہمارے|اپنے)\s*نام\s*(?:کا|پر)?\s*/gi, "").replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/gi, "").replace(/(?:میرا\s*نام\s*ہے|میرا\s*نام)\s*/gi, "").replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:شاہکار\s*)?(?:لگژری\s*)?(?:تھری\s*ڈی\s*)?(?:3d\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?/gi, "").replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|بناؤ)\s*$/gi, "").replace(/^(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*/gi, "").replace(/(?:شاہکار\s*)?(?:لگژری\s*)?(?:3d\s*)?(?:تھری\s*ڈی\s*)?(?:اسلامی\s*)?(?:لوگو|مونوگرام|تصویر)\s*$/gi, "").replace(/\s*(?:کے\s*نام\s*کا|کے\s*نام|کا\s*نام|نام\s*کا|نام\s*پر|نام)\s*$/gi, "").replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "").replace(/\s*(?:چاہیے|چاہئیے)\s*$/gi, "").replace(/\s*(?:کا|کے|کی)\s*$/gi, "").replace(/^\s*(?:کا|کے|کی)\s*/gi, "").replace(/^(?:نام|title|name)\s*[:：\-]?\s*/gi, "").replace(/(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/gi, "").replace(/^(?:ہے|اس\s*کا|ایک|یہ)\s*/gi, "").replace(/\s*(?:ہے|اس\s*کا)\s*$/gi, "").replace(/\b(?:logo|bana|dein|karen|chahiye|image|picture)\b/gi, "").replace(/["'“”‘’«»()[\]]/g, "").trim();
+  if (!candidate || candidate.length < 2) {
+    candidate = "\u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC \u0648 \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645";
+  }
+  return candidate;
+}
 function generateIslamicEmblemSvg(rawName) {
-  const name = (rawName || "\u0633\u0644\u0645\u0627\u0646").trim();
+  const name = cleanLogoSubject(rawName || "\u0633\u0644\u0645\u0627\u0646");
   let fontSize = 150;
   if (name.length <= 4) {
     fontSize = 170;
@@ -7170,26 +7223,19 @@ function isLogoOrImageRequest(query) {
   if (!matched) {
     return { isRequest: false, subject: "", originalQuery: raw };
   }
-  let cleanSubject = raw;
-  cleanSubject = cleanSubject.replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "").replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "").replace(/^(?:میرے\s*نام\s*کا|میرے\s*نام\s*پر|میرے\s*نام|ہمارے\s*نام\s*کا|ہمارے\s*نام|اپنے\s*نام\s*کا)\s*/i, "").replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:شاہکار\s*)?(?:لگژری\s*)?(?:تھری\s*ڈی\s*)?(?:3d\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "").replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "").replace(/(?:شاہکار\s*)?(?:لگژری\s*)?(?:3d\s*)?(?:تھری\s*ڈی\s*)?(?:اسلامی\s*)?(?:لوگو|مونوگرام|تصویر)\s*$/gi, "").replace(/\s*(?:کے\s*نام\s*کا|کے\s*نام|کا\s*نام|نام\s*کا|نام\s*پر|نام)\s*$/gi, "").replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "").replace(/\s*(?:چاہیے|چاہئیے)\s*$/gi, "").replace(/\s*(?:کا|کے|کی)\s*$/gi, "").replace(/^\s*(?:کا|کے|کی)\s*/gi, "").replace(/^(?:نام|title|name)\s*[:：\-]?\s*/i, "").replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "").trim();
-  const quoteMatch = raw.match(/["'«]([^"'»]+)["'»]/);
-  if (quoteMatch && quoteMatch[1]?.trim()) {
-    cleanSubject = quoteMatch[1].trim();
-  }
-  if (!cleanSubject || cleanSubject.length < 2) {
-    cleanSubject = "\u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC \u0648 \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645";
-  }
+  const cleanSubject = cleanLogoSubject(raw);
   return { isRequest: true, subject: cleanSubject, originalQuery: raw };
 }
 app.get("/api/logo-svg", (req, res) => {
   try {
     const rawName = req.query.name || "\u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC";
-    const svg = generateIslamicEmblemSvg(rawName);
+    const cleanName = cleanLogoSubject(rawName);
+    const svg = generateIslamicEmblemSvg(cleanName);
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400");
     if (req.query.download === "true") {
-      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(rawName)}-3d-logo.svg"`);
+      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(cleanName)}-3d-logo.svg"`);
     }
     return res.send(svg);
   } catch (err) {
@@ -7257,7 +7303,7 @@ app.post("/api/chat", async (req, res) => {
         if (hMsg.text && (hMsg.text.includes("\u0644\u06AF\u0698\u0631\u06CC AI \u0644\u0648\u06AF\u0648 \u0627\u0648\u0631 \u062E\u0637\u0627\u0637\u06CC \u0633\u0631\u0648\u0633") || hMsg.text.includes("\u0644\u0648\u06AF\u0648 \u062D\u0627\u0635\u0644 \u06A9\u0631\u0646\u06D2 \u06A9\u06D2 \u0644\u06CC\u06D2"))) {
           const priorUserMsg = history[i - 1]?.text || "";
           const priorCheck = isLogoOrImageRequest(priorUserMsg);
-          const foundSubject = priorCheck.subject || clientUserName || "\u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC \u0648 \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645";
+          const foundSubject = cleanLogoSubject(priorCheck.subject || clientUserName || "\u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC \u0648 \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645");
           logoCheck = {
             isRequest: true,
             subject: foundSubject,
@@ -7307,7 +7353,7 @@ app.post("/api/chat", async (req, res) => {
         } catch {
         }
       }
-      const subject = logoCheck.subject;
+      const subject = cleanLogoSubject(logoCheck.subject);
       const emblemSvgUrl = `/api/logo-svg?name=${encodeURIComponent(subject)}`;
       const displayName = user?.name || clientUserName || subject;
       const logoSuccessReply = `### \u{1F451} **\u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u06AF\u0698\u0631\u06CC 3D \u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC \u0648 \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645 \u0644\u0648\u06AF\u0648**

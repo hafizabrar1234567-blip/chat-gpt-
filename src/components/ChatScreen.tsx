@@ -256,7 +256,8 @@ const LuxuryImageCard: React.FC<LuxuryImageCardProps> = ({ src = "", alt = "" })
 
   if (!src) return null;
 
-  const cleanTitle = alt?.replace(/ - شاہکار.*$/, "").trim() || "شاہکار اسلامی لوگو";
+  const cleanTitle =
+    (alt?.replace(/ - شاہکار.*$/, "").replace(/["'“”‘’«»()[\]]/g, "").trim()) || "شاہکار اسلامی لوگو";
   const downloadUrl = `${src}${src.includes("?") ? "&" : "?"}download=true`;
 
   const handleDownload = async (e: React.MouseEvent) => {
