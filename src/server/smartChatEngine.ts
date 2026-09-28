@@ -22,7 +22,8 @@ export type IslamicCategory =
   | "greeting"
   | "identity"
   | "general_islamic"
-  | "general_non_islamic";
+  | "general_non_islamic"
+  | "khutbah";
 
 // 1. DYNAMIC CATEGORY CLASSIFIER
 export function classifyIslamicQuery(message: string): IslamicCategory {

@@ -37,7 +37,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { IslamicLogo } from "./IslamicLogo";
-import { ChatMessage, ChatSession, BookRecord, LanguageOption } from "../types";
+import { ChatMessage, ChatSession, BookRecord, LanguageOption, UserAccount } from "../types";
 import {
   detectQuranAyah,
   getNodeText,

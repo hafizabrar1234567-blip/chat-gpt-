@@ -2880,7 +2880,7 @@ function getTodayDateString() {
 function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString("hex");
 }
-function findUserByEmail2(email) {
+function findUserByEmail(email) {
   const cleanEmail = email.trim().toLowerCase();
   for (const user of usersStore.values()) {
     if (user.email.toLowerCase() === cleanEmail) {
@@ -2891,7 +2891,7 @@ function findUserByEmail2(email) {
 }
 async function registerUser(email, password, name) {
   const cleanEmail = email.trim().toLowerCase();
-  let existing = findUserByEmail2(cleanEmail);
+  let existing = findUserByEmail(cleanEmail);
   if (!existing) {
     if (!isDatabaseConnected()) {
       try {
@@ -2953,7 +2953,7 @@ async function registerUser(email, password, name) {
 }
 async function loginUser(email, password) {
   const cleanEmail = email.trim().toLowerCase();
-  let user = findUserByEmail2(cleanEmail);
+  let user = findUserByEmail(cleanEmail);
   if (!user) {
     if (!isDatabaseConnected()) {
       try {
@@ -3071,7 +3071,7 @@ function logoutUser(token) {
 }
 async function requestForgotPassword(email) {
   const cleanEmail = email.trim().toLowerCase();
-  let user = findUserByEmail2(cleanEmail);
+  let user = findUserByEmail(cleanEmail);
   if (!user && isDatabaseConnected()) {
     const dbU = await dbFindUserByEmail(cleanEmail);
     if (dbU) {
@@ -3093,7 +3093,7 @@ async function requestForgotPassword(email) {
 }
 async function resetPasswordWithCode(email, code, newPassword) {
   const cleanEmail = email.trim().toLowerCase();
-  let user = findUserByEmail2(cleanEmail);
+  let user = findUserByEmail(cleanEmail);
   if (!user && isDatabaseConnected()) {
     const dbU = await dbFindUserByEmail(cleanEmail);
     if (dbU) {
@@ -3126,7 +3126,7 @@ async function resetPasswordWithCode(email, code, newPassword) {
 }
 async function loginOrRegisterGoogle(email, name) {
   const cleanEmail = email.trim().toLowerCase();
-  let user = findUserByEmail2(cleanEmail);
+  let user = findUserByEmail(cleanEmail);
   if (!user) {
     if (!isDatabaseConnected()) {
       try {
@@ -3210,7 +3210,7 @@ async function syncExternalUser(user) {
   if (!cleanEmail) {
     throw new Error("Email is required");
   }
-  let existing = findUserByEmail2(cleanEmail);
+  let existing = findUserByEmail(cleanEmail);
   if (!existing) {
     if (!isDatabaseConnected()) {
       try {
@@ -7023,7 +7023,7 @@ function isLogoOrImageRequest(query) {
     return { isRequest: false, subject: "", originalQuery: raw };
   }
   let cleanSubject = raw;
-  cleanSubject = cleanSubject.replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "").replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "").replace(/^(?:میرے\s*نام\s*کا|میرے\s*نام\s*پر|میرے\s*نام|ہمارے\s*نام\s*کا|ہمارے\s*نام|اپنے\s*نام\s*کا)\s*/i, "").replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:لگژری\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "").replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "").replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "").replace(/^(?:نام|title|name)\s*[:：\-]\s*/i, "").replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "").trim();
+  cleanSubject = cleanSubject.replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "").replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "").replace(/^(?:میرے\s*نام\s*کا|میرے\s*نام\s*پر|میرے\s*نام|ہمارے\s*نام\s*کا|ہمارے\s*نام|اپنے\s*نام\s*کا)\s*/i, "").replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:لگژری\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "").replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "").replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "").replace(/\s*(?:کا|کے|کی)\s*$/gi, "").replace(/^\s*(?:کا|کے|کی)\s*/gi, "").replace(/^(?:نام|title|name)\s*[:：\-]?\s*/i, "").replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "").trim();
   const quoteMatch = raw.match(/["'«]([^"'»]+)["'»]/);
   if (quoteMatch && quoteMatch[1]?.trim()) {
     cleanSubject = quoteMatch[1].trim();

@@ -65,6 +65,7 @@ export interface UserAccount {
   plan?: string;
   createdAt?: string;
   dailyUsage: DailyUsage;
+  token?: string;
 }
 
 // Supporting / Legacy types for complete build compatibility

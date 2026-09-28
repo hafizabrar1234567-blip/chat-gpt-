@@ -15,6 +15,7 @@ import {
   loginOrRegisterGoogle,
   getAllUsers,
   syncExternalUser,
+  findUserByEmail,
 } from "./src/server/authStore";
 import {
   getKnowledgeStore,
@@ -480,7 +481,9 @@ export function isLogoOrImageRequest(query: string): LogoRequestCheck {
     .replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:لگژری\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "")
     .replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "")
     .replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "")
-    .replace(/^(?:نام|title|name)\s*[:：\-]\s*/i, "")
+    .replace(/\s*(?:کا|کے|کی)\s*$/gi, "")
+    .replace(/^\s*(?:کا|کے|کی)\s*/gi, "")
+    .replace(/^(?:نام|title|name)\s*[:：\-]?\s*/i, "")
     .replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "")
     .trim();
 

@@ -10,6 +10,7 @@ import {
   Loader2,
   Volume2,
   Lock,
+  Unlock,
   Settings as SettingsIcon,
   Users,
   RefreshCw,
