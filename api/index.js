@@ -6627,6 +6627,154 @@ function sanitizeUrduIslamicContent(rawText) {
   return text;
 }
 
+// src/server/logoGenerator.ts
+function generateIslamicEmblemSvg(rawName) {
+  const name = (rawName || "\u0633\u0644\u0645\u0627\u0646").trim();
+  let fontSize = 150;
+  if (name.length <= 4) {
+    fontSize = 170;
+  } else if (name.length <= 8) {
+    fontSize = 140;
+  } else if (name.length <= 12) {
+    fontSize = 115;
+  } else {
+    fontSize = 90;
+  }
+  const rays = Array.from({ length: 48 }).map((_, i) => {
+    const angle = i * 7.5 * Math.PI / 180;
+    const x2 = (512 + 475 * Math.cos(angle)).toFixed(1);
+    const y2 = (512 + 475 * Math.sin(angle)).toFixed(1);
+    return `<line x1="512" y1="512" x2="${x2}" y2="${y2}"/>`;
+  }).join("\n    ");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" dir="rtl">
+  <defs>
+    <!-- Deep Royal Emerald Velvet Radial -->
+    <radialGradient id="emeraldBase" cx="50%" cy="50%" r="68%">
+      <stop offset="0%" stop-color="#0a4630"/>
+      <stop offset="35%" stop-color="#052c1e"/>
+      <stop offset="70%" stop-color="#02170f"/>
+      <stop offset="100%" stop-color="#000805"/>
+    </radialGradient>
+
+    <!-- Inner Medallion Gradient -->
+    <radialGradient id="innerPlate" cx="45%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#0b3f2c"/>
+      <stop offset="50%" stop-color="#042016"/>
+      <stop offset="100%" stop-color="#010d08"/>
+    </radialGradient>
+
+    <!-- 24K Polished Metallic Gold Gradient (Multi-Stop Reflections) -->
+    <linearGradient id="gold24k" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF8D6"/>
+      <stop offset="15%" stop-color="#F9C650"/>
+      <stop offset="30%" stop-color="#FFE888"/>
+      <stop offset="50%" stop-color="#BD7E12"/>
+      <stop offset="70%" stop-color="#FFDD68"/>
+      <stop offset="85%" stop-color="#8E5404"/>
+      <stop offset="100%" stop-color="#FFF2B8"/>
+    </linearGradient>
+
+    <linearGradient id="goldLight" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="50%" stop-color="#FFFBEB"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+
+    <!-- 3D Bevel & Emboss Shadow Filter -->
+    <filter id="gold3dFilter" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.95"/>
+      <feDropShadow dx="0" dy="-2" stdDeviation="2" flood-color="#FFFCE6" flood-opacity="0.65"/>
+    </filter>
+
+    <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#FBBF24" flood-opacity="0.5"/>
+    </filter>
+
+    <filter id="text3dShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.95"/>
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.75"/>
+      <feDropShadow dx="0" dy="-1" stdDeviation="1.5" flood-color="#FFFDE0" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1024" height="1024" fill="url(#emeraldBase)"/>
+
+  <!-- Radiant Golden Sacred Sunbeam Rays -->
+  <g opacity="0.07" stroke="url(#gold24k)" stroke-width="1.8">
+    ${rays}
+  </g>
+
+  <!-- Corner Islamic Arabesque Ornaments -->
+  <g opacity="0.45" stroke="url(#gold24k)" stroke-width="2.5" fill="none">
+    <!-- Top-Left Corner -->
+    <path d="M 40 140 C 40 85 85 40 140 40 L 140 70 C 100 70 70 100 70 140 Z"/>
+    <circle cx="95" cy="95" r="8" fill="url(#gold24k)"/>
+    <!-- Top-Right Corner -->
+    <path d="M 984 140 C 984 85 939 40 884 40 L 884 70 C 924 70 954 100 954 140 Z"/>
+    <circle cx="929" cy="95" r="8" fill="url(#gold24k)"/>
+    <!-- Bottom-Left Corner -->
+    <path d="M 40 884 C 40 939 85 984 140 984 L 140 954 C 100 954 70 924 70 884 Z"/>
+    <circle cx="95" cy="929" r="8" fill="url(#gold24k)"/>
+    <!-- Bottom-Right Corner -->
+    <path d="M 984 884 C 984 939 939 984 884 984 L 884 954 C 924 954 954 924 954 884 Z"/>
+    <circle cx="929" cy="929" r="8" fill="url(#gold24k)"/>
+  </g>
+
+  <!-- Outer Concentric Borders -->
+  <circle cx="512" cy="512" r="485" fill="none" stroke="url(#gold24k)" stroke-width="7" filter="url(#gold3dFilter)"/>
+  <circle cx="512" cy="512" r="468" fill="none" stroke="url(#goldLight)" stroke-width="2" stroke-dasharray="8 6"/>
+  <circle cx="512" cy="512" r="452" fill="none" stroke="url(#gold24k)" stroke-width="3"/>
+
+  <!-- Islamic 8-Point Rub El Hizb Star Interlace -->
+  <g transform="translate(512,512)" fill="none" stroke="url(#gold24k)" stroke-width="3" opacity="0.8" filter="url(#subtleGlow)">
+    <rect x="-355" y="-355" width="710" height="710" rx="36"/>
+    <rect x="-355" y="-355" width="710" height="710" rx="36" transform="rotate(45)"/>
+  </g>
+
+  <!-- Main Medallion Central Plate -->
+  <circle cx="512" cy="512" r="335" fill="url(#innerPlate)" stroke="url(#gold24k)" stroke-width="6.5" filter="url(#gold3dFilter)"/>
+  <circle cx="512" cy="512" r="312" fill="none" stroke="url(#goldLight)" stroke-width="1.8" stroke-dasharray="4 6" opacity="0.6"/>
+
+  <!-- Decorative Top Islamic Inscription: Bismillah -->
+  <text x="512" y="278" font-family="'Amiri Quran', 'Amiri', 'Scheherazade New', serif" font-size="30" fill="url(#goldLight)" text-anchor="middle" letter-spacing="4" filter="url(#subtleGlow)">
+    \uFDFD
+  </text>
+
+  <!-- Top Golden Crescent & Crown Ornament -->
+  <g transform="translate(512, 322)" fill="none" stroke="url(#gold24k)" stroke-width="2.5" filter="url(#subtleGlow)">
+    <path d="M -110 -5 Q 0 15 110 -5"/>
+    <circle cx="0" cy="9" r="5" fill="url(#gold24k)"/>
+    <polygon points="0,-18 5,-8 15,-8 7,-2 10,8 0,2 -10,8 -7,-2 -15,-8 -5,-8" fill="url(#gold24k)"/>
+  </g>
+
+  <!-- \u{1F451} MAIN USER NAME CALLIGRAPHY (Crystal Clear, Bold, Majestic 3D Gold) -->
+  <text x="512" y="555" font-family="'Noto Nastaliq Urdu', 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', serif" font-size="${fontSize}" font-weight="bold" fill="url(#gold24k)" text-anchor="middle" filter="url(#text3dShadow)">
+    ${name}
+  </text>
+
+  <!-- Bottom Arch & Rosette Divider -->
+  <g transform="translate(512, 622)" fill="none" stroke="url(#gold24k)" stroke-width="2.5" filter="url(#subtleGlow)">
+    <path d="M -120 5 Q 0 -15 120 5"/>
+    <circle cx="0" cy="-9" r="5" fill="url(#gold24k)"/>
+    <polygon points="0,-15 4,-9 10,-9 5,-5 7,1 0,-3 -7,1 -5,-5 -10,-9 -4,-9" fill="url(#gold24k)"/>
+  </g>
+
+  <!-- Subtitle Ribbon Badge with Royal Golden Border -->
+  <g transform="translate(512, 698)" filter="url(#gold3dFilter)">
+    <rect x="-210" y="-24" width="420" height="48" rx="24" fill="#01130b" stroke="url(#gold24k)" stroke-width="2.5"/>
+    <text x="0" y="8" font-family="'Noto Nastaliq Urdu', 'Amiri', sans-serif" font-size="22" font-weight="bold" fill="url(#goldLight)" text-anchor="middle">
+      \u0634\u0627\u06C1\u06A9\u0627\u0631 \u062E\u0637\u0627\u0637\u06CC \u0648 \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645
+    </text>
+  </g>
+
+  <!-- Bottom Luxury Hallmark Stamp -->
+  <text x="512" y="812" font-family="'Plus Jakarta Sans', sans-serif" font-size="13" font-weight="bold" fill="url(#gold24k)" text-anchor="middle" letter-spacing="5" opacity="0.85">
+    24K GOLD 3D EMBOSSED \u2022 ISLAMIC EMBLEM
+  </text>
+</svg>`;
+}
+
 // server.ts
 import fs4 from "fs";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -7023,7 +7171,7 @@ function isLogoOrImageRequest(query) {
     return { isRequest: false, subject: "", originalQuery: raw };
   }
   let cleanSubject = raw;
-  cleanSubject = cleanSubject.replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "").replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "").replace(/^(?:میرے\s*نام\s*کا|میرے\s*نام\s*پر|میرے\s*نام|ہمارے\s*نام\s*کا|ہمارے\s*نام|اپنے\s*نام\s*کا)\s*/i, "").replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:لگژری\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "").replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "").replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "").replace(/\s*(?:کا|کے|کی)\s*$/gi, "").replace(/^\s*(?:کا|کے|کی)\s*/gi, "").replace(/^(?:نام|title|name)\s*[:：\-]?\s*/i, "").replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "").trim();
+  cleanSubject = cleanSubject.replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "").replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "").replace(/^(?:میرے\s*نام\s*کا|میرے\s*نام\s*پر|میرے\s*نام|ہمارے\s*نام\s*کا|ہمارے\s*نام|اپنے\s*نام\s*کا)\s*/i, "").replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:شاہکار\s*)?(?:لگژری\s*)?(?:تھری\s*ڈی\s*)?(?:3d\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "").replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "").replace(/(?:شاہکار\s*)?(?:لگژری\s*)?(?:3d\s*)?(?:تھری\s*ڈی\s*)?(?:اسلامی\s*)?(?:لوگو|مونوگرام|تصویر)\s*$/gi, "").replace(/\s*(?:کے\s*نام\s*کا|کے\s*نام|کا\s*نام|نام\s*کا|نام\s*پر|نام)\s*$/gi, "").replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "").replace(/\s*(?:چاہیے|چاہئیے)\s*$/gi, "").replace(/\s*(?:کا|کے|کی)\s*$/gi, "").replace(/^\s*(?:کا|کے|کی)\s*/gi, "").replace(/^(?:نام|title|name)\s*[:：\-]?\s*/i, "").replace(/^(?:جس\s*پر\s*لکھا\s*ہو|جس\s*میں|جس\s*کا\s*نام)\s*/i, "").trim();
   const quoteMatch = raw.match(/["'«]([^"'»]+)["'»]/);
   if (quoteMatch && quoteMatch[1]?.trim()) {
     cleanSubject = quoteMatch[1].trim();
@@ -7033,6 +7181,22 @@ function isLogoOrImageRequest(query) {
   }
   return { isRequest: true, subject: cleanSubject, originalQuery: raw };
 }
+app.get("/api/logo-svg", (req, res) => {
+  try {
+    const rawName = req.query.name || "\u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC";
+    const svg = generateIslamicEmblemSvg(rawName);
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400");
+    if (req.query.download === "true") {
+      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(rawName)}-3d-logo.svg"`);
+    }
+    return res.send(svg);
+  } catch (err) {
+    console.error("Logo SVG generation error:", err);
+    return res.status(500).send("Error generating emblem");
+  }
+});
 app.get("/api/image-proxy", async (req, res) => {
   try {
     const targetUrl = req.query.url;
@@ -7144,30 +7308,24 @@ app.post("/api/chat", async (req, res) => {
         }
       }
       const subject = logoCheck.subject;
-      const promptEncoded = encodeURIComponent(
-        `Luxury 3D embossed metallic gold Arabic and Urdu calligraphy emblem for '${subject}', circular dark emerald green marble medallion, exquisite Thuluth calligraphy art, intricate Islamic geometric arabesque border in pure gold, soft cinematic studio lighting, premium photorealistic jewelry badge aesthetic, 8k resolution, centered composition, opulent Islamic masterpiece`
-      );
-      const seed = Math.floor(Math.random() * 9e5) + 1e5;
-      const directImageUrl = `https://image.pollinations.ai/prompt/${promptEncoded}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`;
-      const proxiedImageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}&name=${encodeURIComponent(subject)}`;
+      const emblemSvgUrl = `/api/logo-svg?name=${encodeURIComponent(subject)}`;
       const displayName = user?.name || clientUserName || subject;
-      const logoSuccessReply = `### \u{1F451} **\u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u06AF\u0698\u0631\u06CC 3D \u0627\u0633\u0644\u0627\u0645\u06CC \u0644\u0648\u06AF\u0648**
+      const logoSuccessReply = `### \u{1F451} **\u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u06AF\u0698\u0631\u06CC 3D \u0627\u0633\u0644\u0627\u0645\u06CC \u062E\u0637\u0627\u0637\u06CC \u0648 \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645 \u0644\u0648\u06AF\u0648**
 
-\u0645\u062D\u062A\u0631\u0645 **${displayName}**! \u0622\u067E \u06A9\u06CC \u0641\u0631\u0645\u0627\u0626\u0634 \u06A9\u06D2 \u0645\u0637\u0627\u0628\u0642 \u062E\u0627\u0644\u0635 3D \u06AF\u0648\u0644\u0688\u0646 \u062E\u0637\u0627\u0637\u06CC\u060C \u0634\u0627\u06C1\u06CC \u0632\u0645\u0631\u062F\u06CC \u0645\u0627\u0631\u0628\u0644 \u0627\u0648\u0631 \u0633\u0646\u06C1\u0631\u06CC \u0627\u0633\u0644\u0627\u0645\u06CC \u0646\u0642\u0648\u0634 \u067E\u0631 \u0645\u0634\u062A\u0645\u0644 \u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u0648\u06AF\u0648 \u062A\u06CC\u0627\u0631 \u06A9\u0631 \u062F\u06CC\u0627 \u06AF\u06CC\u0627 \u06C1\u06D2:
+\u0645\u062D\u062A\u0631\u0645 **${displayName}**! \u0622\u067E \u06A9\u06CC \u0641\u0631\u0645\u0627\u0626\u0634 \u06A9\u06D2 \u0645\u0637\u0627\u0628\u0642 \u062E\u0627\u0644\u0635 **3D \u0633\u0646\u06C1\u0631\u06CC \u062E\u0637\u0627\u0637\u06CC (24K Embossed Gold)**\u060C \u0634\u0627\u06C1\u06CC \u0632\u0645\u0631\u062F\u06CC \u0645\u0627\u0631\u0628\u0644 \u0627\u0648\u0631 \u0627\u0633\u0644\u0627\u0645\u06CC \u0646\u0642\u0648\u0634 \u06A9\u06D2 \u0633\u0627\u062A\u06BE **\xAB${subject}\xBB** \u06A9\u0627 \u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u0648\u06AF\u0648 \u062A\u06CC\u0627\u0631 \u06A9\u0631 \u062F\u06CC\u0627 \u06AF\u06CC\u0627 \u06C1\u06D2:
 
-![${subject} - \u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u06AF\u0698\u0631\u06CC \u0627\u0633\u0644\u0627\u0645\u06CC \u0644\u0648\u06AF\u0648](${proxiedImageUrl})
+![${subject} - \u0634\u0627\u06C1\u06A9\u0627\u0631 \u0644\u06AF\u0698\u0631\u06CC \u0627\u0633\u0644\u0627\u0645\u06CC \u0644\u0648\u06AF\u0648](${emblemSvgUrl})
 
 \u2728 **\u0644\u0648\u06AF\u0648 \u06A9\u06CC \u062A\u0641\u0635\u06CC\u0644\u0627\u062A:**
-- **\u0639\u0646\u0648\u0627\u0646 / \u0646\u0627\u0645:** \xAB${subject}\xBB
-- **\u0627\u0646\u062F\u0627\u0632:** \u062E\u0627\u0644\u0635 3D \u0627\u06CC\u0645\u0628\u0648\u0633\u0688 \u06AF\u0648\u0644\u0688 (24K Embossed Metallic Gold)
-- **\u062E\u0637\u0627\u0637\u06CC:** \u0634\u0627\u06C1\u06A9\u0627\u0631 \u062B\u0644\u062B \u0648 \u062F\u06CC\u0648\u0627\u0646\u06CC \u062E\u0637\u0627\u0637\u06CC \u0645\u0639 \u0627\u0633\u0644\u0627\u0645\u06CC \u0646\u0642\u0648\u0634
-- **\u0628\u06CC\u06A9 \u06AF\u0631\u0627\u0624\u0646\u0688:** \u0634\u0627\u06C1\u06CC \u0632\u0645\u0631\u062F\u06CC \u0645\u0627\u0631\u0628\u0644 \u0645\u06CC\u0688\u0644\u06CC\u0646 (Royal Emerald Marble Medallion)
+- **\u0646\u0627\u0645 / \u062E\u0637\u0627\u0637\u06CC:** \xAB${subject}\xBB (\u0648\u0627\u0636\u062D\u060C \u0645\u0633\u062A\u0646\u062F \u0627\u0648\u0631 \u062E\u0648\u0628\u0635\u0648\u0631\u062A \u0633\u0646\u06C1\u0631\u06CC 3D \u062E\u0637\u0627\u0637\u06CC)
+- **\u0627\u0646\u062F\u0627\u0632:** \u062E\u0627\u0644\u0635 24 \u0642\u06CC\u0631\u0627\u0637 \u0686\u0645\u06A9\u062F\u0627\u0631 \u0633\u0646\u06C1\u0631\u06CC \u0646\u0642\u0648\u0634 (24K Gold 3D Emblem)
+- **\u067E\u0633 \u0645\u0646\u0638\u0631:** \u0634\u0627\u06C1\u06CC \u0632\u0645\u0631\u062F\u06CC \u0645\u062E\u0645\u0644 \u0645\u0627\u0631\u0628\u0644 \u0645\u06CC\u0688\u0644\u06CC\u0646 (Royal Emerald Velvet Medallion)
 - **\u0627\u0633\u062A\u0639\u0645\u0627\u0644:** \u0648\u0627\u0679\u0633 \u0627\u06CC\u067E \u0688\u06CC \u067E\u06CC (WhatsApp DP)\u060C \u067E\u0631\u0648\u0641\u0627\u0626\u0644\u060C \u0645\u0648\u0646\u0648\u06AF\u0631\u0627\u0645 \u0627\u0648\u0631 \u067E\u0631\u0646\u0679\u0646\u06AF \u06A9\u06D2 \u0644\u06CC\u06D2 \u0628\u06C1\u062A\u0631\u06CC\u0646\u06D4`;
       if (isStreamRequest) {
         res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
         res.setHeader("Cache-Control", "no-cache, no-transform");
         res.setHeader("Connection", "keep-alive");
-        res.write(`data: ${JSON.stringify({ chunk: logoSuccessReply, done: true, reply: logoSuccessReply, isLogoGenerated: true, imageUrl: proxiedImageUrl })}
+        res.write(`data: ${JSON.stringify({ chunk: logoSuccessReply, done: true, reply: logoSuccessReply, isLogoGenerated: true, imageUrl: emblemSvgUrl })}
 
 `);
         return res.end();
@@ -7176,7 +7334,7 @@ app.post("/api/chat", async (req, res) => {
         success: true,
         reply: logoSuccessReply,
         isLogoGenerated: true,
-        imageUrl: proxiedImageUrl
+        imageUrl: emblemSvgUrl
       });
     }
     if (!apiKey) {

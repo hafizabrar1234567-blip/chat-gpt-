@@ -38,6 +38,7 @@ import {
   connectToDatabase,
   isDatabaseConnected,
 } from "./src/server/db/database";
+import { generateIslamicEmblemSvg } from "./src/server/logoGenerator";
 import fs from "fs";
 
 // Ensure Node TLS handles local Windows certificate proxies cleanly
@@ -478,9 +479,12 @@ export function isLogoOrImageRequest(query: string): LogoRequestCheck {
     .replace(/^(?:براہ\s*مہربانی|برائے\s*مہربانی|مہربانی\s*فرما\s*کر|پلیز|please)\s*/i, "")
     .replace(/^(?:مجھے|ہمیں|میرے\s*لیے|ہماری\s*لیے|میرا|میری)\s*/i, "")
     .replace(/^(?:میرے\s*نام\s*کا|میرے\s*نام\s*پر|میرے\s*نام|ہمارے\s*نام\s*کا|ہمارے\s*نام|اپنے\s*نام\s*کا)\s*/i, "")
-    .replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:لگژری\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "")
+    .replace(/(?:اس\s*طرح\s*کا\s*)?(?:ایک\s*)?(?:شاہکار\s*)?(?:لگژری\s*)?(?:تھری\s*ڈی\s*)?(?:3d\s*)?(?:اسلامی\s*)?(?:لوگو|تصویر|مونوگرام|ڈی\s*پی|نام\s*کا\s*ڈیزائن|نام\s*کی\s*خطاطی|خطاطی)\s*(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|بناؤ|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں|لکھیں|چاہیے|چاہئیے)\s*(?:جس\s*پر\s*لکھا\s*ہو)?\s*/gi, "")
     .replace(/(?:بنا\s*دیں|بنا\s*کر\s*دیں|بنائیں|تیار\s*کریں|ڈیزائن\s*کریں|لکھ\s*کر\s*دیں)\s*$/gi, "")
+    .replace(/(?:شاہکار\s*)?(?:لگژری\s*)?(?:3d\s*)?(?:تھری\s*ڈی\s*)?(?:اسلامی\s*)?(?:لوگو|مونوگرام|تصویر)\s*$/gi, "")
+    .replace(/\s*(?:کے\s*نام\s*کا|کے\s*نام|کا\s*نام|نام\s*کا|نام\s*پر|نام)\s*$/gi, "")
     .replace(/(?:کا\s*لوگو|کے\s*نام\s*کا|کے\s*نام|نام\s*کا|کا\s*مونوگرام|کی\s*خطاطی)\s*/gi, "")
+    .replace(/\s*(?:چاہیے|چاہئیے)\s*$/gi, "")
     .replace(/\s*(?:کا|کے|کی)\s*$/gi, "")
     .replace(/^\s*(?:کا|کے|کی)\s*/gi, "")
     .replace(/^(?:نام|title|name)\s*[:：\-]?\s*/i, "")
@@ -498,6 +502,25 @@ export function isLogoOrImageRequest(query: string): LogoRequestCheck {
 
   return { isRequest: true, subject: cleanSubject, originalQuery: raw };
 }
+
+// 🎨 DYNAMIC 3D ISLAMIC EMBLEM LOGO GENERATOR (SVG / Ultra HD)
+app.get("/api/logo-svg", (req, res) => {
+  try {
+    const rawName = (req.query.name as string) || "اسلامی خطاطی";
+    const svg = generateIslamicEmblemSvg(rawName);
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=86400");
+    if (req.query.download === "true") {
+      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(rawName)}-3d-logo.svg"`);
+    }
+    return res.send(svg);
+  } catch (err: any) {
+    console.error("Logo SVG generation error:", err);
+    return res.status(500).send("Error generating emblem");
+  }
+});
 
 // Image Proxy Endpoint for secure cross-origin rendering and direct HD downloading
 app.get("/api/image-proxy", async (req, res) => {
@@ -642,39 +665,33 @@ app.post("/api/chat", async (req, res) => {
       }
 
       const subject = logoCheck.subject;
-      const promptEncoded = encodeURIComponent(
-        `Luxury 3D embossed metallic gold Arabic and Urdu calligraphy emblem for '${subject}', circular dark emerald green marble medallion, exquisite Thuluth calligraphy art, intricate Islamic geometric arabesque border in pure gold, soft cinematic studio lighting, premium photorealistic jewelry badge aesthetic, 8k resolution, centered composition, opulent Islamic masterpiece`
-      );
-      const seed = Math.floor(Math.random() * 900000) + 100000;
-      const directImageUrl = `https://image.pollinations.ai/prompt/${promptEncoded}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`;
-      const proxiedImageUrl = `/api/image-proxy?url=${encodeURIComponent(directImageUrl)}&name=${encodeURIComponent(subject)}`;
-
+      const emblemSvgUrl = `/api/logo-svg?name=${encodeURIComponent(subject)}`;
       const displayName = user?.name || clientUserName || subject;
-      const logoSuccessReply = `### 👑 **شاہکار لگژری 3D اسلامی لوگو**
 
-محترم **${displayName}**! آپ کی فرمائش کے مطابق خالص 3D گولڈن خطاطی، شاہی زمردی ماربل اور سنہری اسلامی نقوش پر مشتمل شاہکار لوگو تیار کر دیا گیا ہے:
+      const logoSuccessReply = `### 👑 **شاہکار لگژری 3D اسلامی خطاطی و مونوگرام لوگو**
 
-![${subject} - شاہکار لگژری اسلامی لوگو](${proxiedImageUrl})
+محترم **${displayName}**! آپ کی فرمائش کے مطابق خالص **3D سنہری خطاطی (24K Embossed Gold)**، شاہی زمردی ماربل اور اسلامی نقوش کے ساتھ **«${subject}»** کا شاہکار لوگو تیار کر دیا گیا ہے:
+
+![${subject} - شاہکار لگژری اسلامی لوگو](${emblemSvgUrl})
 
 ✨ **لوگو کی تفصیلات:**
-- **عنوان / نام:** «${subject}»
-- **انداز:** خالص 3D ایمبوسڈ گولڈ (24K Embossed Metallic Gold)
-- **خطاطی:** شاہکار ثلث و دیوانی خطاطی مع اسلامی نقوش
-- **بیک گراؤنڈ:** شاہی زمردی ماربل میڈلین (Royal Emerald Marble Medallion)
+- **نام / خطاطی:** «${subject}» (واضح، مستند اور خوبصورت سنہری 3D خطاطی)
+- **انداز:** خالص 24 قیراط چمکدار سنہری نقوش (24K Gold 3D Emblem)
+- **پس منظر:** شاہی زمردی مخمل ماربل میڈلین (Royal Emerald Velvet Medallion)
 - **استعمال:** واٹس ایپ ڈی پی (WhatsApp DP)، پروفائل، مونوگرام اور پرنٹنگ کے لیے بہترین۔`;
 
       if (isStreamRequest) {
         res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
         res.setHeader("Cache-Control", "no-cache, no-transform");
         res.setHeader("Connection", "keep-alive");
-        res.write(`data: ${JSON.stringify({ chunk: logoSuccessReply, done: true, reply: logoSuccessReply, isLogoGenerated: true, imageUrl: proxiedImageUrl })}\n\n`);
+        res.write(`data: ${JSON.stringify({ chunk: logoSuccessReply, done: true, reply: logoSuccessReply, isLogoGenerated: true, imageUrl: emblemSvgUrl })}\n\n`);
         return res.end();
       }
       return res.json({
         success: true,
         reply: logoSuccessReply,
         isLogoGenerated: true,
-        imageUrl: proxiedImageUrl,
+        imageUrl: emblemSvgUrl,
       });
     }
 

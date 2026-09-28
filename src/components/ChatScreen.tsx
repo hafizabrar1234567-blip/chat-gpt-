@@ -252,11 +252,52 @@ interface LuxuryImageCardProps {
 const LuxuryImageCard: React.FC<LuxuryImageCardProps> = ({ src = "", alt = "" }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   if (!src) return null;
 
   const cleanTitle = alt?.replace(/ - شاہکار.*$/, "").trim() || "شاہکار اسلامی لوگو";
   const downloadUrl = `${src}${src.includes("?") ? "&" : "?"}download=true`;
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDownloading(true);
+    try {
+      if (src.includes("/api/logo-svg") || src.endsWith(".svg")) {
+        const fullSvgUrl = src.startsWith("http") ? src : `${window.location.origin}${src}`;
+        const res = await fetch(fullSvgUrl);
+        const svgText = await res.text();
+        const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+        const blobUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = 2048;
+          canvas.height = 2048;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, 2048, 2048);
+            const pngUrl = canvas.toDataURL("image/png");
+            const a = document.createElement("a");
+            a.download = `${cleanTitle}-3D-Logo.png`;
+            a.href = pngUrl;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+            setIsDownloading(false);
+          }
+        };
+        img.src = blobUrl;
+        return;
+      }
+      window.open(downloadUrl, "_blank");
+    } catch {
+      window.open(downloadUrl, "_blank");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <>
@@ -317,16 +358,15 @@ const LuxuryImageCard: React.FC<LuxuryImageCardProps> = ({ src = "", alt = "" })
         {/* Action Controls Bar */}
         <div className="mt-3 pt-2.5 border-t border-amber-400/25 flex items-center justify-between gap-2 relative z-10">
           {/* Direct HD Download Button */}
-          <a
-            href={downloadUrl}
-            download
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-bold text-xs sm:text-sm font-urdu shadow-lg shadow-amber-900/30 active:scale-95 transition-all no-underline cursor-pointer"
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-bold text-xs sm:text-sm font-urdu shadow-lg shadow-amber-900/30 active:scale-95 transition-all cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            <span>HD ڈاؤنلوڈ کریں</span>
-          </a>
+            <span>{isDownloading ? "ڈاؤنلوڈ جاری ہے..." : "HD ڈاؤنلوڈ کریں (PNG)"}</span>
+          </button>
 
           {/* Full Screen View Button */}
           <button
@@ -377,16 +417,15 @@ const LuxuryImageCard: React.FC<LuxuryImageCardProps> = ({ src = "", alt = "" })
             </div>
             <img src={src} alt={alt} className="w-full max-h-[70vh] object-contain rounded-2xl mx-auto" />
             <div className="mt-3 flex justify-end gap-2">
-              <a
-                href={downloadUrl}
-                download
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 font-bold text-xs font-urdu rounded-xl no-underline cursor-pointer shadow-md"
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 font-bold text-xs font-urdu rounded-xl cursor-pointer shadow-md active:scale-95 transition-all"
               >
                 <Download className="w-4 h-4" />
-                <span>HD ڈاؤنلوڈ کریں</span>
-              </a>
+                <span>{isDownloading ? "ڈاؤنلوڈ جاری ہے..." : "HD ڈاؤنلوڈ کریں (PNG)"}</span>
+              </button>
             </div>
           </div>
         </div>
